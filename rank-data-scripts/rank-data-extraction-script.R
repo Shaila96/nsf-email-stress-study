@@ -85,7 +85,6 @@ extract_biographic_info <- function() {
                                "NationalityOthers", "NativeLang", "NativeLangOthers",
                                "Education", "Occupation", "ProficiencyEnglish", "EmailUsingFreq")
   
-  
   apply(biographic_df, 1, function(each_row) extract_bio_info_each_subj(each_row))
   convert_to_csv(bio_final_df, file.path(db_data_path, 'biographic.csv'))
 }
@@ -93,7 +92,8 @@ extract_biographic_info <- function() {
 
 #---- Perceived Stress Scale ----#
 get_pss_score <- function(current_subj) {
-  
+  pss_score <- current_subj['PSS-Q1']
+  return(pss_score)
 }
 
 
@@ -117,12 +117,15 @@ extract_scale_score <- function() {
   #---- NOTE: YOU HAVE TO CALCULATE ALL SCALES FOR ONE SUBJECT, THEN GO FOR NEXT RWOW/SUBJECT ----#
   
   scale_df <- pre_survey_df[, c(22, seq(33, 42))]
-  # print(str(pre_survey_pss_df))
+  # print(str(scale_df))
+  print(tail(scale_df, 2))
   colnames(scale_df) <- c("SubjectID", 
                            "PSS-Q1", "PSS-Q2", "PSS-Q3", "PSS-Q4", "PSS-Q5", 
                            "PSS-Q6", "PSS-Q7", "PSS-Q8", "PSS-Q9", "PSS-Q10")
 
   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
+  print(head(scale_score_df, 2))
+  print(tail(scale_score_df, 2))
   # convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
 }
 
