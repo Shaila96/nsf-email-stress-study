@@ -1,8 +1,9 @@
 #-------------------------#
 #--------LIBRARIES--------#
 #-------------------------#
-library('readr')
-library('tibble')
+library(readr)
+library(tibble)
+library(dplyr)
 
 
 #-------------------------#
@@ -14,12 +15,15 @@ data_path <- 'data'
 db_data_path <- 'data-for-db'
 
 pre_survey_file_name <- 'pre-survey.csv'
+post_survey_file_name <- 'post-survey.csv'
 
 na_val <- 'NA'
 
 bio_final_df <- tibble()
 scale_score_df <- tibble()
+
 pre_survey_df <- tibble()
+post_survey_df <- tibble()
 
 
 #-------------------------#
@@ -30,6 +34,7 @@ pre_survey_df <- tibble()
 set_dir_and_read_data <- function() {
   setwd(current_dir)
   pre_survey_df <<- read_csv(file.path(data_path, pre_survey_file_name))
+  post_survey_df <<- read_csv(file.path(data_path, post_survey_file_name))
 }
 
 convert_to_csv <- function(df, file_path) {
@@ -115,22 +120,53 @@ get_pss_score <- function(subj) {
 }
 
 
+get_erq_cog_score <- function(subj) {
+  erq_cog_score <- as.numeric(subj['ERQ_Q1']) + as.numeric(subj['ERQ_Q3']) + 
+    as.numeric(subj['ERQ_Q5']) + as.numeric(subj['ERQ_Q7']) + 
+    as.numeric(subj['ERQ_Q8']) + as.numeric(subj['PSS_Q10'])
+  
+  return(erq_cog_score)
+}
+
+get_erq_sup_score <- function(subj) {
+  erq_sup_score <- as.numeric(subj['ERQ_Q2']) + as.numeric(subj['ERQ_Q4']) + 
+    as.numeric(subj['ERQ_Q6']) + as.numeric(subj['ERQ_Q9'])
+  
+  return(erq_sup_score)
+}
+
+
 extract_scale_score_each_row <- function(current_subj) {
   # extract_pss_score(current_subj) #---- Perceived Stress Scale ----#
   # extract_big_five_score(current_subj) #---- Big Five Questionnaire ----#
 
-  scale_df_temp <- tibble("Subject" = current_subj['SubjectID'],
+  scale_pss_df_temp <- tibble("Subject" = current_subj['SubjectID'],
                           "GraphType" = "Scale",
                           "Division" = "Pre Exp",
                           "ScaleTitle" = "Percieved Stress Scale",
-                          "ScaleValue" = get_pss_score(current_subj))
+                          "ScaleValue" = get_pss_score(current_subj),
+                          "MinVal" = 0,
+                          "MaxVal" = 40)
   
-  # scale_df_temp <- tibble("Subject" = current_subj['SubjectID'],
-  #                         "GraphType" = "Scale",
-  #                         "Division" = "Pre Exp",
-  #                         "ScaleTitle" = "Percieved Stress Scale",
-  #                         "ScaleValue" = get_pss_score(current_subj))
-
+  scale_erq_cog_df_temp <- tibble("Subject" = current_subj['SubjectID'],
+                          "GraphType" = "Scale",
+                          "Division" = "Post Exp",
+                          "ScaleTitle" = "Emotion Regulation: Cognitive Reappraisal",
+                          "ScaleValue" = get_erq_cog_score(current_subj),
+                          "MinVal" = 6,
+                          "MaxVal" = 42)
+  
+  scale_erq_sup_df_temp <- tibble("Subject" = current_subj['SubjectID'],
+                          "GraphType" = "Scale",
+                          "Division" = "Post Exp",
+                          "ScaleTitle" = "Emotion Regulation: Expressive Suppression",
+                          "ScaleValue" = get_erq_sup_score(current_subj),
+                          "MinVal" = 4,
+                          "MaxVal" = 28)
+  
+  
+  scale_df_temp <- rbind(scale_pss_df_temp, scale_erq_cog_df_temp, scale_erq_sup_df_temp)
+  
   if (nrow(scale_score_df) == 0) {
     scale_score_df <<- scale_df_temp
   } else {
@@ -142,18 +178,30 @@ extract_scale_score_each_row <- function(current_subj) {
 extract_scale_score <- function() {
   #---- NOTE: YOU HAVE TO CALCULATE ALL SCALES FOR ONE SUBJECT, THEN GO FOR NEXT RWOW/SUBJECT ----#
   
-  scale_df <- pre_survey_df[, c(22, seq(33, 42))]
-  # print(str(scale_df))
-  # print(tail(scale_df, 2))
-  colnames(scale_df) <- c("SubjectID", 
-                           "PSS_Q1", "PSS_Q2", "PSS_Q3", "PSS_Q4", "PSS_Q5", 
+  pre_scale_df <- pre_survey_df[, c(22, seq(33, 42))]
+  post_scale_df <- post_survey_df[, c(22, seq(30, 39))]
+  
+  colnames(pre_scale_df) <- c("SubjectID",
+                           "PSS_Q1", "PSS_Q2", "PSS_Q3", "PSS_Q4", "PSS_Q5",
                            "PSS_Q6", "PSS_Q7", "PSS_Q8", "PSS_Q9", "PSS_Q10")
-
+  
+  colnames(post_scale_df) <- c("SubjectID",
+                              "ERQ_Q1", "ERQ_Q2", "ERQ_Q3", "ERQ_Q4", "ERQ_Q5",
+                              "ERQ_Q6", "ERQ_Q7", "ERQ_Q8", "ERQ_Q9", "ERQ_Q10")
+  
+  scale_df <- merge(pre_scale_df, post_scale_df, by="SubjectID", all=T)
+  convert_to_csv(scale_df, file.path(data_path, '@pre-post-survey-data.csv'))
+  
   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
+
+  # print(head(scale_score_df, 2))
+  # print(tail(scale_score_df, 2))
+
   
-  print(head(scale_score_df, 2))
-  print(tail(scale_score_df, 2))
   
+  ################################################
+  ##          REMOVE NA ScaleValue ROWS         ##
+  ################################################
   convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
 }
 
