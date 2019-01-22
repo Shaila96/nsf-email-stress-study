@@ -89,10 +89,28 @@ extract_biographic_info <- function() {
   convert_to_csv(bio_final_df, file.path(db_data_path, 'biographic.csv'))
 }
 
+# PSS scores are obtained by reversing responses(e.g., 0 = 4, 1 = 3, 2 = 2, 3 = 1 & 4 = 0) 
+# to the four positively stated items (items 4, 5, 7, & 8) 
+# and then summing across all scale items.
+get_reverse_val_pss <- function(ques_val) {
+  # switch does not work for 0; So, adding 1 to start the number from 1 instead for 0
+  return(switch(as.numeric(ques_val)+1, 4, 3, 2, 1, 0))
+}
 
 #---- Perceived Stress Scale ----#
-get_pss_score <- function(current_subj) {
-  pss_score <- current_subj['PSS-Q1']
+get_pss_score <- function(subj) {
+  # current_subj <- as.data.frame(t(current_subj))
+  # cols.num <- c("PSS_Q1", "PSS_Q2", "PSS_Q3", "PSS_Q4", "PSS_Q5", 
+  #               "PSS_Q6", "PSS_Q7", "PSS_Q8", "PSS_Q9", "PSS_Q10")
+  # current_subj[cols.num] <- sapply(current_subj[cols.num], as.numeric)
+  # sapply(current_subj, class)
+
+  pss_score <- as.numeric(subj['PSS_Q1']) + as.numeric(subj['PSS_Q2']) + 
+    as.numeric(subj['PSS_Q3']) + as.numeric(subj['PSS_Q6']) + 
+    as.numeric(subj['PSS_Q9']) + as.numeric(subj['PSS_Q10']) +
+    get_reverse_val_pss(subj['PSS_Q4']) + get_reverse_val_pss(subj['PSS_Q5']) +
+    get_reverse_val_pss(subj['PSS_Q7']) + get_reverse_val_pss(subj['PSS_Q8'])
+  
   return(pss_score)
 }
 
@@ -100,11 +118,19 @@ get_pss_score <- function(current_subj) {
 extract_scale_score_each_row <- function(current_subj) {
   # extract_pss_score(current_subj) #---- Perceived Stress Scale ----#
   # extract_big_five_score(current_subj) #---- Big Five Questionnaire ----#
-  
+
   scale_df_temp <- tibble("Subject" = current_subj['SubjectID'],
-                          "Percieved Stress Scale" = get_pss_score(current_subj)
-                          )
+                          "GraphType" = "Scale",
+                          "Division" = "Pre Exp",
+                          "ScaleTitle" = "Percieved Stress Scale",
+                          "ScaleValue" = get_pss_score(current_subj))
   
+  # scale_df_temp <- tibble("Subject" = current_subj['SubjectID'],
+  #                         "GraphType" = "Scale",
+  #                         "Division" = "Pre Exp",
+  #                         "ScaleTitle" = "Percieved Stress Scale",
+  #                         "ScaleValue" = get_pss_score(current_subj))
+
   if (nrow(scale_score_df) == 0) {
     scale_score_df <<- scale_df_temp
   } else {
@@ -118,15 +144,17 @@ extract_scale_score <- function() {
   
   scale_df <- pre_survey_df[, c(22, seq(33, 42))]
   # print(str(scale_df))
-  print(tail(scale_df, 2))
+  # print(tail(scale_df, 2))
   colnames(scale_df) <- c("SubjectID", 
-                           "PSS-Q1", "PSS-Q2", "PSS-Q3", "PSS-Q4", "PSS-Q5", 
-                           "PSS-Q6", "PSS-Q7", "PSS-Q8", "PSS-Q9", "PSS-Q10")
+                           "PSS_Q1", "PSS_Q2", "PSS_Q3", "PSS_Q4", "PSS_Q5", 
+                           "PSS_Q6", "PSS_Q7", "PSS_Q8", "PSS_Q9", "PSS_Q10")
 
   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
+  
   print(head(scale_score_df, 2))
   print(tail(scale_score_df, 2))
-  # convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
+  
+  convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
 }
 
 
