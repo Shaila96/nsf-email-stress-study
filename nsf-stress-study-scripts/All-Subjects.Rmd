@@ -35,7 +35,14 @@ extrafont::loadfonts(quiet=TRUE)
 # CHANGE THIS 
 # Adjust the path to the `nsf-stress-study` directory or else no data and it is sad 
 # data_dir <- "~/Desktop/nsf-stress-study" 
-data_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-stress-study"
+nsf_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+data_dir <- file.path(nsf_dir, 'nsf-stress-study')
+data_paper_dir <- file.path(nsf_dir, 'nsf-data-paper-scripts', 'data')
+
+log_dir <- file.path(dirname(data_dir), 'log-files')
+log_file <- file.path(log_dir, paste0('filtered-subj-list-log-', format(Sys.Date(), format='%m-%d-%y'), '.txt'))
+file.create(log_file)
+
 super_session_pattern <- "^SuperSession$" 
 
 # CHANGE THIS 
@@ -54,6 +61,13 @@ runnable_subj_list <- read.csv("@Datasets/subj_good_df.csv")$Subject
 
 # file_name_extension <- "_all_subj"
 # runnable_subj_list <- read.csv("@Datasets/subj_full_df.csv")$Subject
+
+
+non_filtered_col_name <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed',
+                        'PP.non.filtered', 'HR.non.filtered', 'BR.non.filtered', 'D.EDA.non.filtered',
+                        'D.HR.non.filtered', 'N.EDA.non.filtered', 'N.HR.non.filtered', 'Task')
+
+
 
 
 
@@ -260,20 +274,28 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
       # How many subjects do we have for this measurement for this session? This line below tells us. 
       n <- length(levels(factor((df %>% filter(Session == sess))$Subject))) 
       
-      # Okay, I have been typing a lot. Everything in this plot should be pretty self-explanatory. Everything. 
-      # If this doesn't make sense, Google it. I am getting lazy. 
-      g1 <- df %>% 
-        filter(Session == sess) %>% 
-        ggplot(aes_string(x = "TimeElapsed", y = col_name, color = "Subject")) + 
-          geom_line(alpha = 0.9) + 
-          labs(title = paste0(get_condition(condition), ": ", col_name, " for ", title_sess), 
-              subtitle = bquote(list(italic('n')==.(n))), 
-              x = "Time [s]", 
-              y = label) + 
-          theme_bw() + 
-          theme(panel.background=element_rect(fill = "NA"), panel.grid.minor = element_line(colour = "#E0E0E0"), 
-                plot.title = element_text(size=10)) + 
-          scale_x_continuous(breaks = pretty_breaks(n = 4)) 
+      
+      
+      
+      ##########################################################################################################
+      #####                                         ***PLOTS***                                            ##### 
+      ##########################################################################################################
+      ### Okay, I have been typing a lot. Everything in this plot should be pretty self-explanatory. Everything. 
+      ### If this doesn't make sense, Google it. I am getting lazy. 
+      # g1 <- df %>% 
+      #   filter(Session == sess) %>% 
+      #   ggplot(aes_string(x = "TimeElapsed", y = col_name, color = "Subject")) + 
+      #     geom_line(alpha = 0.9) + 
+      #     labs(title = paste0(get_condition(condition), ": ", col_name, " for ", title_sess), 
+      #         subtitle = bquote(list(italic('n')==.(n))), 
+      #         x = "Time [s]", 
+      #         y = label) + 
+      #     theme_bw() + 
+      #     theme(panel.background=element_rect(fill = "NA"), panel.grid.minor = element_line(colour = "#E0E0E0"), 
+      #           plot.title = element_text(size=10)) + 
+      #     scale_x_continuous(breaks = pretty_breaks(n = 4)) 
+      ###########################################################################################################
+      
       
       # Now it is time to filter out subjects! 
       # We do this by making a vector called `bad_subject` and add subjects to it that are poor, then execute them. 
@@ -281,10 +303,31 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
       bad_subjects <- NULL 
       filtered_df <- as.data.frame(df) 
       
-      # We add subjects to `bad_subjects` who have signals that hit 0 even once! We are ruthless. 
-      bad_subjects <- levels(factor(
-        (filtered_df[filtered_df[[col_name]] == 0, ] %>% filter(Session == sess))[ , "Subject"] 
-      )) 
+      #############################################################################################
+      #### CHANGE THIS - Data Filtering - V.V.I. - ****
+      #############################################################################################
+      if (grepl('HR', col_name)) {
+        filtered_df <- filtered_df %>% filter(filtered_df[[col_name]] < 40 | filtered_df[[col_name]] > 150)
+      } else if (grepl('BR', col_name)) {
+        filtered_df <- filtered_df %>% filter(filtered_df[[col_name]] < 4 | filtered_df[[col_name]] > 40)
+      } else if (grepl('EDA', col_name)) {
+        filtered_df <- filtered_df %>% filter(filtered_df[[col_name]] < 0.01 | filtered_df[[col_name]] > 100)
+      } else {
+        filtered_df <- filtered_df[filtered_df[[col_name]] == 0, ]
+      }
+      #############################################################################################
+      
+      
+      #############################################################################################
+      #### CHANGE THIS - Data Filtering - V.V.I. - ****
+      #############################################################################################
+      # We add subjects to `bad_subjects` who have signals that hit 0 even once! We are ruthless.
+      # filtered_df <- filtered_df[filtered_df[[col_name]] == 0, ]
+      #############################################################################################
+      
+      bad_subjects <- levels(factor((filtered_df %>% filter(Session == sess))[ , "Subject"])) 
+      
+      
       
       # CHANGE THIS (optional) 
       # Go ahead and add additional subjects, measurements, and sessions that you want to filter out because they are so bad. 
@@ -295,79 +338,14 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
         bad_subjects <- c(bad_subjects, "T113")
       }
       
+      if (col_name == "PP" & condition == "IL" & sess == "Presentation") {
+        bad_subjects <- c(bad_subjects, "T031")
+      }
+      
       # if (col_name == "PP" & condition == "BH") {
       #   bad_subjects <- c(bad_subjects, "T016")
       # }
-      # if (col_name == "PP" & condition == "IH") {
-      #   bad_subjects <- c(bad_subjects, "T067")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T080")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T083")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T084")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T092")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T098")
-      # }
-      # if (col_name == "PP" & condition == "BL") {
-      #   bad_subjects <- c(bad_subjects, "T107")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T092")
-      # }
-      # if (col_name == "PP" & condition == "BL") {
-      #   bad_subjects <- c(bad_subjects, "T092")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T092")
-      # }
-      # if (col_name == "PP" & condition == "BL") {
-      #   bad_subjects <- c(bad_subjects, "T110")
-      # }
-      # if (col_name == "PP" & condition == "IH") {
-      #   bad_subjects <- c(bad_subjects, "T124")
-      # }
-      # if (col_name == "PP" & condition == "IH") {
-      #   bad_subjects <- c(bad_subjects, "T127")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T139")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T140")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T146")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T155")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T158")
-      # }
-      # if (col_name == "PP" & condition == "IL") {
-      #   bad_subjects <- c(bad_subjects, "T162")
-      # }
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T167")
-      # }
-      # if (col_name == "PP" & condition == "BL") {
-      #   bad_subjects <- c(bad_subjects, "T172")
-      # }
-      # if (col_name == "PP" & condition == "BL") {
-      #   bad_subjects <- c(bad_subjects, "T180")
-      # }
-      
 
-
-      
       # And here is the execution, first for out temporary dataframe for plotting... 
       filtered_df <- filtered_df %>% 
         filter(Session == sess & !(Subject %in% bad_subjects)) 
@@ -379,35 +357,45 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
         subjects_we_filtered <<- filtered_subject 
       } 
       
-      # ... and now for the global tibble. Goodbye bad subjects (they are now NA here)! 
-      result_df[result_df$Subject %in% bad_subjects & result_df$Session == sess, col_name] <<- NA 
       
-      # We just message our changes so we know who got executed. 
-      for (subj_name in bad_subjects) { 
-        message(paste0(subj_name, "'s ", col_name, " signal for ", sess, " has been removed. ")) 
-      } 
+      #### CHANGE THIS - Data Filtering - V.V.I. - ****
+      # # ... and now for the global tibble. Goodbye bad subjects (they are now NA here)! 
+      # result_df[result_df$Subject %in% bad_subjects & result_df$Session == sess, col_name] <<- NA
+      
+      # # We just message our changes so we know who got executed.
+      for (subj_name in bad_subjects) {
+        message(paste0(subj_name, "'s ", col_name, " signal for ", sess, " has been removed. "))
+        write(paste0(subj_name, "'s ", col_name, " signal for ", sess, " has been removed. "), file=log_file, append=TRUE)
+      }
       
       # Still with me? Great! 
       # We now do the same thing as before, but this time with our filtered dataframe without bad subjects. 
       n <- length(levels(factor((filtered_df %>% filter(Session == sess))$Subject))) 
       
-      g2 <- filtered_df %>% 
-        ggplot(aes_string(x = "TimeElapsed", y = col_name, color = "Subject")) + 
-          geom_line(alpha = 0.9) + 
-          labs(title = paste0(get_condition(condition), ": ", col_name, " for ", title_sess, ": Filtered "), 
-              subtitle = bquote(list(italic('n')==.(n))), 
-              x = "Time [s]", 
-              y = label) + 
-          theme_bw() + 
-          theme(panel.background=element_rect(fill = "NA"), panel.grid.minor = element_line(colour = "#E0E0E0"), 
-                plot.title = element_text(size=10)) + 
-          scale_x_continuous(breaks = pretty_breaks(n = 4)) 
       
-      # We now print the two plots side by side. 
-      print(ggarrange(g1, g2, ncol = 2, nrow = 1)) 
       
-      # And print a little space between them. 
-      cat("  \n    \n    \n  ") 
+      ##########################################################################################################
+      #####                                         ***PLOTS***                                            ##### 
+      ##########################################################################################################
+      # g2 <- filtered_df %>% 
+      #   ggplot(aes_string(x = "TimeElapsed", y = col_name, color = "Subject")) + 
+      #     geom_line(alpha = 0.9) + 
+      #     labs(title = paste0(get_condition(condition), ": ", col_name, " for ", title_sess, ": Filtered "), 
+      #         subtitle = bquote(list(italic('n')==.(n))), 
+      #         x = "Time [s]", 
+      #         y = label) + 
+      #     theme_bw() + 
+      #     theme(panel.background=element_rect(fill = "NA"), panel.grid.minor = element_line(colour = "#E0E0E0"), 
+      #           plot.title = element_text(size=10)) + 
+      #     scale_x_continuous(breaks = pretty_breaks(n = 4)) 
+      # 
+      # 
+      # ### We now print the two plots side by side. 
+      # print(ggarrange(g1, g2, ncol = 2, nrow = 1)) 
+      # 
+      # ### And print a little space between them. 
+      # cat("  \n    \n    \n  ") 
+      ##########################################################################################################     
       
     } 
   } 
@@ -595,8 +583,39 @@ emails_df <- emails_df[ , c("Subject", "Email.1.Open.Email.Time", "Email.2.Open.
                            "Email.1.Ending.Time", "Email.2.Ending.Time", "Email.3.Ending.Time", "Email.4.Ending.Time", "Email.5.Ending.Time", 
                            "Email.6.Ending.Time", "Email.7.Ending.Time", "Email.8.Ending.Time")] 
 
+
+
+#### CHANGE THIS - Data Filtering - V.V.I. - ****
 # Last but not least, we write this big ol' global tibble to a .csv file so we can access it for every other script we have to run! 
-write.table(result_df, file = paste0("@Datasets/full_df", file_name_extension, ".csv"), row.names=F, sep = ',') 
+
+###################################################################################################################
+write.table(result_df, file = paste0("@Datasets/full_df_non_filtered", file_name_extension, ".csv"),
+            col.names=non_filtered_col_name, row.names=F, sep = ',')
+
+write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_non_filtered"), file_name_extension, ".csv"),
+            col.names=non_filtered_col_name, row.names=F, sep = ',')
+###################################################################################################################
+
+
+###################################################################################################################
+# write.table(result_df, file = paste0("@Datasets/full_df", file_name_extension, ".csv"),
+#             row.names=F, sep = ',')
+# write.table(result_df, file = paste0("@Datasets/full_df_filtered", file_name_extension, ".csv"),
+#             row.names=F, sep = ',')
+# write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_filtered"), file_name_extension, ".csv"),
+#             row.names=F, sep = ',')
+###################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
 # write.table(result_df, file = "@Datasets/physiological_data.csv", row.names=F, sep = ',') 
 # We also write this email dataframe for someone to look at later - who knows?! 
 write.table(emails_df, file = "@Datasets/email_df.csv", row.names=F, sep = ',') 

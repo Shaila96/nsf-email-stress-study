@@ -9,6 +9,19 @@ setwd(current_dir)
 #---------------------- CHECK full_data.csv
 full_df <- read_csv(file.path(current_dir, "@Datasets/full_df.csv"))
 length(unique(full_df$Subject))
+
+
+full_df_filtered <- read_csv(file.path(current_dir, "@Datasets/full_df_filtered.csv"))
+length(unique(full_df_filtered$Subject))
+
+
+full_df_non_filtered <- read_csv(file.path(current_dir, "@Datasets/full_df_non_filtered.csv"))
+length(unique(full_df_non_filtered$Subject))
+
+
+
+unique(full_df$Subject) == unique(full_df_filtered$Subject)
+unique(full_df$Subject) == unique(full_df_non_filtered$Subject)
 #-------------------------------------------------------#
 #---------------- MAKE SURE THIS IS  63 ----------------#
 #-------------------------------------------------------#
