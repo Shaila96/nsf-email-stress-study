@@ -284,17 +284,15 @@ splitSessions <- function(session_dir, subj_name) {
   stress_cond_end_time <- stress_cond_start_time + 5*60
   dual_task_end_time <- dual_task_start_time + 50*60
   
-  # print(difftime(dual_task_start_time, stress_cond_start_time, units = "min"))
-  # if(difftime(dual_task_start_time, stress_cond_start_time, units = "min") < 5) {
-  #   print(subj_name)
-  # }
-  
   marker_time_df <- data.frame()
   marker_time_df <- getNextSessionRows('RestingBaseline', marker_time_df, rb_start_time, rb_end_time)
   marker_time_df <- getNextSessionRows('BaselineWriting', marker_time_df, baseline_essay_start_time, baseline_essay_end_time)
   marker_time_df <- getNextSessionRows('StressCondition', marker_time_df, stress_cond_start_time, stress_cond_end_time)
   marker_time_df <- getNextSessionRows('DualTask', marker_time_df, dual_task_start_time, dual_task_end_time)
   marker_time_df <- getNextSessionRows('Presentation', marker_time_df, presentation_start_time, presentation_end_time)
+  
+  marker_time_df$StartTime <- with(marker_time_df, StartTime - years(1))
+  marker_time_df$EndTime <- with(marker_time_df, EndTime - years(1))
   
   convert_to_csv(marker_time_df, file.path(session_dir, paste0(substr(file_name, 1, 11), '_marker.csv')))
   
@@ -320,6 +318,7 @@ splitSessions <- function(session_dir, subj_name) {
     convert_to_csv(pp_with_session_df, file.path(session_dir, paste0(substr(file_name, 1, nchar(file_name)-7), '_session.csv')))
     
     merged_df <- pp_with_session_df
+    # print(nrow(merged_df))
   }
   
   ##########################################################################
@@ -330,51 +329,68 @@ splitSessions <- function(session_dir, subj_name) {
   
   if(!isEmpty(zephyr_file_name)) {
     ### Read only Time, HR and BR 
-    zephyr_df <- read.csv(file.path(session_dir, zephyr_file_name))[, c(1, 2, 3, 15)]
+    
+    ##### THIS IS WITH HEART RATE CONFIDENCE #####
+    # zephyr_df <- read.csv(file.path(session_dir, zephyr_file_name))[, c(1, 2, 3, 15)]
+    zephyr_df <- read.csv(file.path(session_dir, zephyr_file_name))[, c(1, 2, 3)]
     zephyr_df$CovertedTime <- as.POSIXct(zephyr_df$Time, format=zephyr_date_format)
+    # print(colnames(zephyr_df))
+    
     if(!isEmpty(pp_file_name)) {
-      merged_df <- merge(merged_df, zephyr_df, by='CovertedTime')[, c(1, 2, 3, 4, 7, 8, 9, 5)]
+      merged_df <- merge(merged_df, zephyr_df, by='CovertedTime', all.x=T)[, c(1, 2, 3, 4, 7, 8, 5)]
+      ##### THIS IS WITH HEART RATE CONFIDENCE #####
+      # merged_df <- merge(merged_df, zephyr_df, by='CovertedTime', all.x=T)[, c(1, 2, 3, 4, 7, 8, 9, 5)]
     } else {
       merged_df <- getSignalWithSession(marker_time_df, zephyr_df)[, c(1, 4, 2, 3, 5)]
     }
     
-    ## NOW WE FILTER OUT HEART RATE SIGNALS FOR SESSIONS WHO HAVE HEART RATE CONFIDENCE LESS THAN 85 
-    heart_rate_confidence_threshold <- 95 
-    should_we_filter <- merged_df %>% 
-      group_by(Session) %>% 
-      summarize(meanHR = mean(HRConfidence, na.rm = TRUE)) 
+    ###############################################################################################################################
+    #### CHANGE THIS - Data Filtering - V.V.I. - ***
+    #### NOW WE FILTER OUT HEART RATE SIGNALS FOR SESSIONS WHO HAVE HEART RATE CONFIDENCE LESS THAN 85 
+    # heart_rate_confidence_threshold <- 95
+    # should_we_filter <- merged_df %>%
+    #   group_by(Session) %>%
+    #   summarize(meanHR = mean(HRConfidence, na.rm = TRUE))
+    # 
+    # session_list <- c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation")
+    # bad_sessions <- NULL
+    # for (session in session_list) {
+    #   avg <- (should_we_filter %>%
+    #             filter(Session == session))[1, "meanHR"]
+    # 
+    #   if (is.na(avg) | avg < heart_rate_confidence_threshold) {
+    #     bad_sessions <- c(bad_sessions, session)
+    #   }
+    # }
+    # 
+    # if (!is.null(bad_sessions)) {
+    #   merged_df[merged_df$Session %in% bad_sessions, "HR"] <- NA
+    #   specific_discarded_df <- tibble("Subject" = subj_name, "Session" = bad_sessions, "Measure" = "HR", Explaination = "HR Confidence")
+    # 
+    #   if (nrow(discarded_df) == 0) {
+    #     discarded_df <<- specific_discarded_df
+    #   } else {
+    #     discarded_df <<- rbind(discarded_df, specific_discarded_df)
+    #   }
+    # 
+    #   message(paste0(subj_name, " HR signal for ", bad_sessions, " has been removed due to HR Confidence less than ",
+    #                  heart_rate_confidence_threshold, ". // "))
+    #   write(paste0(subj_name, " HR signal for ", bad_sessions, " has been removed due to HR Confidence less than ",
+    #                heart_rate_confidence_threshold, ". // "), file=log.file, append=TRUE)
+    # }
+    ###############################################################################################################################
     
-    session_list <- c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation") 
-    bad_sessions <- NULL 
-    for (session in session_list) { 
-      avg <- (should_we_filter %>% 
-                filter(Session == session))[1, "meanHR"] 
-      
-      if (is.na(avg) | avg < heart_rate_confidence_threshold) { 
-        bad_sessions <- c(bad_sessions, session) 
-      } 
-    } 
     
-    if (!is.null(bad_sessions)) { 
-      merged_df[merged_df$Session %in% bad_sessions, "HR"] <- NA 
-      specific_discarded_df <- tibble("Subject" = subj_name, "Session" = bad_sessions, "Measure" = "HR", Explaination = "HR Confidence") 
-      
-      if (nrow(discarded_df) == 0) { 
-        discarded_df <<- specific_discarded_df 
-      } else { 
-        discarded_df <<- rbind(discarded_df, specific_discarded_df) 
-      } 
-      
-      message(paste0(subj_name, " HR signal for ", bad_sessions, " has been removed due to HR Confidence less than ", 
-                     heart_rate_confidence_threshold, ". // ")) 
-    } 
     
-    merged_df <- merged_df[ , (names(merged_df) != "HRConfidence")] 
+    ##### THIS IS WITH HEART RATE CONFIDENCE #####
+    # merged_df <- merged_df[ , (names(merged_df) != "HRConfidence")] 
     
     ## DONT DELETE
     colnames(merged_df)[2] <- 'Time'
     names(merged_df)[names(merged_df) == 'HR'] <- 'HR_z'
     names(merged_df)[names(merged_df) == 'BR'] <- 'BR_z'
+    
+    # print(nrow(merged_df))
   }
   
   
@@ -439,6 +455,8 @@ splitSessions <- function(session_dir, subj_name) {
     } 
     
     merged_df <- merge(merged_df, e4_df, by='CovertedTime')
+    # print(nrow(merged_df))
+    
     
     # return(merged_df)
     # })
@@ -467,7 +485,7 @@ splitSessionsForPP <- function() {
     subj_list <- getAllDirectoryList(grp_dir)
     
     sapply(subj_list, function(subj_name) {
-    # sapply(subj_list[3], function(subj_name) {
+    # sapply(subj_list[21], function(subj_name) {
       # runnable_subj_list <- list('T097')
       subj_dir <- file.path(grp_dir, subj_name)
       session_list <- getAllDirectoryList(subj_dir)
@@ -564,8 +582,8 @@ log_dir <- file.path(current_dir, 'log-files')
 log.file <- file.path(log_dir, paste0('session-split-log-', format(Sys.Date(), format='%m-%d-%y'), '.txt'))
 file.create(log.file)
 
-filtered_log.file <- file.path(log_dir, paste0('split-sessions-filtered-subjects-', format(Sys.Date(), format='%m-%d-%y'), '.txt')) 
-file.create(filtered_log.file) 
+# filtered_log.file <- file.path(log_dir, paste0('split-sessions-filtered-subjects-', format(Sys.Date(), format='%m-%d-%y'), '.txt')) 
+# file.create(filtered_log.file) 
 
 
 # copyReExtractedDataToNsfDir()

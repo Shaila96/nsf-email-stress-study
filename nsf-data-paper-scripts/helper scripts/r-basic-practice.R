@@ -23,7 +23,6 @@
 
 
 
-
 # library(ggplot2)
 # 
 # p <- ggplot(mtcars, aes(cyl, mpg)) +
@@ -38,3 +37,54 @@
 # 
 # # Duplicate the primary axis
 # p + scale_y_continuous(sec.axis=dup_axis())
+
+
+
+
+
+
+# library(ggplot2)
+# library(gridExtra)
+# library(grid)
+# 
+# p1 <- qplot(mpg, wt, data = mtcars, colour = cyl)
+# p2 <- qplot(mpg, data = mtcars) + ggtitle("title")
+# p3 <- qplot(mpg, data = mtcars, geom = "dotplot")
+# p4 <-
+#   p1 + facet_wrap( ~ carb, nrow = 1) + theme(legend.position = "none") +
+#   ggtitle("facetted plot")
+# 
+# p1
+# p2
+# p3
+# p4
+# 
+# grid.arrange(p1, p2, nrow = 1)
+# grid.arrange(p1, p2)
+# 
+# 
+# grid.arrange(
+#   p3,
+#   p3,
+#   p3,
+#   p3,
+#   ncol = 2,
+#   top = "Title of the page",
+#   bottom = textGrob(
+#     "this footnote is right-justified",
+#     gp = gpar(fontface = 3, fontsize = 9),
+#     hjust = 1,
+#     x = 1
+#   )
+# )
+
+
+
+
+
+# df = data.frame(animal=c('goat','horse-d','horse','two', 'five'), level=c('five','one','three',30,'abc-horse'), length=c(10, 20, 30, 'horse', 'eight'))
+# df_index <- which(df == "horse", arr.ind=T)
+# df[df_index]
+
+
+  

@@ -66,9 +66,9 @@ if (length(discarded_subj_list) > 0) {
                              "Explaination" = "Stopped halfway through") 
     } else { 
       discarded_df_temp <- tibble("Subject" = discarded_subj, 
-                             "Session" = c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation"), 
-                             "Measure" = "ALL", 
-                             "Explaination" = "Stopped halfway through") 
+                                  "Session" = c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation"), 
+                                  "Measure" = "ALL", 
+                                  "Explaination" = "Stopped halfway through") 
       discarded_df <- rbind(discarded_df, discarded_df_temp) 
     } 
   } 
@@ -212,7 +212,7 @@ convertTimestampSessionMarkers <- function(df, intermittent_df, subj_name, times
   df[[timestamp[2]]] <- as.POSIXct(strptime(df[[timestamp[2]]], format=s_interface_date_format))
   
   intermittent_time <- getHourMinSec(intermittent_df$Baseline.Stress.Timestamp)
-
+  
   min_time <- head(df[[timestamp[1]]], 1) 
   max_time <- tail(df[[timestamp[2]]], 1) 
   
@@ -289,12 +289,31 @@ splitSessions <- function(session_dir, subj_name) {
   #   print(subj_name)
   # }
   
+  # print(class(rb_start_time))
+  # print(year(rb_start_time))
+  # 
+  # year(rb_start_time) <- 2018
+  # 
+  # print(year(rb_start_time))
+  
+  # date_list <- list("rb_start_time" = rb_start_time, "rb_end_time" = rb_end_time)
+  # lapply(date_list, function(x){
+  #   year(x) <- 2018
+  #   return(x)
+  # })
+  # print(year(rb_start_time))
+  # print(year(rb_end_time))
+  
+  
   marker_time_df <- data.frame()
   marker_time_df <- getNextSessionRows('RestingBaseline', marker_time_df, rb_start_time, rb_end_time)
   marker_time_df <- getNextSessionRows('BaselineWriting', marker_time_df, baseline_essay_start_time, baseline_essay_end_time)
   marker_time_df <- getNextSessionRows('StressCondition', marker_time_df, stress_cond_start_time, stress_cond_end_time)
   marker_time_df <- getNextSessionRows('DualTask', marker_time_df, dual_task_start_time, dual_task_end_time)
   marker_time_df <- getNextSessionRows('Presentation', marker_time_df, presentation_start_time, presentation_end_time)
+  
+  marker_time_df$StartTime <- with(marker_time_df, StartTime - years(1))
+  marker_time_df$EndTime <- with(marker_time_df, EndTime - years(1))
   
   convert_to_csv(marker_time_df, file.path(session_dir, paste0(substr(file_name, 1, 11), '_marker.csv')))
   
@@ -338,36 +357,37 @@ splitSessions <- function(session_dir, subj_name) {
       merged_df <- getSignalWithSession(marker_time_df, zephyr_df)[, c(1, 4, 2, 3, 5)]
     }
     
+    #### CHANGE THIS - Data Filtering - V.V.I. - ***
     ## NOW WE FILTER OUT HEART RATE SIGNALS FOR SESSIONS WHO HAVE HEART RATE CONFIDENCE LESS THAN 85 
-    heart_rate_confidence_threshold <- 95 
-    should_we_filter <- merged_df %>% 
-      group_by(Session) %>% 
-      summarize(meanHR = mean(HRConfidence, na.rm = TRUE)) 
-    
-    session_list <- c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation") 
-    bad_sessions <- NULL 
-    for (session in session_list) { 
-      avg <- (should_we_filter %>% 
-                filter(Session == session))[1, "meanHR"] 
-      
-      if (is.na(avg) | avg < heart_rate_confidence_threshold) { 
-        bad_sessions <- c(bad_sessions, session) 
-      } 
-    } 
-    
-    if (!is.null(bad_sessions)) { 
-      merged_df[merged_df$Session %in% bad_sessions, "HR"] <- NA 
-      specific_discarded_df <- tibble("Subject" = subj_name, "Session" = bad_sessions, "Measure" = "HR", Explaination = "HR Confidence") 
-      
-      if (nrow(discarded_df) == 0) { 
-        discarded_df <<- specific_discarded_df 
-      } else { 
-        discarded_df <<- rbind(discarded_df, specific_discarded_df) 
-      } 
-      
-      message(paste0(subj_name, " HR signal for ", bad_sessions, " has been removed due to HR Confidence less than ", 
-                     heart_rate_confidence_threshold, ". // ")) 
-    } 
+    # heart_rate_confidence_threshold <- 95 
+    # should_we_filter <- merged_df %>% 
+    #   group_by(Session) %>% 
+    #   summarize(meanHR = mean(HRConfidence, na.rm = TRUE)) 
+    # 
+    # session_list <- c("RestingBaseline", "BaselineWriting", "StressCondition", "DualTask", "Presentation") 
+    # bad_sessions <- NULL 
+    # for (session in session_list) { 
+    #   avg <- (should_we_filter %>% 
+    #             filter(Session == session))[1, "meanHR"] 
+    #   
+    #   if (is.na(avg) | avg < heart_rate_confidence_threshold) { 
+    #     bad_sessions <- c(bad_sessions, session) 
+    #   } 
+    # } 
+    # 
+    # if (!is.null(bad_sessions)) { 
+    #   merged_df[merged_df$Session %in% bad_sessions, "HR"] <- NA 
+    #   specific_discarded_df <- tibble("Subject" = subj_name, "Session" = bad_sessions, "Measure" = "HR", Explaination = "HR Confidence") 
+    #   
+    #   if (nrow(discarded_df) == 0) { 
+    #     discarded_df <<- specific_discarded_df 
+    #   } else { 
+    #     discarded_df <<- rbind(discarded_df, specific_discarded_df) 
+    #   } 
+    #   
+    #   message(paste0(subj_name, " HR signal for ", bad_sessions, " has been removed due to HR Confidence less than ", 
+    #                  heart_rate_confidence_threshold, ". // ")) 
+    # } 
     
     merged_df <- merged_df[ , (names(merged_df) != "HRConfidence")] 
     
@@ -461,13 +481,13 @@ splitSessionsForPP <- function() {
   # print(class(subj_list_first_phase))
   
   sapply(grp_list, function(grp_name) {
-  # sapply(grp_list[1], function(grp_name) {
-
+    # sapply(grp_list[1], function(grp_name) {
+    
     grp_dir <- file.path(data_dir, grp_name)
     subj_list <- getAllDirectoryList(grp_dir)
     
     sapply(subj_list, function(subj_name) {
-    # sapply(subj_list[3], function(subj_name) {
+      # sapply(subj_list[3], function(subj_name) {
       # runnable_subj_list <- list('T097')
       subj_dir <- file.path(grp_dir, subj_name)
       session_list <- getAllDirectoryList(subj_dir)
@@ -504,7 +524,7 @@ splitSessionsForPP <- function() {
               write('Reason: Subject is entered after 08-26-18', file=log.file, append=TRUE)
               message('Reason: Subject is entered after 08-26-18')
             }
-
+            
           }
           
         },
