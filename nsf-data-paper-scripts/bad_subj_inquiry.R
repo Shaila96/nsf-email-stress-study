@@ -18,26 +18,13 @@ current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(current_dir)
 
 data_dir <- 'data'
-plots_dir <- 'plots'
 
 filtered_file_name <- 'full_df_filtered.csv'
 non_filtered_file_name <- 'full_df_non_filtered.csv'
-grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,'] valid signal sets'))
-y_axis_label <- bquote(paste('PP [',''^'o','C',''^2,']'))
-
-plot_list <- list()
-
-
-
 
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
-
-
 # session_list <- c('RestingBaseline')
-
-
-
 
 
 
@@ -45,7 +32,7 @@ session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Dual
 #-------------------------#
 #---FUNCTION DEFINITION---#
 #-------------------------#
-get_bad_subjects <- function() {
+get_subj_with_high_br <- function() {
   filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
   
@@ -59,7 +46,7 @@ get_bad_subjects <- function() {
   filtered_df <- filtered_df[complete.cases(filtered_df), ]
   
   conditions <- levels(factor((filtered_df$Condition)))
-
+  
   for(session in session_list) {
     print(session)
     
@@ -76,13 +63,16 @@ get_bad_subjects <- function() {
       print(condition)
       print(length(subjects))
     }
-    
-    
     # filtered_condition_df <- filtered_session_df %>% filter(Condition == "IL")
     # subjects <- levels(factor((filtered_condition_df$Subject)))
     # print(length(subjects))
   }
-  # #########################################################################################
+}
+
+all_other_functions <- function() {
+  # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  
   
   #########################################################################################
   #####              Finding filtered subjects for missing PP                         #####
@@ -133,7 +123,7 @@ get_bad_subjects <- function() {
   # filtered_df <- filtered_df[complete.cases(filtered_df), ]
   # all_good_subjects <- levels(factor((filtered_df$Subject)))
   # print(all_good_subjects)
-
+  
   # non_filtered_df <- non_filtered_df[, c(seq(1, 5), 11)]
   # non_filtered_df <- non_filtered_df[complete.cases(non_filtered_df), ]
   # e4_subjects <- levels(factor((non_filtered_df$Subject)))
@@ -141,23 +131,6 @@ get_bad_subjects <- function() {
   # print(setdiff(all_good_subjects, e4_subjects))
   # print(length(setdiff(all_good_subjects, e4_subjects)))
   
-  
-  ###########################################################################################
-  # #####                           Finding subjects for EDA                            #####
-  # #########################################################################################
-  # pp_all_df <- pp_all_df[complete.cases(pp_all_df), ]
-  # 
-  # for(sess_idx in 1 : length(session_list)) {
-  #   session_name <- session_list[sess_idx]
-  #   session_df <- pp_all_df %>% filter(Session == session_name)
-  # 
-  #   session_df <- session_df[session_df$N.EDA.non.filtered > 10, ]
-  #   bad_subjects <- levels(factor((session_df$Subject)))
-  #   print(session_name)
-  #   print(bad_subjects)
-  #   print(length(bad_subjects))
-  # }
-  # ##############
   
   
   # #########################################################################################
@@ -183,7 +156,7 @@ get_bad_subjects <- function() {
   # session_df <- pp_all_df %>% filter(Session == 'Presentation')
   
   
-
+  
   #########################################################################################
   #####                Finding subjects for missing presentation                      #####
   #########################################################################################  
@@ -192,7 +165,7 @@ get_bad_subjects <- function() {
   # # session_df <- session_df %>% group_by(Subject) %>% filter(all(is.na(PP)))
   # session_df_no <- session_df %>% summarize(n())
   # # bad_subjects <- levels(factor((session_df$Subject)))
-
+  
   
   
   #########################################################################################
@@ -209,7 +182,37 @@ get_bad_subjects <- function() {
   #   print(bad_subjects)
   # }
   #########################################################################################
+}
 
+get_subj_with_high_eda <- function() {
+  filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  filtered_df <- filtered_df[, c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'N.EDA')]
+  
+  ###########################################################################################
+  #####                           Finding subjects for EDA                              #####
+  ###########################################################################################
+  filtered_df <- filtered_df[complete.cases(filtered_df), ]
+
+  for(session_name in session_list) {
+    session_df <- filtered_df %>% filter(Session == session_name)
+    session_df <- session_df[session_df$N.EDA > 10, 
+                             ]
+    bad_subjects <- levels(factor((session_df$Subject)))
+    print(session_name)
+    print(bad_subjects)
+    print(length(bad_subjects))
+  }
+}
+
+
+get_bad_subjects <- function() {
+  # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  
+  # get_subj_high_br()
+  # all_other_functions()
+  
+  get_subj_with_high_eda()
 }
 
 

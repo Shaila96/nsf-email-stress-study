@@ -115,6 +115,9 @@ extract_session_data <- function(df) {
 
 #---- Add one space if it finds any CamelCase ----#
 get_session_name <- function(session_name) {
+  if (session_name == 'BaselineWriting') {
+    return('Single Task')
+  }
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
 
@@ -127,7 +130,10 @@ get_subj_no_label <- function(subj_no) {
 }
 
 save_plot <- function(plot_name, plot) {
-  plot_path <- file.path(project_dir, plot_name)
+  plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=10, height=10)
+  
+  plot_path <- file.path(project_dir, paste0(plot_name, '.pdf'))
   ggsave(plot_path, plot, width=10, height=10)
 }
 
@@ -294,7 +300,8 @@ generate_signal_plot <- function(col_name) {
     # print(grid_plot)
     
     #---- SAVING GRID PLOT ----#
-    plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+    # plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+    plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series'))
     save_plot(plot_path, grid_plot)
   }
 }
@@ -302,8 +309,8 @@ generate_signal_plot <- function(col_name) {
 
 generate_filtered_plots <- function() {
   # signal_list <- c("HR", "BR", "N.EDA", "N.HR", "D.EDA", "D.HR")
-  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  signal_list <- c("BR")
+  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  # signal_list <- c("BR")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)
