@@ -1,8 +1,9 @@
 # List of useful packages
-pkg <- c("tidyr", "dplyr", "ggplot2", "knitr", "rmarkdown", "ggpubr", "kableExtra")
+pkg <- c("tidyr", "dplyr", "ggplot2", "knitr", "rmarkdown", "ggpubr", "kableExtra", "directlabels")
 
 # Check if packages are not installed and assign the
 # names of the uninstalled packages to the variable new.pkg
+# new.pkg <- pkg
 new.pkg <- pkg[!(pkg %in% installed.packages())]
 
 # If there are any packages in the list that aren't installed,

@@ -1,0 +1,358 @@
+---
+title: "Sensor Data Comparison Analysis"
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+# install.packages("readr")
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(directlabels)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
+setwd(project_dir)
+
+data_dir <- 'data'
+plots_dir <- 'plots'
+
+data_file_name <- 'result_df.csv'
+
+
+session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
+
+common_col_list <- c('Subject', 'Condition', 'Session')
+perspiration_signal_list <- c('PP', 'N.EDA')
+hr_signal_list <- c('HR', 'N.HR')
+
+all_signal_col_list <- c(common_col_list, perspiration_signal_list, hr_signal_list)
+new_session_list <- c('WB.RB', 'DT.RB', 'P.RB', 'SC.RB')
+new_col_list <- c('Subject', 'Condition', 'Signal', new_session_list)
+
+hr_col_list <- c(common_col_list, hr_signal_list)
+perspiration_col_list <- c(common_col_list, perspiration_signal_list)
+
+
+
+mean_df <- tibble()
+mean_diff_df <- tibble()
+new_mean_diff_df <- tibble()
+
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
+}
+
+get_data_for_boxplot <- function(df) {
+  new_df <- df %>% gather(Signal, Value, -Subject, -Condition, -Session)
+  # print_msg(str(df))
+  # print_msg(str(new_df))
+  return(new_df)
+}
+
+print_msg <- function(df) {
+  print(df)
+  message(df)
+}
+
+is_normal <- function(data) {
+  return(shapiro.test(data)$p.value >= 0.05)
+}
+
+check_normality <- function(data) {
+  if (is_normal(data)) {
+    return('normal.')
+  }
+  return('not normal.')
+}
+
+is_significant <- function(t_test) {
+  return(t_test$p.value > 0.05)
+}
+
+check_significance <- function(t_test) {
+  if (is_significant(t_test)) {
+    return('not significant.')
+  }
+  return('significant.')
+}
+
+is_match <- function(string_we_have, pattern_we_are_looking_for) { 
+  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+} 
+
+figure_out_labels <- function(col_name, transformed=F) { 
+  if (is_match(col_name, 'PP')) { 
+    if (transformed) {
+      return(expression(Delta~"ln("~bar("PP")~paste(') [',''^'o','C',''^2,']')))
+    }
+    return(expression(Delta~bar('PP')' ['~paste(''^'o','C',''^2,']')))
+  } else if (is_match(col_name, 'HR')) {
+    if (transformed) {
+      return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
+    }
+    return(expression(Delta~bar('Heart Rate')~' [BPM]'))
+  } else if (is_match(col_name, 'BR')) { 
+    if (transformed) {
+      return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
+    }
+    return(expression(Delta~bar('Breathing Rate')~' [BPM]'))
+  } else if (is_match(col_name, 'EDA')) {
+    if (transformed) {
+      return(expression(Delta~"ln("~bar("EDA")~paste(') [', mu, 'S]')))
+    }
+    return(expression(Delta~bar('EDA')~' ['~mu~'S]'))
+  } 
+  return('Unknown axis.') 
+}
+
+generate_mean_diff_data <- function() {
+  mean_df <<- read_csv(file.path(data_dir, data_file_name))[, all_signal_col_list]
+  # print_msg(paste0('1. No. of rows - Initially: ', nrow(mean_df)))
+  
+  mean_diff_df <<- mean_df %>%
+    gather(Signal, Value, -Subject, -Condition, -Session) %>%   ## making the data wide to long for all signals
+    spread(Session, Value) %>%                                  ## Spreading the session, long to wide again
+    mutate(WB.RB = BaselineWriting - RestingBaseline,           ## 4 new columns
+           SC.RB = StressCondition - RestingBaseline,
+           DT.RB = DualTask - RestingBaseline,
+           P.RB = Presentation - RestingBaseline) %>%
+    select(new_col_list) %>%                                    ## selecting neccessary columns
+    gather(Session, Value, -Subject, -Condition, -Signal) %>%   ## making the data wide to long
+    spread(Signal, Value)     
+  
+
+  ###############################################################
+  ##              We will transform only EDA & PP              ##
+  ###############################################################
+  
+  ## Removing the rows containing NA for only PP or EDA
+  pp_eda_mean_df <- mean_df[complete.cases(mean_df[, perspiration_signal_list]), c(common_col_list, perspiration_signal_list)]
+  # print_msg(paste0('2. No. of rows - After removing rows for PP & EDA containing NA: ', nrow(pp_eda_mean_df)))
+
+  ## Shifting and Log Tranforming the PP and EDA Signal
+  for (perspiration_signal in perspiration_signal_list) {
+    shift_val <- 0
+    if (min(pp_eda_mean_df[[perspiration_signal]]) <= 0) {
+      shift_val <- min(pp_eda_mean_df[[perspiration_signal]]) + 0.001
+    }
+    pp_eda_mean_df[[perspiration_signal]] <- log(pp_eda_mean_df[[perspiration_signal]]) + shift_val
+    # print_msg(paste0('After transforming ', perspiration_signal, ' is ', check_normality(pp_eda_mean_df[[perspiration_signal]])))
+  }
+  
+
+  ## Getting the columns except PP & EDA - Otherwise will be conflict while merging
+  mean_df <- mean_df[, !colnames(mean_df) %in% perspiration_signal_list]
+
+  ## Merging the tranformed PP & EDA column with other columns
+  mean_df <- merge(mean_df, pp_eda_mean_df, by=common_col_list, all.x=T)
+  # print_msg(paste0('3. No. of rows - After merging: ', nrow(mean_df)))
+  ##################################################################################################
+  
+  
+  
+  
+  
+  
+  ###############################################################
+  ## If you need to test how the shape of the data is changing ##
+  ###############################################################
+  # mean_diff_df <- filtered_df %>%
+  #   gather(Signal, Value, -Subject, -Condition, -Session)
+  # print(str(mean_diff_df))
+  # convert_to_csv(mean_diff_df, 'test_df.csv')
+  ###############################################################
+  new_middle_mean_diff_df <<- mean_df %>%
+    gather(Signal, Value, -Subject, -Condition, -Session) %>%   ## making the data wide to long for all signals
+    spread(Session, Value) %>%                                  ## Spreading the session, long to wide again
+    mutate(WB.RB = BaselineWriting - RestingBaseline,           ## 4 new columns
+           SC.RB = StressCondition - RestingBaseline,
+           DT.RB = DualTask - RestingBaseline,
+           P.RB = Presentation - RestingBaseline)
+  
+  new_mean_diff_df <<- new_middle_mean_diff_df %>%
+    select(new_col_list) %>%                                    ## selecting neccessary columns
+    gather(Session, Value, -Subject, -Condition, -Signal) %>%   ## making the data wide to long
+    spread(Signal, Value)                                       ## Spreading the signal, long to wide again
+
+  convert_to_csv(new_middle_mean_diff_df, 'middle_mean_diff_df.csv')
+  convert_to_csv(new_mean_diff_df, 'mean_diff_df.csv')
+}
+
+get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title) {
+  plot <- df %>%
+    ggplot(aes(df[[x_col]], df[[y_col]])) +
+    geom_point() +
+    geom_abline() +
+    ggtitle(title) + 
+    xlab(x_label) + 
+    ylab(y_label) +
+    theme(text = element_text(size=16),
+          axis.title = element_text(size = 16),
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+  print(plot)
+}
+
+get_box_plot <- function(df, x_col, y_col, x_label, y_label, title) {
+  plot <- df %>%
+    ggplot(aes(df[[x_col]], df[[y_col]])) +
+    geom_boxplot() +
+    ggtitle(title) + 
+    xlab(x_label) +
+    ylab(y_label) +
+    theme(text = element_text(size=16),
+          axis.title = element_text(size = 16),
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+  print(plot)
+}
+
+t_test_hr <- function(df, plot_title) {
+  # colnames(mean_hr_df) <- c(common_col_list, 'Zephyr HR', 'E4 HR')
+
+  get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Signals', 'Value', plot_title)
+  
+  ## H0:m=0, Ha:m???0 (different)
+  t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
+
+  print_msg(t_test)
+  print_msg(paste('The mean differences between the HR from two sensors are', check_significance(t_test)))
+
+  # print_msg(paste('p-value: ', t_test$p.value))
+}
+
+
+# t_test_hr_relative_to_baseline <- function(df) {
+#   get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Signals', 'Value', paste0('HR Boxplot - ', session_name))
+#   
+#   ## H0:m=0, Ha:m???0 (different)
+#   t_test <- t.test(mean_hr_df$HR, mean_hr_df$N.HR, data=mean_hr_df, paired=T)
+# 
+#   print_msg(t_test)
+#   print_msg(paste('The mean differences between the HR from two sensors are', check_significance(t_test)))
+# }
+
+
+generate_eda_vs_pp_plot <- function() {
+  mean_diff_df <- mean_diff_df[, perspiration_col_list] %>% na.omit()
+  
+  ## Initial Plot 
+  get_scatter_plot(mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP'), figure_out_labels('EDA'), 'EDA vs PP - Initial Plot')
+  
+  ## Here we got two outliers. Lets find the outliers here.
+  outlier_eda_df <- mean_diff_df[mean_diff_df$N.EDA < -10, ]
+  bad_subjects <- levels(factor((outlier_eda_df$Subject)))
+  bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
+  print(paste0('Subjects with EDA outliers: ', bad_subjects))
+  print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
+
+  ## Not chaging the actual mean_diff_df data, using temp dataframe.
+  temp_mean_diff_df <- mean_diff_df
+  temp_mean_diff_df[temp_mean_diff_df$Subject %in% bad_subjects, 'N.EDA'] <- NA
+
+  ## Plot without the outlier.
+  get_scatter_plot(temp_mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP'), figure_out_labels('EDA'), 'EDA vs PP Plot - Without Outlier')
+
+  ## Here also we got two outliers. Lets find the outliers here.
+  outlier_eda_df <- temp_mean_diff_df[temp_mean_diff_df$N.EDA < -2, ]
+  bad_subjects <- levels(factor((outlier_eda_df$Subject)))
+  bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
+  print(paste0('Subjects with EDA outliers: ', bad_subjects))
+  print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
+
+  
+  
+
+  new_mean_diff_df <- new_mean_diff_df[, perspiration_col_list] %>% na.omit()
+  
+  ## Plot for normalized EDA & PP
+  get_scatter_plot(new_mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP', T), figure_out_labels('EDA', T), 'EDA vs PP Plot - Transfered & Log Data')
+  
+}
+
+generate_hr_plot <- function() {
+  get_scatter_plot(new_mean_diff_df, 'HR', 'N.HR', figure_out_labels('HR'), figure_out_labels('HR'), 'Zephyr HR vs E4 HR Plot')
+ 
+  ######################################################
+  # Baseline Zephyr vs. Baseline E4
+  # Scatter plot for absolute mean for each session
+  # t.test for mean HR - Baseline
+  # Check the normality, discard the outlier or log
+  # Boxplot for all t.test
+  # Pearson Correlation Test
+  ######################################################
+}
+
+``` 
+
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+generate_mean_diff_data()
+```
+
+\newpage
+# EDA vs PP - Scatter Plot (Session-Baseline)
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+generate_eda_vs_pp_plot()
+```
+
+\newpage
+# Zephyr HR vs E4 HR - Scatter Plot (Session-Baseline)
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+generate_hr_plot()
+```
+
+\newpage
+# T Test - Mean Heart Rate - Per Session
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+mean_hr_df <- mean_df[, hr_col_list] %>% na.omit()
+t_test_hr(mean_hr_df, 'HR Boxplot - all sessions')
+```
+
+\newpage
+# T Test - Mean Heart Rate - Session-Baseline
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+condition_types <- c('L', 'H') 
+for (session_name in new_session_list) {
+  if (session_name=='SC.RB') {
+    for (condition_type in condition_types) {
+      # mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name && is_match(mean_diff_df$Condition, condition_type), hr_col_list] %>%  na.omit()
+      # message(paste('########################', nrow(mean_hr_diff_df)))
+      # t_test_hr(mean_hr_diff_df, paste0('HR Boxplot - ', session_name, ' - ', condition_type))
+    }
+  } else {
+    mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name, hr_col_list] %>%  na.omit()
+    t_test_hr(mean_hr_diff_df, paste0('HR Boxplot - ', session_name))
+  }
+}
+
+```

@@ -22,10 +22,10 @@ library(kableExtra)
 library(cowplot) 
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "HR"
+signal_name <- "N.HR"
 
 
-## CHANGE THIS!!!!
+## CHANGE THIS!!!! ##
 ## HR Comparison 
 hr_data_only <- F
 file_name_part_sensor_comparison <- ''
@@ -35,7 +35,7 @@ col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA
 ## CHANGE THIS!!!!
 # hr_data_only = T
 # file_name_part_sensor_comparison <- '-sensor-comparison'
-# col_names_final <- c("Subject", "Condition", "Session", "CovertedTime", "TimeElapsed", "HR", "N.HR") 
+# col_names_final <- c("Subject", "Condition", "Session", "CovertedTime", "TimeElapsed", "HR", "N.HR")
 
 
 project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
@@ -49,6 +49,9 @@ plots_dir <- 'plots'
 
 filtered_file_name <- 'full_df_filtered.csv'
 file_name_part_outlier <- ''
+
+sensor_comparicon_col <- c('HR', 'N.HR')
+condition_list <- c('BH', 'BL', 'IH', 'IL')
 
 
 full_df <<- read_csv(file.path(data_dir, filtered_file_name))[, col_names_final]
@@ -148,31 +151,35 @@ mess_with_the_columns <- function() {
   
   ## CHANGE THIS!!!!
   ## OUTLIER 
-  file_name_part_outlier <<- '-no-outlier'
-  sensor_comparicon_col <- c('HR', 'N.HR')
-  condition_list <- c('BH', 'BL', 'IH', 'IL')
-  
-  for (col in sensor_comparicon_col) {
-    new_result_df <- tibble()
-    for (cond in condition_list) {
-      temp_df <<- result_df[result_df$Condition == cond, ]
-      if (!is_normal(temp_df[[col]])) {
-        print_msg(paste0("Removing outliers for ", cond, " for signal", col, ": ", boxplot.stats(temp_df[[col]])$out))
-        temp_df[temp_df[[col]] %in% boxplot.stats(temp_df[[col]])$out, col] <<- NA
-        if (is_normal(temp_df[[col]])) {
-          print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is normal"))
-        } else {
-          print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is NOT normal!!!!"))
+  if (signal_name %in% sensor_comparicon_col) {
+    file_name_part_outlier <<- '-no-outlier'
+
+    for (col in sensor_comparicon_col) {
+      new_result_df <- tibble()
+
+      for (cond in condition_list) {
+        temp_df <<- result_df[result_df$Condition == cond, ]
+
+        if (!is_normal(temp_df[[col]])) {
+          print_msg(paste0("Removing outliers for ", cond, " for signal ", col, ": ", boxplot.stats(temp_df[[col]])$out))
+          temp_df[temp_df[[col]] %in% boxplot.stats(temp_df[[col]])$out, col] <<- NA
+
+          if (is_normal(temp_df[[col]])) {
+            print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is normal"))
+          } else {
+            print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is NOT normal!!!!"))
+          }
         }
+        new_result_df <- rbind(new_result_df, temp_df)
       }
-      new_result_df <- rbind(new_result_df, temp_df)
+      print('')
+      result_df <<- new_result_df
     }
-    result_df <<- new_result_df
   }
 
-  # print_msg(boxplot.stats(temp_col)$out)
-  # temp_col <- temp_col[!temp_col %in% boxplot.stats(temp_col)$out]
-  # print_msg(paste0("After removing outliers the data is ", check_normality(temp_col)))
+  ### print_msg(boxplot.stats(temp_col)$out)
+  ### temp_col <- temp_col[!temp_col %in% boxplot.stats(temp_col)$out]
+  ### print_msg(paste0("After removing outliers the data is ", check_normality(temp_col)))
 } 
 
 
@@ -713,7 +720,6 @@ check_normality <- function(data) {
   if (is_normal(data)) {
     return('normal.')
   }
-  
   return('not normal.')
 }
 
@@ -1110,17 +1116,17 @@ figure_out_labels <- function(col_name, test_type) {
     if (test_type == "tt") {
       return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
     }
-    return(expression(Delta~'Heart Rate [BPM]'))
+    return(expression(Delta~bar('Heart Rate')~' [BPM]'))
   } else if (isMatch(col_name, 'BR')) { 
     if (test_type == "tt") {
       return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
     }
-    return(expression(Delta~'Breathing Rate [BPM]')) 
+    return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
   } else if (isMatch(col_name, 'EDA')) {
     if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("EDA")~') [BPM]'))
+      return(expression(Delta~"ln("~bar("EDA")~paste(') [', mu, 'S]')))
     }
-    return(expression(Delta~'EDA ['~mu~'S]')) 
+    return(expression(Delta~bar('EDA')~' ['~mu~'S]')) 
   } 
   return('Unknown axis.') 
 } 

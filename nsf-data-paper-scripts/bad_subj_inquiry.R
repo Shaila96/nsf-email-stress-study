@@ -21,6 +21,8 @@ data_dir <- 'data'
 
 filtered_file_name <- 'full_df_filtered.csv'
 non_filtered_file_name <- 'full_df_non_filtered.csv'
+good_subj_file_name <- 'subj_good_df.csv'
+mean_file_name <- 'result_df.csv'
 
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
@@ -32,6 +34,10 @@ session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Dual
 #-------------------------#
 #---FUNCTION DEFINITION---#
 #-------------------------#
+convert_to_csv <- function(df, file_path) {
+  write.table(df, file = file_path, row.names=F, sep = ',')
+}
+
 get_subj_with_high_br <- function() {
   filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
@@ -72,28 +78,6 @@ get_subj_with_high_br <- function() {
 all_other_functions <- function() {
   # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
-  
-  
-  #########################################################################################
-  #####              Finding filtered subjects for missing PP                         #####
-  #########################################################################################
-  # pp_all_df <- non_filtered_df[, c(seq(1, 5), 6)]
-  # # pp_all_df <- pp_all_df[complete.cases(pp_all_df), ]
-  # # 
-  # for(sess_idx in 1 : length(session_list)) {
-  #   session_name <- session_list[sess_idx]
-  #   session_df <- pp_all_df %>% filter(Session == session_name)
-  # 
-  #   # session_df <- session_df[session_df$N.HR.non.filtered > 150, ]
-  # 
-  #   subjects <- levels(factor((session_df$Subject)))
-  #   # print(session_df)
-  #   print(session_name)
-  #   print(subjects)
-  #   print(length(subjects))
-  # 
-  # }
-  ###########################################################################################
   
   
   #########################################################################################
@@ -195,7 +179,7 @@ get_subj_with_high_eda <- function() {
 
   for(session_name in session_list) {
     session_df <- filtered_df %>% filter(Session == session_name)
-    session_df <- session_df[session_df$N.EDA > 10, 
+    session_df <- session_df[session_df$N.EDA > 5, 
                              ]
     bad_subjects <- levels(factor((session_df$Subject)))
     print(session_name)
@@ -204,6 +188,56 @@ get_subj_with_high_eda <- function() {
   }
 }
 
+check_hr_both_sensor <- function(subj_id) {
+  filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  filtered_df <- filtered_df[, c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'HR', 'N.HR')]
+  
+  ################################################################
+  ## This following two procedure should represents the same df ##
+  ################################################################
+  
+  ##------------------------------------------------------- Procedure 1
+  mean_df <- read_csv(file.path(data_dir, mean_file_name))
+  mean_df <- mean_df %>% filter(Subject == subj_id)
+  print(mean_df)
+ 
+  ##------------------------------------------------------- Procedure 2
+  session_mean <- filtered_df %>% 
+    filter(Subject == subj_id) %>%
+    group_by(Session) %>%                       ## We want mean per session
+    summarise_at(vars(HR, N.HR), mean) %>%      ## Mean for two columns  
+    slice(match(session_list, Session))         ## Ordering as the session_list
+  
+  print(session_mean)
+
+  convert_to_csv(mean_df, file.path(data_dir, subj_id, paste0(subj_id, '-all-signal-mean.csv')))
+}
+
+get_missing_subj_for_pp <- function() {
+  
+  filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  good_subj_df <- read_csv(file.path(data_dir, good_subj_file_name))
+  
+  good_subj_list <- levels(factor((good_subj_df$Subject)))
+  
+  #########################################################################################
+  #####              Finding filtered subjects for missing PP                         #####
+  #########################################################################################
+  pp_all_df <- filtered_df[, c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'PP')]
+  # pp_all_df <- pp_all_df[complete.cases(pp_all_df), ]
+
+  for(sess_idx in 1 : length(session_list)) {
+    session_name <- session_list[sess_idx]
+    session_df <- pp_all_df %>% filter(Session == session_name)
+
+    subjects <- levels(factor((session_df$Subject)))
+    missing_subjects <- setdiff(good_subj_list, subjects)
+    # print(length(subjects))
+    print(paste0('Missing subjects for ', session_name, ': '))
+    print(missing_subjects)
+  }
+}
 
 get_bad_subjects <- function() {
   # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
@@ -213,6 +247,9 @@ get_bad_subjects <- function() {
   # all_other_functions()
   
   get_subj_with_high_eda()
+  # check_hr_both_sensor('T011')
+  
+  # get_missing_subj_for_pp()
 }
 
 

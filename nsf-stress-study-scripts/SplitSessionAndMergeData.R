@@ -37,6 +37,7 @@ marker_new_file_pattern <- '.*_sessionmarkers_new.csv'
 summary_file_pattern <- '.*_Summary.csv'
 e4_file_pattern <- 'HR.csv|EDA.csv'
 
+bad_eda_subj_list <- c('T051', 'T145')
 discarded_subj_list <- list('T067', 'T023')
 new_subj_list <- list()
 # subject_list_first_phase <- list()
@@ -450,11 +451,14 @@ splitSessions <- function(session_dir, subj_name) {
     }
     
     ## TIMEZONE BUG FIX 
-    if (as.numeric(e4_df$CovertedTime[1] - merged_df$CovertedTime[1]) > 1) { 
-      e4_df$CovertedTime <- e4_df$CovertedTime - 2 * one_hour_sec 
-    } 
+    if (!subj_name %in% bad_eda_subj_list) {
+      if (as.numeric(e4_df$CovertedTime[1] - merged_df$CovertedTime[1]) > 1) { 
+        e4_df$CovertedTime <- e4_df$CovertedTime - 2 * one_hour_sec 
+      } 
+    }
     
-    merged_df <- merge(merged_df, e4_df, by='CovertedTime')
+    
+    merged_df <- merge(merged_df, e4_df, by='CovertedTime', all.x=T)
     # print(nrow(merged_df))
     
     
