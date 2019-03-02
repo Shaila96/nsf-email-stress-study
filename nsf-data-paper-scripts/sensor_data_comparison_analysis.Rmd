@@ -234,7 +234,7 @@ get_box_plot <- function(df, x_col, y_col, x_label, y_label, title) {
 t_test_hr <- function(df, plot_title) {
   # colnames(mean_hr_df) <- c(common_col_list, 'Zephyr HR', 'E4 HR')
 
-  get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Signals', 'Value', plot_title)
+  get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Heart Rate', 'Value', plot_title)
   
   ## H0:m=0, Ha:m???0 (different)
   t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)

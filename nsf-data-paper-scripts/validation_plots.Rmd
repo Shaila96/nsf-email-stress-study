@@ -25,14 +25,18 @@ library(cowplot)
 signal_name <- "N.HR"
 
 
-## CHANGE THIS!!!! ##
-## HR Comparison 
+## CHANGE THIS!!!!
+check_outlier = F
+
+
+## CHANGE THIS!!!!
 hr_data_only <- F
 file_name_part_sensor_comparison <- ''
 col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "N.EDA", "D.HR", "N.HR")
 
 
 ## CHANGE THIS!!!!
+## HR Comparison 
 # hr_data_only = T
 # file_name_part_sensor_comparison <- '-sensor-comparison'
 # col_names_final <- c("Subject", "Condition", "Session", "CovertedTime", "TimeElapsed", "HR", "N.HR")
@@ -149,33 +153,34 @@ mess_with_the_columns <- function() {
   
   
   
-  ## CHANGE THIS!!!!
-  ## OUTLIER 
-  if (signal_name %in% sensor_comparicon_col) {
-    file_name_part_outlier <<- '-no-outlier'
-
-    for (col in sensor_comparicon_col) {
-      new_result_df <- tibble()
-
-      for (cond in condition_list) {
-        temp_df <<- result_df[result_df$Condition == cond, ]
-
-        if (!is_normal(temp_df[[col]])) {
-          print_msg(paste0("Removing outliers for ", cond, " for signal ", col, ": ", boxplot.stats(temp_df[[col]])$out))
-          temp_df[temp_df[[col]] %in% boxplot.stats(temp_df[[col]])$out, col] <<- NA
-
-          if (is_normal(temp_df[[col]])) {
-            print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is normal"))
-          } else {
-            print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is NOT normal!!!!"))
+  ## CHANGE THIS for OUTLIER
+  if (check_outlier) {
+    if (signal_name %in% sensor_comparicon_col) {
+      file_name_part_outlier <<- '-no-outlier'
+      for (col in sensor_comparicon_col) {
+        new_result_df <- tibble()
+  
+        for (cond in condition_list) {
+          temp_df <<- result_df[result_df$Condition == cond, ]
+  
+          if (!is_normal(temp_df[[col]])) {
+            print_msg(paste0("Removing outliers for ", cond, " for signal ", col, ": ", boxplot.stats(temp_df[[col]])$out))
+            temp_df[temp_df[[col]] %in% boxplot.stats(temp_df[[col]])$out, col] <<- NA
+  
+            if (is_normal(temp_df[[col]])) {
+              print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is normal"))
+            } else {
+              print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is NOT normal!!!!"))
+            }
           }
+          new_result_df <- rbind(new_result_df, temp_df)
         }
-        new_result_df <- rbind(new_result_df, temp_df)
+        print('')
+        result_df <<- new_result_df
       }
-      print('')
-      result_df <<- new_result_df
     }
   }
+  
 
   ### print_msg(boxplot.stats(temp_col)$out)
   ### temp_col <- temp_col[!temp_col %in% boxplot.stats(temp_col)$out]
@@ -194,11 +199,11 @@ give.n <- function(x) {
 
 
 
-# NOTE: I strongly recommend reading the code for the `test_time` function first, as this will make this make a whole LOT more sense. 
-# This function generates the `Sensor Channels per Session` plots. 
-# This specific function just plots for Writing Baseline and Stress Condition, since Dual Task and Presentation 
-# have all their plots on one page, which requires some stupid extra coding. 
-# plot1 <- function(condition) { 
+# # NOTE: I strongly recommend reading the code for the `test_time` function first, as this will make this make a whole LOT more sense.
+# # This function generates the `Sensor Channels per Session` plots.
+# # This specific function just plots for Writing Baseline and Stress Condition, since Dual Task and Presentation
+# # have all their plots on one page, which requires some stupid extra coding.
+# plot1 <- function(condition) {
 #   
 #   # We start by gathering all of the sensor data values into `Measurement` and the corresponding values into `Value`. 
 #   special_purpose_df <- result_df %>% 
@@ -353,9 +358,9 @@ give.n <- function(x) {
 
 
 
-# This function does nearly the exact same thing as before, but just for the Dual Task sessions 
-# and puts it all on one page. I will only comment the new things here. 
-# plot1_dt <- function(condition) { 
+# # This function does nearly the exact same thing as before, but just for the Dual Task sessions 
+# # and puts it all on one page. I will only comment the new things here. 
+# plot1_dt <- function(condition) {
 #   
 #   special_purpose_df <- result_df %>% 
 #     gather(Measurement, Value, -Subject, -Condition, -Session) 
@@ -488,8 +493,8 @@ give.n <- function(x) {
 
 
 
-# No, I am not explaining it here too. Figure it out yourself! 
-# plot1_p <- function(condition) { 
+# # No, I am not explaining it here too. Figure it out yourself! 
+# plot1_p <- function(condition) {
 #   
 #   special_purpose_df <- result_df %>% 
 #     gather(Measurement, Value, -Subject, -Condition, -Session) 
@@ -618,29 +623,29 @@ give.n <- function(x) {
 
 
 
-# Wow, we made it though plot 1s! Great job! Go take a break. 
-# ... 
-# Are you back? Ready to work now, slacker? Good! 
-# Let's go on to the next round of plots! 
+## Wow, we made it though plot 1s! Great job! Go take a break. 
+## ... 
+## Are you back? Ready to work now, slacker? Good! 
+## Let's go on to the next round of plots! 
 plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) { 
-  # This is pretty important, per Professor Pavlidis' request, we note that no matter what, these columns 
-  # need to be logged and applied as a t-test. So we do just that by setting their test-type to "transformed t-test." 
+  ## This is pretty important, per Professor Pavlidis' request, we note that no matter what, these columns 
+  ## need to be logged and applied as a t-test. So we do just that by setting their test-type to "transformed t-test." 
   if (col == "PP" || col == "D.EDA" || col == "N.EDA") {
     test_type <- "tt"
   }
   
-  # Simple mode: activated. 
+  ## Simple mode: activated. 
   label <- figure_out_labels(col, test_type) 
   title <- figure_out_title(col, cond, test_type) 
   
-  # We set up the intended order for displaying the differences. 
+  ## We set up the intended order for displaying the differences. 
   # comparison_levels <- c("WB.RB", "SC.RB", "SC.WB", "DT.RB", "DT.WB", "DT.SC",
   #                        "P.RB", "P.WB", "P.SC", "P.DT")
   
   comparison_levels <- c("WB.RB", "SC.RB", "DT.RB", "P.RB")
   
-  # We like '*' characters in our graphs, so we do this! Yay! 
-  # EDIT: Note that `t_test_df` is the very last table you see generated in the PDF. 
+  ## We like '*' characters in our graphs, so we do this! Yay! 
+  ## EDIT: Note that `t_test_df` is the very last table you see generated in the PDF. 
   do_we_have_anything <- t_test_df %>% 
       filter(Measure == col & Condition == cond) 
   
