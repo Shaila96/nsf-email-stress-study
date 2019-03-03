@@ -832,13 +832,13 @@ test_time <- function(condition, col, full = TRUE) {
         
         # Dang, STILL not normal, so correct with ln anyway (per Professor Pavlidis' request), but this time permanently. 
         test_type <- "w" 
-        if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-          shift_val <- 0 
-          if (min(temp[[col]]) <= 0) { 
-            shift_val <- min(temp[[col]]) + 0.001 
-          } 
-          temp[[col]] <- log(temp[[col]]) + shift_val 
-        } 
+        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+        #   shift_val <- 0 
+        #   if (min(temp[[col]]) <= 0) { 
+        #     shift_val <- min(temp[[col]]) + 0.001 
+        #   } 
+        #   temp[[col]] <- log(temp[[col]]) + shift_val 
+        # } 
       } else { 
         if (!full) { 
           print_msg(paste0("Transformed data for ", col, " is now normal (p = ", round(shapiro_test_results$p.value, 4), 
@@ -848,13 +848,13 @@ test_time <- function(condition, col, full = TRUE) {
         
         # We are doing a transformed t-test, so we still have to permanently log our data for this column! 
         test_type <- "tt" 
-        if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-          shift_val <- 0 
-          if (min(temp[[col]]) <= 0) { 
-            shift_val <- min(temp[[col]]) + 0.001 
-          } 
-          temp[[col]] <- log(temp[[col]]) + shift_val 
-        } 
+        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+        #   shift_val <- 0 
+        #   if (min(temp[[col]]) <= 0) { 
+        #     shift_val <- min(temp[[col]]) + 0.001 
+        #   } 
+        #   temp[[col]] <- log(temp[[col]]) + shift_val 
+        # } 
       } 
     } else { 
       # Wow, it was actually Normal first try? Neat! 
@@ -1118,14 +1118,14 @@ figure_out_labels <- function(col_name, test_type) {
   if (isMatch(col_name, 'PP')) { 
     return(expression(Delta~"ln("~bar("PP")~paste(') [',''^'o','C',''^2,']')))
   } else if (isMatch(col_name, 'HR')) {
-    if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
-    }
+    # if (test_type == "tt") {
+    #   return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
+    # }
     return(expression(Delta~bar('Heart Rate')~' [BPM]'))
   } else if (isMatch(col_name, 'BR')) { 
-    if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
-    }
+    # if (test_type == "tt") {
+    #   return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
+    # }
     return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
   } else if (isMatch(col_name, 'EDA')) {
     if (test_type == "tt") {

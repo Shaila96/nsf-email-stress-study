@@ -17,7 +17,6 @@ geometry: top=3.5cm, bottom=3cm
 #-------------------------#
 #--------LIBRARIES--------#
 #-------------------------#
-# install.packages("readr")
 library(readr)
 library(dplyr)
 library(tidyverse)
@@ -39,7 +38,7 @@ plots_dir <- 'plots'
 
 data_file_name <- 'result_df.csv'
 
-
+condition_types <- c('L', 'H')
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
 
 common_col_list <- c('Subject', 'Condition', 'Session')
@@ -69,9 +68,12 @@ convert_to_csv <- function(df, file_name) {
 }
 
 get_data_for_boxplot <- function(df) {
-  new_df <- df %>% gather(Signal, Value, -Subject, -Condition, -Session)
-  # print_msg(str(df))
-  # print_msg(str(new_df))
+  new_df <- df %>% 
+    na.omit %>% 
+    mutate(diff=HR-N.HR) %>% 
+    select(-HR, -N.HR) %>% 
+    gather(Signal, Value, -Subject, -Condition, -Session)
+
   return(new_df)
 }
 
@@ -106,12 +108,17 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
 } 
 
+## Function for annotating boxplot with n.
+get_n <- function(df) { 
+  return(c(y=-Inf, vjust = -1, label=length(df))) 
+} 
+
 figure_out_labels <- function(col_name, transformed=F) { 
   if (is_match(col_name, 'PP')) { 
     if (transformed) {
       return(expression(Delta~"ln("~bar("PP")~paste(') [',''^'o','C',''^2,']')))
     }
-    return(expression(Delta~bar('PP')' ['~paste(''^'o','C',''^2,']')))
+    return(expression(Delta~bar('PP')~paste(' [',''^'o','C',''^2,']')))
   } else if (is_match(col_name, 'HR')) {
     if (transformed) {
       return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
@@ -129,6 +136,18 @@ figure_out_labels <- function(col_name, transformed=F) {
     return(expression(Delta~bar('EDA')~' ['~mu~'S]'))
   } 
   return('Unknown axis.') 
+}
+
+get_condition_type <- function(str) {
+  if (str=='L') 'Low' else 'High'
+}
+
+save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
+  plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=default_width, height=default_height)
+  
+  plot_path <- file.path(project_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, width=default_width, height=default_height)
 }
 
 generate_mean_diff_data <- function() {
@@ -175,9 +194,7 @@ generate_mean_diff_data <- function() {
   ##################################################################################################
   
   
-  
-  
-  
+
   
   ###############################################################
   ## If you need to test how the shape of the data is changing ##
@@ -215,53 +232,72 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title) {
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+  
   print(plot)
 }
 
-get_box_plot <- function(df, x_col, y_col, x_label, y_label, title) {
+get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, significance) {
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
-    geom_boxplot() +
+    geom_boxplot(width=0.3) +
     ggtitle(title) + 
     xlab(x_label) +
     ylab(y_label) +
+    theme_bw(base_size = 18) + 
+    theme(axis.title.x = element_blank()) +
+    geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
+    stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
+    stat_summary(fun.data = get_n, geom = "text", size = 6) +
+    scale_x_discrete(labels=c("diff" = "HR Difference")) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    annotate("text", x=1, y=Inf, label= significance, vjust = 1.2, size = 10)
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   print(plot)
+  
+  plot_path <- file.path(plots_dir, paste0(title))
+  save_plot(plot_path, plot)
 }
 
-t_test_hr <- function(df, plot_title) {
-  # colnames(mean_hr_df) <- c(common_col_list, 'Zephyr HR', 'E4 HR')
+get_significance_sign <- function(p_value) { 
+  if (p_value > 0.05) { 
+    return(" ") 
+  } else if (p_value <= 0.001) { 
+    return("***") 
+  } else if (p_value <= 0.01) { 
+    return("**") 
+  } else if (p_value <= 0.05) { 
+    return("*") 
+  } 
+} 
 
-  get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Heart Rate', 'Value', plot_title)
-  
+t_test_hr <- function(df, plot_title) {
   ## H0:m=0, Ha:m???0 (different)
   t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
 
+  get_box_plot(get_data_for_boxplot(df), 
+               'Signal', 
+               'Value', 
+               'Heart Rate', 
+               figure_out_labels('HR'), 
+               plot_title, 
+               get_significance_sign(t_test$p.value))
+  
   print_msg(t_test)
   print_msg(paste('The mean differences between the HR from two sensors are', check_significance(t_test)))
-
-  # print_msg(paste('p-value: ', t_test$p.value))
 }
-
-
-# t_test_hr_relative_to_baseline <- function(df) {
-#   get_box_plot(get_data_for_boxplot(df), 'Signal', 'Value', 'Signals', 'Value', paste0('HR Boxplot - ', session_name))
-#   
-#   ## H0:m=0, Ha:m???0 (different)
-#   t_test <- t.test(mean_hr_df$HR, mean_hr_df$N.HR, data=mean_hr_df, paired=T)
-# 
-#   print_msg(t_test)
-#   print_msg(paste('The mean differences between the HR from two sensors are', check_significance(t_test)))
-# }
-
 
 generate_eda_vs_pp_plot <- function() {
   mean_diff_df <- mean_diff_df[, perspiration_col_list] %>% na.omit()
   
   ## Initial Plot 
-  get_scatter_plot(mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP'), figure_out_labels('EDA'), 'EDA vs PP - Initial Plot')
+  get_scatter_plot(mean_diff_df, 
+                   'PP', 
+                   'N.EDA', 
+                   figure_out_labels('PP'), 
+                   figure_out_labels('EDA'), 
+                   'EDA vs PP - Initial Plot')
   
   ## Here we got two outliers. Lets find the outliers here.
   outlier_eda_df <- mean_diff_df[mean_diff_df$N.EDA < -10, ]
@@ -275,7 +311,12 @@ generate_eda_vs_pp_plot <- function() {
   temp_mean_diff_df[temp_mean_diff_df$Subject %in% bad_subjects, 'N.EDA'] <- NA
 
   ## Plot without the outlier.
-  get_scatter_plot(temp_mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP'), figure_out_labels('EDA'), 'EDA vs PP Plot - Without Outlier')
+  get_scatter_plot(temp_mean_diff_df, 
+                   'PP', 
+                   'N.EDA', 
+                   figure_out_labels('PP'), 
+                   figure_out_labels('EDA'), 
+                   'EDA vs PP Plot - Without Outlier')
 
   ## Here also we got two outliers. Lets find the outliers here.
   outlier_eda_df <- temp_mean_diff_df[temp_mean_diff_df$N.EDA < -2, ]
@@ -290,12 +331,42 @@ generate_eda_vs_pp_plot <- function() {
   new_mean_diff_df <- new_mean_diff_df[, perspiration_col_list] %>% na.omit()
   
   ## Plot for normalized EDA & PP
-  get_scatter_plot(new_mean_diff_df, 'PP', 'N.EDA', figure_out_labels('PP', T), figure_out_labels('EDA', T), 'EDA vs PP Plot - Transfered & Log Data')
+  get_scatter_plot(new_mean_diff_df, 
+                   'PP', 
+                   'N.EDA', 
+                   figure_out_labels('PP', T), 
+                   figure_out_labels('EDA', T), 
+                   'EDA vs PP Plot - Transfered & Log Data')
+  
+  ggscatter(new_mean_diff_df, 
+            x = "PP", 
+            y = "N.EDA", 
+            add = "reg.line", 
+            conf.int = TRUE, 
+            cor.coef = TRUE, 
+            cor.method = "pearson",
+            xlab = figure_out_labels('PP', T), 
+            ylab = figure_out_labels('EDA', T))
   
 }
 
 generate_hr_plot <- function() {
-  get_scatter_plot(new_mean_diff_df, 'HR', 'N.HR', figure_out_labels('HR'), figure_out_labels('HR'), 'Zephyr HR vs E4 HR Plot')
+  get_scatter_plot(new_mean_diff_df, 
+                   'HR', 
+                   'N.HR', 
+                   figure_out_labels('HR'), 
+                   figure_out_labels('HR'), 
+                   'Zephyr HR vs E4 HR Plot')
+  
+  ggscatter(new_mean_diff_df, 
+            x = "HR", 
+            y = "N.HR", 
+            add = "reg.line", 
+            conf.int = TRUE, 
+            cor.coef = TRUE, 
+            cor.method = "pearson",
+            xlab = figure_out_labels('HR'), 
+            ylab = figure_out_labels('HR'))
  
   ######################################################
   # Baseline Zephyr vs. Baseline E4
@@ -333,7 +404,7 @@ generate_hr_plot()
 # T Test - Mean Heart Rate - Per Session
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-mean_hr_df <- mean_df[, hr_col_list] %>% na.omit()
+mean_hr_df <- mean_df[, hr_col_list]
 t_test_hr(mean_hr_df, 'HR Boxplot - all sessions')
 ```
 
@@ -341,16 +412,16 @@ t_test_hr(mean_hr_df, 'HR Boxplot - all sessions')
 # T Test - Mean Heart Rate - Session-Baseline
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-condition_types <- c('L', 'H') 
 for (session_name in new_session_list) {
   if (session_name=='SC.RB') {
     for (condition_type in condition_types) {
-      # mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name && is_match(mean_diff_df$Condition, condition_type), hr_col_list] %>%  na.omit()
-      # message(paste('########################', nrow(mean_hr_diff_df)))
-      # t_test_hr(mean_hr_diff_df, paste0('HR Boxplot - ', session_name, ' - ', condition_type))
+      mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name 
+                                      & is_match(mean_diff_df$Condition, condition_type), hr_col_list]
+      t_test_hr(mean_hr_diff_df, 
+                paste0('HR Boxplot - ', session_name, ' - ', get_condition_type(condition_type)))
     }
   } else {
-    mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name, hr_col_list] %>%  na.omit()
+    mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name, hr_col_list]
     t_test_hr(mean_hr_diff_df, paste0('HR Boxplot - ', session_name))
   }
 }
