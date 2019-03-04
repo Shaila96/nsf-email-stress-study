@@ -67,6 +67,10 @@ convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
 }
 
+specify_decimal <- function(x, k) {
+  trimws(format(round(x, k), nsmall=k))
+}
+
 get_data_for_boxplot <- function(df) {
   new_df <- df %>% 
     na.omit %>% 
@@ -107,6 +111,10 @@ check_significance <- function(t_test) {
 is_match <- function(string_we_have, pattern_we_are_looking_for) { 
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
 } 
+
+replace_space <- function(str) {
+  gsub(" ", "", str)
+}
 
 ## Function for annotating boxplot with n.
 get_n <- function(df) { 
@@ -221,18 +229,55 @@ generate_mean_diff_data <- function() {
   convert_to_csv(new_mean_diff_df, 'mean_diff_df.csv')
 }
 
-get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title) {
+get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, transformed=F) {
+  cor_test <- cor.test(df[[x_col]], df[[y_col]], method = "pearson")
+  subj_no <- df %>% distinct(Subject) %>% summarize(n = n())
+  
+  # annot_label <- c(paste("n =", subj_no),
+  #                   paste("p =", cor_test$p.value),
+  #                   paste("R =", cor_test$estimate))
+  annot_label <- paste("n =", subj_no, 
+                       ", p =", specify_decimal(cor_test$p.value, 2), 
+                       ", R =", specify_decimal(cor_test$estimate, 3))
+    
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
-    geom_point() +
-    geom_abline() +
+    geom_point(size = 3) +
+    geom_smooth(method = "lm") +
     ggtitle(title) + 
+    theme_bw() + 
     xlab(x_label) + 
     ylab(y_label) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    annotate("text",
+         x=max(df[[x_col]]),
+         y=Inf,
+         hjust=1,
+         vjust=1.5,
+         label=annot_label,
+         fontface = 'italic', 
+         size = 6) +
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+  print(plot)
   
+  plot_path <- file.path(plots_dir, replace_space(title))
+  save_plot(plot_path, plot)
+  
+  
+  ###############################################################
+  ##                 JUST FOR DOUBLE CHECKING                  ##
+  ###############################################################
+  plot <- ggscatter(df, 
+            x = x_col, 
+            y = y_col, 
+            add = "reg.line",
+            conf.int = TRUE, 
+            cor.coef = TRUE, 
+            cor.method = "pearson",
+            xlab = figure_out_labels(x_col, transformed), 
+            ylab = figure_out_labels(y_col, transformed))
   print(plot)
 }
 
@@ -248,15 +293,15 @@ get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, significance
     geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
     stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
     stat_summary(fun.data = get_n, geom = "text", size = 6) +
-    scale_x_discrete(labels=c("diff" = "HR Difference")) +
+    scale_x_discrete(labels=c("diff" = "Chest HR - Wrist HR")) +
     scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
-    annotate("text", x=1, y=Inf, label= significance, vjust = 1.2, size = 10)
+    annotate("text", x=1, y=Inf, label= significance, vjust = 1.2, size = 10) +
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   print(plot)
   
-  plot_path <- file.path(plots_dir, paste0(title))
+  plot_path <- file.path(plots_dir, replace_space(title))
   save_plot(plot_path, plot)
 }
 
@@ -289,43 +334,42 @@ t_test_hr <- function(df, plot_title) {
 }
 
 generate_eda_vs_pp_plot <- function() {
-  mean_diff_df <- mean_diff_df[, perspiration_col_list] %>% na.omit()
-  
-  ## Initial Plot 
-  get_scatter_plot(mean_diff_df, 
-                   'PP', 
-                   'N.EDA', 
-                   figure_out_labels('PP'), 
-                   figure_out_labels('EDA'), 
-                   'EDA vs PP - Initial Plot')
-  
-  ## Here we got two outliers. Lets find the outliers here.
-  outlier_eda_df <- mean_diff_df[mean_diff_df$N.EDA < -10, ]
-  bad_subjects <- levels(factor((outlier_eda_df$Subject)))
-  bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
-  print(paste0('Subjects with EDA outliers: ', bad_subjects))
-  print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
+  # mean_diff_df <- mean_diff_df[, perspiration_col_list] %>% na.omit()
+  # 
+  # ## Initial Plot 
+  # get_scatter_plot(mean_diff_df, 
+  #                  'PP', 
+  #                  'N.EDA', 
+  #                  figure_out_labels('PP'), 
+  #                  figure_out_labels('EDA'), 
+  #                  'EDA vs PP - Initial Plot')
+  # 
+  # ## Here we got two outliers. Lets find the outliers here.
+  # outlier_eda_df <- mean_diff_df[mean_diff_df$N.EDA < -10, ]
+  # bad_subjects <- levels(factor((outlier_eda_df$Subject)))
+  # bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
+  # print(paste0('Subjects with EDA outliers: ', bad_subjects))
+  # print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
+  # 
+  # ## Not chaging the actual mean_diff_df data, using temp dataframe.
+  # temp_mean_diff_df <- mean_diff_df
+  # temp_mean_diff_df[temp_mean_diff_df$Subject %in% bad_subjects, 'N.EDA'] <- NA
+  # 
+  # ## Plot without the outlier.
+  # get_scatter_plot(temp_mean_diff_df, 
+  #                  'PP', 
+  #                  'N.EDA', 
+  #                  figure_out_labels('PP'), 
+  #                  figure_out_labels('EDA'), 
+  #                  'EDA vs PP Plot - Without Outlier')
+  # 
+  # ## Here also we got two outliers. Lets find the outliers here.
+  # outlier_eda_df <- temp_mean_diff_df[temp_mean_diff_df$N.EDA < -2, ]
+  # bad_subjects <- levels(factor((outlier_eda_df$Subject)))
+  # bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
+  # print(paste0('Subjects with EDA outliers: ', bad_subjects))
+  # print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
 
-  ## Not chaging the actual mean_diff_df data, using temp dataframe.
-  temp_mean_diff_df <- mean_diff_df
-  temp_mean_diff_df[temp_mean_diff_df$Subject %in% bad_subjects, 'N.EDA'] <- NA
-
-  ## Plot without the outlier.
-  get_scatter_plot(temp_mean_diff_df, 
-                   'PP', 
-                   'N.EDA', 
-                   figure_out_labels('PP'), 
-                   figure_out_labels('EDA'), 
-                   'EDA vs PP Plot - Without Outlier')
-
-  ## Here also we got two outliers. Lets find the outliers here.
-  outlier_eda_df <- temp_mean_diff_df[temp_mean_diff_df$N.EDA < -2, ]
-  bad_subjects <- levels(factor((outlier_eda_df$Subject)))
-  bad_subj_sessions <- levels(factor((outlier_eda_df$Session)))
-  print(paste0('Subjects with EDA outliers: ', bad_subjects))
-  print(paste0('Sessions with EDA outliers: ', bad_subj_sessions))
-
-  
   
 
   new_mean_diff_df <- new_mean_diff_df[, perspiration_col_list] %>% na.omit()
@@ -336,37 +380,24 @@ generate_eda_vs_pp_plot <- function() {
                    'N.EDA', 
                    figure_out_labels('PP', T), 
                    figure_out_labels('EDA', T), 
-                   'EDA vs PP Plot - Transfered & Log Data')
+                   'EDA vs PP Plot - Transfered & Log Data',
+                   T)
   
-  ggscatter(new_mean_diff_df, 
-            x = "PP", 
-            y = "N.EDA", 
-            add = "reg.line", 
-            conf.int = TRUE, 
-            cor.coef = TRUE, 
-            cor.method = "pearson",
-            xlab = figure_out_labels('PP', T), 
-            ylab = figure_out_labels('EDA', T))
-  
+  # cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
+  # print_msg(cor_test)
 }
 
 generate_hr_plot <- function() {
+  new_mean_diff_df <- new_mean_diff_df[, hr_col_list] %>% na.omit()
   get_scatter_plot(new_mean_diff_df, 
                    'HR', 
                    'N.HR', 
                    figure_out_labels('HR'), 
-                   figure_out_labels('HR'), 
+                   figure_out_labels('N.HR'), 
                    'Zephyr HR vs E4 HR Plot')
   
-  ggscatter(new_mean_diff_df, 
-            x = "HR", 
-            y = "N.HR", 
-            add = "reg.line", 
-            conf.int = TRUE, 
-            cor.coef = TRUE, 
-            cor.method = "pearson",
-            xlab = figure_out_labels('HR'), 
-            ylab = figure_out_labels('HR'))
+  # cor_test <- cor.test(new_mean_diff_df$HR, new_mean_diff_df$N.HR, method = "pearson")
+  # print_msg(cor_test)
  
   ######################################################
   # Baseline Zephyr vs. Baseline E4
@@ -415,9 +446,9 @@ t_test_hr(mean_hr_df, 'HR Boxplot - all sessions')
 for (session_name in new_session_list) {
   if (session_name=='SC.RB') {
     for (condition_type in condition_types) {
-      mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name 
+      mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name
                                       & is_match(mean_diff_df$Condition, condition_type), hr_col_list]
-      t_test_hr(mean_hr_diff_df, 
+      t_test_hr(mean_hr_diff_df,
                 paste0('HR Boxplot - ', session_name, ' - ', get_condition_type(condition_type)))
     }
   } else {
