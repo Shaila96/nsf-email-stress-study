@@ -112,8 +112,8 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
 } 
 
-replace_space <- function(str) {
-  gsub(" ", "", str)
+replace_dot_space <- function(str) {
+  gsub("\\.", "-", str)
 }
 
 ## Function for annotating boxplot with n.
@@ -229,7 +229,7 @@ generate_mean_diff_data <- function() {
   convert_to_csv(new_mean_diff_df, 'mean_diff_df.csv')
 }
 
-get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, transformed=F) {
+get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name,transformed=F) {
   cor_test <- cor.test(df[[x_col]], df[[y_col]], method = "pearson")
   subj_no <- df %>% distinct(Subject) %>% summarize(n = n())
   
@@ -237,14 +237,14 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, transfor
   #                   paste("p =", cor_test$p.value),
   #                   paste("R =", cor_test$estimate))
   annot_label <- paste("n =", subj_no, 
-                       ", p =", specify_decimal(cor_test$p.value, 2), 
+                       ", p =", specify_decimal(cor_test$p.value, 4), 
                        ", R =", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
     geom_point(size = 3) +
     geom_smooth(method = "lm") +
-    ggtitle(title) + 
+    # ggtitle(title) + 
     theme_bw() + 
     xlab(x_label) + 
     ylab(y_label) +
@@ -262,7 +262,7 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, transfor
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   print(plot)
   
-  plot_path <- file.path(plots_dir, replace_space(title))
+  plot_path <- file.path(plots_dir, replace_dot_space(tolower(file_name)))
   save_plot(plot_path, plot)
   
   
@@ -281,11 +281,11 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, transfor
   print(plot)
 }
 
-get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, significance) {
+get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name, significance) {
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
     geom_boxplot(width=0.3) +
-    ggtitle(title) + 
+    # ggtitle(title) + 
     xlab(x_label) +
     ylab(y_label) +
     theme_bw(base_size = 18) + 
@@ -301,7 +301,7 @@ get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, significance
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   print(plot)
   
-  plot_path <- file.path(plots_dir, replace_space(title))
+  plot_path <- file.path(plots_dir, replace_dot_space(tolower(file_name)))
   save_plot(plot_path, plot)
 }
 
@@ -317,9 +317,24 @@ get_significance_sign <- function(p_value) {
   } 
 } 
 
-t_test_hr <- function(df, plot_title) {
+t_test_hr <- function(df, plot_title, file_name) {
+  ################################
+  #####  CHANGE THE CODE!!!  #####
+  ################################
+  df <- df %>% na.omit
+  
   ## H0:m=0, Ha:m???0 (different)
-  t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
+  # t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
+  
+  ################################
+  #####  CHANGE THE CODE!!!  #####
+  ################################
+  t_test <- NA
+  if (nrow(df) < 30) {
+    t_test <- wilcox.test(df$HR, df$N.HR, data=df, paired=T)
+  } else {
+    t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
+  }
 
   get_box_plot(get_data_for_boxplot(df), 
                'Signal', 
@@ -327,10 +342,14 @@ t_test_hr <- function(df, plot_title) {
                'Heart Rate', 
                figure_out_labels('HR'), 
                plot_title, 
+               file_name,
                get_significance_sign(t_test$p.value))
   
   print_msg(t_test)
-  print_msg(paste('The mean differences between the HR from two sensors are', check_significance(t_test)))
+  print_msg(paste('The mean differences between the HR from two sensors are', 
+                  check_significance(t_test)))
+  
+  
 }
 
 generate_eda_vs_pp_plot <- function() {
@@ -380,7 +399,8 @@ generate_eda_vs_pp_plot <- function() {
                    'N.EDA', 
                    figure_out_labels('PP', T), 
                    figure_out_labels('EDA', T), 
-                   'EDA vs PP Plot - Transfered & Log Data',
+                   'EDA vs PP Plot',
+                   'eda-vs-pp',
                    T)
   
   # cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
@@ -394,7 +414,8 @@ generate_hr_plot <- function() {
                    'N.HR', 
                    figure_out_labels('HR'), 
                    figure_out_labels('N.HR'), 
-                   'Zephyr HR vs E4 HR Plot')
+                   'Chest HR vs Wrist HR',
+                   'chest-hr-vs-wrist-hr')
   
   # cor_test <- cor.test(new_mean_diff_df$HR, new_mean_diff_df$N.HR, method = "pearson")
   # print_msg(cor_test)
@@ -436,7 +457,7 @@ generate_hr_plot()
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 mean_hr_df <- mean_df[, hr_col_list]
-t_test_hr(mean_hr_df, 'HR Boxplot - all sessions')
+t_test_hr(mean_hr_df, 'HR Boxplot - all sessions', 'hr-boxplot-all-sessions')
 ```
 
 \newpage
@@ -449,11 +470,14 @@ for (session_name in new_session_list) {
       mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name
                                       & is_match(mean_diff_df$Condition, condition_type), hr_col_list]
       t_test_hr(mean_hr_diff_df,
-                paste0('HR Boxplot - ', session_name, ' - ', get_condition_type(condition_type)))
+                paste0('HR Boxplot - ', session_name, ' - ', get_condition_type(condition_type)),
+                paste0('hr-boxplot-', session_name, '-', get_condition_type(condition_type)))
     }
   } else {
     mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name, hr_col_list]
-    t_test_hr(mean_hr_diff_df, paste0('HR Boxplot - ', session_name))
+    t_test_hr(mean_hr_diff_df, 
+              paste0('HR Boxplot - ', session_name), 
+              paste0('hr-boxplot-', session_name))
   }
 }
 

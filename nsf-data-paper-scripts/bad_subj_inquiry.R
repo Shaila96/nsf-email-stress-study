@@ -25,8 +25,8 @@ good_subj_file_name <- 'subj_good_df.csv'
 mean_file_name <- 'result_df.csv'
 
 
-session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
-# session_list <- c('RestingBaseline')
+# session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+session_list <- c('Presentation')
 
 
 
@@ -149,23 +149,6 @@ all_other_functions <- function() {
   # # session_df <- session_df %>% group_by(Subject) %>% filter(all(is.na(PP)))
   # session_df_no <- session_df %>% summarize(n())
   # # bad_subjects <- levels(factor((session_df$Subject)))
-  
-  
-  
-  #########################################################################################
-  #####                   Finding subjects for long presentation                      #####
-  #########################################################################################
-  # pp_all_df <- pp_all_df[complete.cases(pp_all_df), ]
-  # 
-  # for(sess_idx in 1 : length(session_list)) {
-  #   session_name <- session_list[sess_idx]
-  #   session_df <- pp_all_df %>% filter(Session == session_name)
-  #   
-  #   session_df <- session_df[session_df$TimeElapsed > 300, ]
-  #   bad_subjects <- levels(factor((session_df$Subject)))
-  #   print(bad_subjects)
-  # }
-  #########################################################################################
 }
 
 get_subj_with_high_eda <- function() {
@@ -239,6 +222,25 @@ get_missing_subj_for_pp <- function() {
   }
 }
 
+get_subj_for_long_session <- function() {
+  filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
+  pp_all_df <- filtered_df[, c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'PP')]
+  
+  #########################################################################################
+  #####                   Finding subjects for long presentation                      #####
+  #########################################################################################
+  pp_all_df <- pp_all_df[complete.cases(pp_all_df), ]
+
+  for(sess_idx in 1 : length(session_list)) {
+    session_name <- session_list[sess_idx]
+    session_df <- pp_all_df %>% filter(Session == session_name)
+
+    session_df <- session_df[session_df$TimeElapsed > 400, ]
+    bad_subjects <- levels(factor((session_df$Subject)))
+    print(bad_subjects)
+  }
+} 
+
 get_bad_subjects <- function() {
   # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
@@ -246,10 +248,11 @@ get_bad_subjects <- function() {
   # get_subj_high_br()
   # all_other_functions()
   
-  get_subj_with_high_eda()
+  # get_subj_with_high_eda()
   # check_hr_both_sensor('T011')
-  
   # get_missing_subj_for_pp()
+  
+  get_subj_for_long_session()
 }
 
 

@@ -22,7 +22,7 @@ library(kableExtra)
 library(cowplot) 
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.HR"
+signal_name <- "N.EDA"
 
 
 ## CHANGE THIS!!!!
@@ -79,6 +79,10 @@ plot_list <- list()
 isMatch <- function(string_we_have, pattern_we_are_looking_for) { 
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
 } 
+
+replace_dots <- function(str) {
+  gsub("\\.", "-", str)
+}
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
@@ -890,7 +894,7 @@ for (col in measure_vec) {
 grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
 
 # plot_path <- file.path(plots_dir, paste0(tolower(signal_name), '-validation-plot-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-plot_path <- file.path(plots_dir, paste0(tolower(signal_name), '-validation-plot', file_name_part_sensor_comparison, file_name_part_outlier))
+plot_path <- file.path(plots_dir, paste0(replace_dots(tolower(signal_name)), '-validation-plot', file_name_part_sensor_comparison, file_name_part_outlier))
 save_plot(plot_path, grid_plot)
 
 
