@@ -39,7 +39,7 @@ plots_dir <- 'plots'
 data_file_name <- 'result_df.csv'
 
 condition_types <- c('L', 'H')
-session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
+session_list <- c('RestingBaseline', 'BaselineWriting', 'DualTask', 'Presentation', 'StressCondition')
 
 common_col_list <- c('Subject', 'Condition', 'Session')
 perspiration_signal_list <- c('PP', 'N.EDA')
@@ -121,6 +121,25 @@ get_n <- function(df) {
   return(c(y=-Inf, vjust = -1, label=length(df))) 
 } 
 
+# 'RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask'
+get_session_title <- function(session_name, condition_type=NA) {
+  if (session_name=='RestingBaseline') {
+    return('Resting Baseline')
+  } else if (session_name=='BaselineWriting') {
+    return('Single Task')
+  } else if (session_name=='DualTask') {
+    return('Dual Task')
+  } else if (session_name=='StressCondition') {
+    if (condition_type=='L') {
+      return('Relaxing Video')
+    } else {
+      return('Stroop')
+    }
+  } 
+  
+  return(session_name)
+}
+
 figure_out_labels <- function(col_name, transformed=F) { 
   if (is_match(col_name, 'PP')) { 
     if (transformed) {
@@ -131,7 +150,8 @@ figure_out_labels <- function(col_name, transformed=F) {
     if (transformed) {
       return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
     }
-    return(expression(Delta~bar('Heart Rate')~' [BPM]'))
+    # return(expression(Delta~bar('Heart Rate')~' [BPM]'))
+    return(expression('Heart Rate [BPM]'))
   } else if (is_match(col_name, 'BR')) { 
     if (transformed) {
       return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
@@ -231,13 +251,13 @@ generate_mean_diff_data <- function() {
 
 get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name,transformed=F) {
   cor_test <- cor.test(df[[x_col]], df[[y_col]], method = "pearson")
-  subj_no <- df %>% distinct(Subject) %>% summarize(n = n())
+  subj_no <- df %>% summarize(n = n())
   
-  # annot_label <- c(paste("n =", subj_no),
-  #                   paste("p =", cor_test$p.value),
-  #                   paste("R =", cor_test$estimate))
+  ## Very Bad Coding :P
+  if(x_col=='HR') point=10 else point=3
+
   annot_label <- paste("n =", subj_no, 
-                       ", p =", specify_decimal(cor_test$p.value, 4), 
+                       ", p =", specify_decimal(cor_test$p.value, point), 
                        ", R =", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
@@ -269,23 +289,23 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
   ###############################################################
   ##                 JUST FOR DOUBLE CHECKING                  ##
   ###############################################################
-  plot <- ggscatter(df, 
-            x = x_col, 
-            y = y_col, 
-            add = "reg.line",
-            conf.int = TRUE, 
-            cor.coef = TRUE, 
-            cor.method = "pearson",
-            xlab = figure_out_labels(x_col, transformed), 
-            ylab = figure_out_labels(y_col, transformed))
-  print(plot)
+  # plot <- ggscatter(df, 
+  #           x = x_col, 
+  #           y = y_col, 
+  #           add = "reg.line",
+  #           conf.int = TRUE, 
+  #           cor.coef = TRUE, 
+  #           cor.method = "pearson",
+  #           xlab = figure_out_labels(x_col, transformed), 
+  #           ylab = figure_out_labels(y_col, transformed))
+  # print(plot)
 }
 
 get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name, significance) {
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
     geom_boxplot(width=0.3) +
-    # ggtitle(title) + 
+    ggtitle(title) +
     xlab(x_label) +
     ylab(y_label) +
     theme_bw(base_size = 18) + 
@@ -318,23 +338,9 @@ get_significance_sign <- function(p_value) {
 } 
 
 t_test_hr <- function(df, plot_title, file_name) {
-  ################################
-  #####  CHANGE THE CODE!!!  #####
-  ################################
-  df <- df %>% na.omit
-  
   ## H0:m=0, Ha:m???0 (different)
-  # t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
-  
-  ################################
-  #####  CHANGE THE CODE!!!  #####
-  ################################
-  t_test <- NA
-  if (nrow(df) < 30) {
-    t_test <- wilcox.test(df$HR, df$N.HR, data=df, paired=T)
-  } else {
-    t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
-  }
+  t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
+  # print_msg(paste0('----------HR Box Plot Data: ', head(df, 2)))
 
   get_box_plot(get_data_for_boxplot(df), 
                'Signal', 
@@ -392,7 +398,7 @@ generate_eda_vs_pp_plot <- function() {
   
 
   new_mean_diff_df <- new_mean_diff_df[, perspiration_col_list] %>% na.omit()
-  
+  # print_msg(paste0('----------PP vs EDA Scatter Plot Data: ', head(new_mean_diff_df, 2)))
   ## Plot for normalized EDA & PP
   get_scatter_plot(new_mean_diff_df, 
                    'PP', 
@@ -403,13 +409,14 @@ generate_eda_vs_pp_plot <- function() {
                    'eda-vs-pp',
                    T)
   
-  # cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
-  # print_msg(cor_test)
+  cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
+  print_msg(cor_test)
 }
 
 generate_hr_plot <- function() {
-  new_mean_diff_df <- new_mean_diff_df[, hr_col_list] %>% na.omit()
-  get_scatter_plot(new_mean_diff_df, 
+  mean_df <- mean_df[, hr_col_list] %>% na.omit()
+  # print_msg(paste0('----------HR Scatter Plot Data: ', head(mean_df, 2)))
+  get_scatter_plot(mean_df, 
                    'HR', 
                    'N.HR', 
                    figure_out_labels('HR'), 
@@ -464,20 +471,20 @@ t_test_hr(mean_hr_df, 'HR Boxplot - all sessions', 'hr-boxplot-all-sessions')
 # T Test - Mean Heart Rate - Session-Baseline
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-for (session_name in new_session_list) {
-  if (session_name=='SC.RB') {
+for (session_name in session_list) {
+  if (session_name=='StressCondition') {
     for (condition_type in condition_types) {
-      mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name
-                                      & is_match(mean_diff_df$Condition, condition_type), hr_col_list]
-      t_test_hr(mean_hr_diff_df,
-                paste0('HR Boxplot - ', session_name, ' - ', get_condition_type(condition_type)),
-                paste0('hr-boxplot-', session_name, '-', get_condition_type(condition_type)))
+      mean_hr_df <- mean_df[mean_df$Session==session_name
+                                      & is_match(mean_df$Condition, condition_type), hr_col_list]
+      t_test_hr(mean_hr_df,
+                paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
+                paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
     }
   } else {
-    mean_hr_diff_df <- mean_diff_df[mean_diff_df$Session==session_name, hr_col_list]
-    t_test_hr(mean_hr_diff_df, 
-              paste0('HR Boxplot - ', session_name), 
-              paste0('hr-boxplot-', session_name))
+    mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list]
+    t_test_hr(mean_hr_df, 
+              paste0('HR Boxplot - ', get_session_title(session_name)), 
+              paste0('hr_boxplot_', get_session_title(session_name)))
   }
 }
 

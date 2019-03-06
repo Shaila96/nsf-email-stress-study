@@ -84,7 +84,4 @@
 
 # df = data.frame(animal=c('goat','horse-d','horse','two', 'five'), level=c('five','one','three',30,'abc-horse'), length=c(10, 20, 30, 'horse', 'eight'))
 # df_index <- which(df == "horse", arr.ind=T)
-# df[df_index]
-
-
-  
+# df[df_index] 
