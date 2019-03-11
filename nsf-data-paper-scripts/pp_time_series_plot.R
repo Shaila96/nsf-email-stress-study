@@ -54,7 +54,7 @@ save_plot <- function(plot_name, plot) {
   ggsave(plot_path, plot, width=10, height=10)
   
   plot_path <- file.path(current_dir, paste0(plot_name, '.pdf'))
-  ggsave(plot_path, plot, width=10, height=10)
+  ggsave(plot_path, plot, device=cairo_pdf, width=10, height=10)
 }
 
 #---- Add one space if it finds any CamelCase ----#

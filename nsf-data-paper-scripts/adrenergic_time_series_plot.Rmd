@@ -138,7 +138,7 @@ save_plot <- function(plot_name, plot) {
   ggsave(plot_path, plot, width=10, height=10)
   
   plot_path <- file.path(project_dir, paste0(plot_name, '.pdf'))
-  ggsave(plot_path, plot, width=10, height=10)
+  ggsave(plot_path, plot, device=cairo_pdf, width=10, height=10)
 }
 
 generate_signal_plot <- function(col_name) {

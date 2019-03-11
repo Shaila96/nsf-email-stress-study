@@ -1,0 +1,180 @@
+---
+title: "Psychometrics Data Analysis"
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(directlabels)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
+setwd(project_dir)
+
+data_dir <- 'data'
+survey_data_dir <- 'survey-data'
+plots_dir <- 'plots'
+
+data_file_name <- 'result_df.csv'
+
+pre_survey_file_name <- 'pre-survey.csv'
+post_survey_file_name <- 'post-survey.csv'
+good_subj_file_name <- 'subj_good_df.csv'
+
+good_subj_list <- tibble()
+pre_survey_df <- tibble()
+post_survey_df <- tibble()
+
+na_val <- 'NA'
+
+nasa_tlx_col_names <- c("Nasa_Mental", "Nasa_Physical", "Nasa_Temporal",
+                        "Nasa_Performance", "Nasa_Effort", "Nasa_Frustration") 
+nasa_task_options <- c("Strongly disagree", "Disagress", "Somewhat disagree", 
+                       "Neither agree or disagree", "Somewhat agree", "Agree", "Strongly agree")
+
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
+}
+
+print_msg <- function(df) {
+  print(df)
+  message(df)
+}
+
+is_match <- function(string_we_have, pattern_we_are_looking_for) { 
+  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+} 
+
+replace_dot_space <- function(str) {
+  gsub("\\.", "-", str)
+}
+
+save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
+  plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=default_width, height=default_height)
+  
+  plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
+}
+
+# extract_Nasa_score <- function() {
+#   #---- NOTE: YOU HAVE TO CALCULATE ALL SCALES FOR ONE SUBJECT, THEN GO FOR NEXT RWOW/SUBJECT ----#
+#   
+#   pre_scale_df <- pre_survey_df[, c(22, seq(33, 42))]
+#   post_scale_df <- post_survey_df[, c(22, seq(30, 39))]
+#   
+#   colnames(pre_scale_df) <- c("SubjectID",
+#                            "Nasa_Q1", "Nasa_Q2", "Nasa_Q3", "Nasa_Q4", "Nasa_Q5",
+#                            "Nasa_Q6", "Nasa_Q7", "Nasa_Q8", "Nasa_Q9", "Nasa_Q10")
+#   
+#   colnames(post_scale_df) <- c("SubjectID",
+#                               "ERQ_Q1", "ERQ_Q2", "ERQ_Q3", "ERQ_Q4", "ERQ_Q5",
+#                               "ERQ_Q6", "ERQ_Q7", "ERQ_Q8", "ERQ_Q9", "ERQ_Q10")
+#   
+#   scale_df <- merge(pre_scale_df, post_scale_df, by="SubjectID", all=T)
+#   convert_to_csv(scale_df, file.path(data_path, '@pre-post-survey-data.csv'))
+#   
+#   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
+# 
+#   # print(head(scale_score_df, 2))
+#   # print(tail(scale_score_df, 2))
+# 
+#   
+#   
+#   ################################################
+#   ##          REMOVE NA ScaleValue ROWS         ##
+#   ################################################
+#   convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
+# }
+
+
+read_data <- function() {
+  pre_survey_df <<- read_csv(file.path(data_dir, survey_data_dir, pre_survey_file_name))
+  post_survey_df <<- read_csv(file.path(data_dir, survey_data_dir, post_survey_file_name))
+  good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
+}
+
+
+extract_nasa_tlx_score <- function() {
+  nasa_tlx_df <- post_survey_df[, c(22, seq(24, 29))]
+  
+  ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
+  colnames(nasa_tlx_df) <- c("SubjectID", nasa_tlx_col_names)
+  ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  nasa_tlx_df <- nasa_tlx_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  
+  # convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
+  
+  ## Check how the answer frequency for each question
+  formatted_nasa_tlx_df <- nasa_tlx_df %>%
+    gather(Question, Answer, -SubjectID) %>% ## making the data wide to long for all signals
+    select(-SubjectID) %>%                   ## We do not need the subject id
+    group_by(Question, Answer) %>%
+    summarize(Frequency=n())
+    # arrange(match(Question, nasa_tlx_col_names)) 
+  
+  formatted_nasa_tlx_df$Question <- factor(formatted_nasa_tlx_df$Question, levels=nasa_tlx_col_names)  
+  # convert_to_csv(formatted_nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  
+  plot <- formatted_nasa_tlx_df %>% 
+    ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
+    geom_bar(position="dodge", stat="identity") +
+    # scale_x_discrete(limits = c("1","2","3","4","5","6","7")) +
+    scale_x_discrete(limits = nasa_task_options) +
+    theme_bw() + 
+    theme(text = element_text(size = 16),
+          axis.title = element_text(size = 16),
+          axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+  
+  print(plot)
+  save_plot('nasa-frequency', plot, 20)
+  
+  nasa_tlx_col_names
+  
+}
+``` 
+
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_Nasa_score()
+read_data()
+extract_nasa_tlx_score()
+```
+
+<!-- \newpage -->
+<!-- # -------- -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- ``` -->

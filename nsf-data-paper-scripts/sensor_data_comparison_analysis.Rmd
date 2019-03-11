@@ -175,7 +175,7 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   ggsave(plot_path, plot, width=default_width, height=default_height)
   
   plot_path <- file.path(project_dir, paste0(plot_name, '.pdf'))
-  ggsave(plot_path, plot, width=default_width, height=default_height)
+  ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
 
 generate_mean_diff_data <- function() {
@@ -299,6 +299,12 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
   #           xlab = figure_out_labels(x_col, transformed), 
   #           ylab = figure_out_labels(y_col, transformed))
   # print(plot)
+  
+  
+  fit <- lm(df[[x_col]] ~ df[[y_col]], data = df)  # Fit the model
+  print_msg(summary(fit))
+  par(mfrow = c(2, 2))
+  plot(fit)
 }
 
 get_box_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name, significance) {
