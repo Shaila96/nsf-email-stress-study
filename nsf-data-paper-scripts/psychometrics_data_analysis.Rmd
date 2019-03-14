@@ -46,12 +46,13 @@ good_subj_file_name <- 'subj_good_df.csv'
 good_subj_list <- tibble()
 pre_survey_df <- tibble()
 post_survey_df <- tibble()
+nasa_tlx_freq_df <- tibble()
 
 na_val <- 'NA'
 
-nasa_tlx_col_names <- c("Nasa_Mental", "Nasa_Physical", "Nasa_Temporal",
+nasa_tlx_ques_list <- c("Nasa_Mental", "Nasa_Physical", "Nasa_Temporal",
                         "Nasa_Performance", "Nasa_Effort", "Nasa_Frustration") 
-nasa_task_options <- c("Strongly disagree", "Disagress", "Somewhat disagree", 
+nasa_task_options <- c("Strongly disagree", "Disagree", "Somewhat disagree", 
                        "Neither agree or disagree", "Somewhat agree", "Agree", "Strongly agree")
 
 
@@ -63,9 +64,32 @@ convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
 }
 
-print_msg <- function(df) {
-  print(df)
-  message(df)
+get_significance_sign <- function(p_value) { 
+  if (p_value > 0.05) { 
+    return(" ") 
+  } else if (p_value <= 0.001) { 
+    return("***") 
+  } else if (p_value <= 0.01) { 
+    return("**") 
+  } else if (p_value <= 0.05) { 
+    return("*") 
+  } 
+} 
+
+print_msg <- function(msg) {
+  # cat(msg)
+  print(msg)
+  message(msg)
+}
+
+print_significance <- function(prop_test, alternative_val) {
+  p_val <- prop_test$p.value
+  if (p_val < 0.05) {
+    print_msg(paste0(get_significance_sign(p_val), ' The proportion of agreement is significantly ', alternative_val))
+  } else {
+    print_msg(paste0('The proportion of agreement is NOT significantly ', alternative_val))
+  }
+  print_msg(paste0('than the proportion of disagreement, with a p-value = ', p_val))
 }
 
 is_match <- function(string_we_have, pattern_we_are_looking_for) { 
@@ -83,6 +107,7 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
   ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
+
 
 # extract_Nasa_score <- function() {
 #   #---- NOTE: YOU HAVE TO CALCULATE ALL SCALES FOR ONE SUBJECT, THEN GO FOR NEXT RWOW/SUBJECT ----#
@@ -121,35 +146,34 @@ read_data <- function() {
   good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
 }
 
-
 extract_nasa_tlx_score <- function() {
-  nasa_tlx_df <- post_survey_df[, c(22, seq(24, 29))]
+  nasa_tlx_df <<- post_survey_df[, c(22, seq(24, 29))]
   
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
-  colnames(nasa_tlx_df) <- c("SubjectID", nasa_tlx_col_names)
+  colnames(nasa_tlx_df) <<- c("SubjectID", nasa_tlx_ques_list)
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
-  nasa_tlx_df <- nasa_tlx_df %>% 
+  nasa_tlx_df <<- nasa_tlx_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
-  
-  # convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
-  
-  ## Check how the answer frequency for each question
-  formatted_nasa_tlx_df <- nasa_tlx_df %>%
+  ## convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
+}
+
+
+draw_group_bar_chart_nasa_tlx <- function() {
+  ## getting the answer frequency for each question
+  nasa_tlx_freq_df <<- nasa_tlx_df %>%
     gather(Question, Answer, -SubjectID) %>% ## making the data wide to long for all signals
     select(-SubjectID) %>%                   ## We do not need the subject id
     group_by(Question, Answer) %>%
     summarize(Frequency=n())
-    # arrange(match(Question, nasa_tlx_col_names)) 
   
-  formatted_nasa_tlx_df$Question <- factor(formatted_nasa_tlx_df$Question, levels=nasa_tlx_col_names)  
-  # convert_to_csv(formatted_nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_ques_list)  
+  ## convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
   
-  plot <- formatted_nasa_tlx_df %>% 
+  plot <- nasa_tlx_freq_df %>% 
     ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
     geom_bar(position="dodge", stat="identity") +
-    # scale_x_discrete(limits = c("1","2","3","4","5","6","7")) +
     scale_x_discrete(limits = nasa_task_options) +
     theme_bw() + 
     theme(text = element_text(size = 16),
@@ -158,10 +182,67 @@ extract_nasa_tlx_score <- function() {
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   
   print(plot)
-  save_plot('nasa-frequency', plot, 20)
   
-  nasa_tlx_col_names
+  plot <- plot + 
+    theme(text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          axis.text.x = element_text(size = 16, angle = 45, hjust = 1)) 
+  save_plot('nasa-frequency', plot, 18)
+}
+
+get_bar_plot_df <- function(df) {
+  df <- df %>%
+    gather(Frequency, Value, -Question)
+  return(df)
+}
+
+generate_bar_plot <- function(df, title) {
+  plot <- get_bar_plot_df(df) %>%
+    ggplot(aes(x=Frequency, y=Value)) +
+    geom_bar(stat="identity") +
+    ggtitle(title)
+  print(plot)
+}
+
+generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val) {
+  total_response <- nrow(nasa_tlx_df)
   
+  agree_df <- df %>%
+    filter(Answer > comparison_option) %>% 
+    summarize(agree_freq = sum(Frequency))
+    
+  disagree_df <- df %>% 
+    filter(Answer <= comparison_option) %>% 
+    summarize(disagree_freq = sum(Frequency))
+  
+  freq_df <- merge(agree_df, disagree_df, by='Question')
+  # print_msg(str(freq_df))
+  
+  generate_bar_plot(freq_df, nasa_ques)
+    
+  print_msg(paste0(nasa_ques, ":"))
+  print_msg(paste0('Agree: ', freq_df$agree_freq))
+  print_msg(paste0('Disagree: ', freq_df$disagree_freq))
+  
+  prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
+            c(total_response, total_response),
+            p = NULL,
+            alternative = alternative_val,
+            correct = T)
+  print_msg(prop_test)
+  print_significance(prop_test, alternative_val)
+}
+
+
+get_proportion_test_nasa_tlx <- function() {
+  for (nasa_ques in nasa_tlx_ques_list) {
+    temp_nasa_tlx_freq_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==nasa_ques, ]
+    
+    generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 4, 'greater')
+    if (nasa_ques=='Nasa_Performance') {
+      generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 3, 'less')
+    }
+  }
 }
 ``` 
 
@@ -171,10 +252,10 @@ extract_nasa_tlx_score <- function() {
 # extract_Nasa_score()
 read_data()
 extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
 ```
 
-<!-- \newpage -->
-<!-- # -------- -->
-<!-- \newpage -->
-<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
-<!-- ``` -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+get_proportion_test_nasa_tlx()
+```
