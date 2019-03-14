@@ -20,6 +20,7 @@ library(gridExtra)
 library(ggpubr) 
 library(kableExtra) 
 library(cowplot) 
+library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
 signal_name <- "PP"
@@ -81,7 +82,8 @@ isMatch <- function(string_we_have, pattern_we_are_looking_for) {
 } 
 
 replace_dots <- function(str) {
-  gsub("\\.", "-", str)
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "-", str)
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {

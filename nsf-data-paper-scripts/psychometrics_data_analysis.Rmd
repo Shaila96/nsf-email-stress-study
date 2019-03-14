@@ -1,5 +1,5 @@
 ---
-title: "Psychometrics Data Analysis"
+title: 'Psychometrics Data Analysis'
 # output: pdf_document 
 # fontsize: 44pt
 header-includes:
@@ -25,12 +25,13 @@ library(grid)
 library(gridExtra)
 library(ggpubr) 
 library(directlabels)
+library(gsubfn)
 
 
 #-------------------------#
 #-----GLOBAL VARIABLES----#
 #-------------------------#
-project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
+project_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts'
 setwd(project_dir)
 
 data_dir <- 'data'
@@ -46,14 +47,22 @@ good_subj_file_name <- 'subj_good_df.csv'
 good_subj_list <- tibble()
 pre_survey_df <- tibble()
 post_survey_df <- tibble()
+
+biographic_df <- tibble()
 nasa_tlx_freq_df <- tibble()
 
 na_val <- 'NA'
 
-nasa_tlx_ques_list <- c("Nasa_Mental", "Nasa_Physical", "Nasa_Temporal",
-                        "Nasa_Performance", "Nasa_Effort", "Nasa_Frustration") 
-nasa_task_options <- c("Strongly disagree", "Disagree", "Somewhat disagree", 
-                       "Neither agree or disagree", "Somewhat agree", "Agree", "Strongly agree")
+
+bio_ques_list <- c('City', 'State', 'Postal', 
+                   'SubjectID', 'Age', 'Gender',
+                   'Nationality', 'Other_Nationality', 'Native_Lang', 'Other_Native_Lang',
+                   'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
+
+nasa_tlx_ques_list <- c('Stress_Ques', 'Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
+                        'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
+nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
+                       'Neither agree or disagree', 'Somewhat agree', 'Agree', 'Strongly agree')
 
 
 
@@ -66,13 +75,13 @@ convert_to_csv <- function(df, file_name) {
 
 get_significance_sign <- function(p_value) { 
   if (p_value > 0.05) { 
-    return(" ") 
+    return(' ') 
   } else if (p_value <= 0.001) { 
-    return("***") 
+    return('***') 
   } else if (p_value <= 0.01) { 
-    return("**") 
+    return('**') 
   } else if (p_value <= 0.05) { 
-    return("*") 
+    return('*') 
   } 
 } 
 
@@ -97,10 +106,14 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 } 
 
 replace_dot_space <- function(str) {
-  gsub("\\.", "-", str)
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "_", tolower(str))
+  # gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
+  # print(plot)
+  
   plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=default_width, height=default_height)
   
@@ -115,15 +128,15 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
 #   pre_scale_df <- pre_survey_df[, c(22, seq(33, 42))]
 #   post_scale_df <- post_survey_df[, c(22, seq(30, 39))]
 #   
-#   colnames(pre_scale_df) <- c("SubjectID",
-#                            "Nasa_Q1", "Nasa_Q2", "Nasa_Q3", "Nasa_Q4", "Nasa_Q5",
-#                            "Nasa_Q6", "Nasa_Q7", "Nasa_Q8", "Nasa_Q9", "Nasa_Q10")
+#   colnames(pre_scale_df) <- c('SubjectID',
+#                            'Nasa_Q1', 'Nasa_Q2', 'Nasa_Q3', 'Nasa_Q4', 'Nasa_Q5',
+#                            'Nasa_Q6', 'Nasa_Q7', 'Nasa_Q8', 'Nasa_Q9', 'Nasa_Q10')
 #   
-#   colnames(post_scale_df) <- c("SubjectID",
-#                               "ERQ_Q1", "ERQ_Q2", "ERQ_Q3", "ERQ_Q4", "ERQ_Q5",
-#                               "ERQ_Q6", "ERQ_Q7", "ERQ_Q8", "ERQ_Q9", "ERQ_Q10")
+#   colnames(post_scale_df) <- c('SubjectID',
+#                               'ERQ_Q1', 'ERQ_Q2', 'ERQ_Q3', 'ERQ_Q4', 'ERQ_Q5',
+#                               'ERQ_Q6', 'ERQ_Q7', 'ERQ_Q8', 'ERQ_Q9', 'ERQ_Q10')
 #   
-#   scale_df <- merge(pre_scale_df, post_scale_df, by="SubjectID", all=T)
+#   scale_df <- merge(pre_scale_df, post_scale_df, by='SubjectID', all=T)
 #   convert_to_csv(scale_df, file.path(data_path, '@pre-post-survey-data.csv'))
 #   
 #   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
@@ -147,10 +160,10 @@ read_data <- function() {
 }
 
 extract_nasa_tlx_score <- function() {
-  nasa_tlx_df <<- post_survey_df[, c(22, seq(24, 29))]
+  nasa_tlx_df <<- post_survey_df[, c(22, seq(24, 30))]
   
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
-  colnames(nasa_tlx_df) <<- c("SubjectID", nasa_tlx_ques_list)
+  colnames(nasa_tlx_df) <<- c('SubjectID', nasa_tlx_ques_list)
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
@@ -158,7 +171,6 @@ extract_nasa_tlx_score <- function() {
     filter(SubjectID %in% good_subj_list$Subject)
   ## convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
 }
-
 
 draw_group_bar_chart_nasa_tlx <- function() {
   ## getting the answer frequency for each question
@@ -173,20 +185,21 @@ draw_group_bar_chart_nasa_tlx <- function() {
   
   plot <- nasa_tlx_freq_df %>% 
     ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
-    geom_bar(position="dodge", stat="identity") +
+    geom_bar(position='dodge', stat='identity') +
     scale_x_discrete(limits = nasa_task_options) +
     theme_bw() + 
     theme(text = element_text(size = 16),
           axis.title = element_text(size = 16),
           axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+          plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
   
   print(plot)
   
   plot <- plot + 
     theme(text = element_text(size = 20),
           axis.title = element_text(size = 20),
-          axis.text.x = element_text(size = 16, angle = 45, hjust = 1)) 
+          axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
+  
   save_plot('nasa-frequency', plot, 18)
 }
 
@@ -199,7 +212,7 @@ get_bar_plot_df <- function(df) {
 generate_bar_plot <- function(df, title) {
   plot <- get_bar_plot_df(df) %>%
     ggplot(aes(x=Frequency, y=Value)) +
-    geom_bar(stat="identity") +
+    geom_bar(stat='identity') +
     ggtitle(title)
   print(plot)
 }
@@ -220,7 +233,7 @@ generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val
   
   generate_bar_plot(freq_df, nasa_ques)
     
-  print_msg(paste0(nasa_ques, ":"))
+  print_msg(paste0(nasa_ques, ':'))
   print_msg(paste0('Agree: ', freq_df$agree_freq))
   print_msg(paste0('Disagree: ', freq_df$disagree_freq))
   
@@ -244,18 +257,85 @@ get_proportion_test_nasa_tlx <- function() {
     }
   }
 }
+
+
+
+
+
+extract_biographic_info <- function() {
+  biographic_df <<- pre_survey_df[, c(19:32)]
+  
+  # print_msg(colnames(biographic_df)) ## DO NOT DELETE
+  colnames(biographic_df) <<- bio_ques_list
+  # print_msg(colnames(biographic_df)) ## DO NOT DELETE
+  
+  
+  ## Filter out the data for good subject list only 
+  biographic_df <<- biographic_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(biographic_df))
+}
+
+
+
+draw_distribution <- function(col_name) {
+  title <- paste0(col_name, ' Distribution')
+  x_lab <- paste0(col_name, ' of Subjects')
+  y_lab <- 'Frequency'
+  
+  plot <- ggplot(data=biographic_df, aes(biographic_df[[col_name]])) + 
+    geom_histogram(color='black', fill='grey') +
+    ggtitle(title) +
+    labs(x_lab, y_lab)
+    # labs(x=x_lab, y=y_lab)
+  
+  print(plot)
+  save_plot(replace_dot_space(title), plot)
+}
+
+
+get_biographic_distribution <- function() {
+  # bio_ques_list <- c('City', 'State', 'Postal', 
+  #                  'SubjectID', 'Age', 'Gender',
+  #                  'Nationality', 'Other_Nationality', 'Native_Lang', 'Other_Native_Lang',
+  #                  'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
+  
+  draw_distribution('Age')
+  draw_distribution('Gender')
+  # draw_education_distribution()
+  # draw_nationality_distribution()
+  # draw_native_lang_distribution()
+  # draw_occupation_distribution()
+  # draw_writing_proficiency_distribution()
+  # draw_daily_email_freq_distribution()
+}
 ``` 
 
 
 
+
+<!-- READ DATA GLOBLALLY -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_Nasa_score()
 read_data()
-extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
 ```
 
+
+<!-- BIOGRAPHIC DISTRIBUTION -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_biographic_info()
+get_biographic_distribution()
+```
+
+
+<!-- NASA TASK PLOTS -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
+```
+
+
+<!-- NASA TASK PROPORTION TEST -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-get_proportion_test_nasa_tlx()
+# get_proportion_test_nasa_tlx()
 ```

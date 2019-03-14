@@ -25,6 +25,7 @@ library(grid)
 library(gridExtra)
 library(ggpubr) 
 library(directlabels)
+library(gsubfn)
 
 
 #-------------------------#
@@ -113,8 +114,9 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 } 
 
 replace_dot_space <- function(str) {
-  gsub("\\.", "_", str)
-  gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "_", str)
+  # gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
 }
 
 ## Function for annotating boxplot with n.
@@ -172,6 +174,8 @@ get_condition_type <- function(str) {
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
+  # print(plot)
+  
   plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=default_width, height=default_height)
   

@@ -22,6 +22,7 @@ library(grid)
 library(gridExtra)
 library(ggpubr) 
 library(directlabels)
+library(gsubfn)
 
 
 #-------------------------#
@@ -130,7 +131,8 @@ get_subj_no_label <- function(subj_no) {
 }
 
 replace_dots <- function(str) {
-  gsub("\\.", "-", str)
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "-", str)
 }
 
 save_plot <- function(plot_name, plot) {

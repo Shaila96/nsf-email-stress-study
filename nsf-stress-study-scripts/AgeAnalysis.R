@@ -9,7 +9,7 @@ current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(current_dir)
 
 testing_df <- read.csv("@Datasets/testing_df.csv")[, c('Subject', 'Condition', 'Measurement')]
-pre_survey_df <- read.csv("@Datasets/survey-reports/Pre-SurveyExport.csv")[, c(19:32)]
+pre_survey_df <- read.csv("@Datasets/survey-reports/pre-survey.csv")[, c(19:32)]
 
 
 str(testing_df)
@@ -48,6 +48,15 @@ nrow(filter(merged_df, Gender. == "2"))
 gg <- ggplot(data=merged_df, aes(merged_df$Your.age.)) + 
   geom_histogram(color="black", fill="grey") +
   ggtitle("Age Distribution - Histogram") +
-  labs(x="Age of Subjects", y="") 
-save_plot("Age-Histogram.pdf", gg, base_height = 10, base_width = 12)
+  labs(x="Age of Subjects", y="Frequency") 
+save_plot("age_distribution.pdf", gg, base_height = 10, base_width = 12)
+
+
+
+gg <- ggplot(data=merged_df, aes(merged_df$Your.education.level.)) + 
+  geom_histogram(color="black", fill="grey") +
+  # scale_x_discrete(limits = c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')) +
+  ggtitle("Education Distribution - Histogram") +
+  labs(x="Education of Subjects", y="Frequency") 
+save_plot("education_distribution.pdf", gg, base_height = 10, base_width = 12)
 
