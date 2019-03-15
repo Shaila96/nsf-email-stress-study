@@ -27,6 +27,8 @@ library(ggpubr)
 library(directlabels)
 library(gsubfn)
 
+source('T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/@questionnaire_scoring.R')
+
 
 #-------------------------#
 #-----GLOBAL VARIABLES----#
@@ -50,6 +52,8 @@ post_survey_df <- tibble()
 
 biographic_df <- tibble()
 nasa_tlx_freq_df <- tibble()
+erq_score_df <- tibble()
+pss_score_df <- tibble()
 
 na_val <- 'NA'
 
@@ -59,13 +63,20 @@ bio_ques_list <- c('City', 'State', 'Postal',
                    'Nationality', 'Other_Nationality', 'Native_Language', 'Other_Native_Language',
                    'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
 
+erq_ques_list <- c('SubjectID',
+                   'ERQ_Q1', 'ERQ_Q2', 'ERQ_Q3', 'ERQ_Q4', 'ERQ_Q5',
+                   'ERQ_Q6', 'ERQ_Q7', 'ERQ_Q8', 'ERQ_Q9', 'ERQ_Q10')
+
+pss_ques_list <- c('SubjectID',
+                   'PSS_Q1', 'PSS_Q2', 'PSS_Q3', 'PSS_Q4', 'PSS_Q5',
+                   'PSS_Q6', 'PSS_Q7', 'PSS_Q8', 'PSS_Q9', 'PSS_Q10')
 
 education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
-occupation_order <- c("Undergraduate student", "Graduate student", "Staff")
-writing_proficiency_order <- c("1=Not fluent at all", "2", "3", "4", "5", "6", "7=Very fluent")
-email_freq_order <- c("1=Never", "2", "3", "4", "5", "6", "7=Very often")
-nationality_order <- c("United States", "Others")
-native_lang_order <- c("English", "Others")
+occupation_order <- c('Undergraduate student', 'Graduate student', 'Staff')
+writing_proficiency_order <- c('1=Not fluent at all', '2', '3', '4', '5', '6', '7=Very fluent')
+email_freq_order <- c('1=Never', '2', '3', '4', '5', '6', '7=Very often')
+nationality_order <- c('United States', 'Others')
+native_lang_order <- c('English', 'Others')
 
 
 nasa_tlx_ques_list <- c('Stress_Question', 'Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
@@ -119,11 +130,11 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 } 
 
 replace_dot_space <- function(str) {
-  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  gsubfn('.', list('.' = '_', ' ' = '_'), tolower(str))
 }
 
 replace_underscore <- function(str) {
-  gsubfn(".", list("_" = " ", "-" = " "), str)
+  gsubfn('.', list('_' = ' ', '-' = ' '), str)
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
@@ -135,38 +146,6 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
   ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
-
-
-# extract_Nasa_score <- function() {
-#   #---- NOTE: YOU HAVE TO CALCULATE ALL SCALES FOR ONE SUBJECT, THEN GO FOR NEXT RWOW/SUBJECT ----#
-#   
-#   pre_scale_df <- pre_survey_df[, c(22, seq(33, 42))]
-#   post_scale_df <- post_survey_df[, c(22, seq(30, 39))]
-#   
-#   colnames(pre_scale_df) <- c('SubjectID',
-#                            'Nasa_Q1', 'Nasa_Q2', 'Nasa_Q3', 'Nasa_Q4', 'Nasa_Q5',
-#                            'Nasa_Q6', 'Nasa_Q7', 'Nasa_Q8', 'Nasa_Q9', 'Nasa_Q10')
-#   
-#   colnames(post_scale_df) <- c('SubjectID',
-#                               'ERQ_Q1', 'ERQ_Q2', 'ERQ_Q3', 'ERQ_Q4', 'ERQ_Q5',
-#                               'ERQ_Q6', 'ERQ_Q7', 'ERQ_Q8', 'ERQ_Q9', 'ERQ_Q10')
-#   
-#   scale_df <- merge(pre_scale_df, post_scale_df, by='SubjectID', all=T)
-#   convert_to_csv(scale_df, file.path(data_path, '@pre-post-survey-data.csv'))
-#   
-#   apply(scale_df, 1, function(each_row) extract_scale_score_each_row(each_row))
-# 
-#   # print(head(scale_score_df, 2))
-#   # print(tail(scale_score_df, 2))
-# 
-#   
-#   
-#   ################################################
-#   ##          REMOVE NA ScaleValue ROWS         ##
-#   ################################################
-#   convert_to_csv(scale_score_df, file.path(db_data_path, 'rank_data_scale.csv'))
-# }
-
 
 read_data <- function() {
   pre_survey_df <<- read_csv(file.path(data_dir, survey_data_dir, pre_survey_file_name))
@@ -230,7 +209,7 @@ generate_nasa_bar_plot <- function(df, title) {
     ggplot(aes(x=Options, y=Frequency)) +
     geom_bar(stat='identity') +
     ggtitle(replace_underscore(title)) +
-    scale_x_discrete(labels=c("agree_freq" = "Agreement", "disagree_freq" = "Disagreement")) +
+    scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Disagreement')) +
     theme_bw() + 
     theme(text = element_text(size = 16),
           axis.title = element_text(size = 16, hjust = 0.5),
@@ -308,44 +287,44 @@ extract_biographic_info <- function() {
 get_bio_bar_plot_df <- function(col_name) {
   df <- remove_na(biographic_df, col_name) 
   if (col_name == 'Gender') {
-    df <- df %>% mutate(Gender = recode(Gender, '1' = "Male", '2' = "Female"))
+    df <- df %>% mutate(Gender = recode(Gender, '1' = 'Male', '2' = 'Female'))
   } else if (col_name == 'Education') {
     df <- df %>% mutate(Education = recode(Education, 
-                                        '1' = "High school or below", 
-                                        '2' = "Undergraduate",
-                                        '3' = "Master or equivalent",
-                                        '4' = "PhD, JD, or equivalent"))
+                                        '1' = 'High school or below', 
+                                        '2' = 'Undergraduate',
+                                        '3' = 'Master or equivalent',
+                                        '4' = 'PhD, JD, or equivalent'))
   } else if (col_name == 'Occupation') {
     df <- df %>% mutate(Occupation = recode(Occupation, 
-                                        '1' = "Undergraduate student", 
-                                        '2' = "Graduate student",
-                                        '3' = "Staff"))
+                                        '1' = 'Undergraduate student', 
+                                        '2' = 'Graduate student',
+                                        '3' = 'Staff'))
   } else if (col_name == 'Writing_Proficiency') {
     df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency, 
-                                        '1' = "1=Not fluent at all", 
-                                        '2' = "2",
-                                        '3' = "3",
-                                        '4' = "4", 
-                                        '5' = "5",
-                                        '6' = "6",
-                                        '7' = "7=Very fluent"))
+                                        '1' = '1=Not fluent at all', 
+                                        '2' = '2',
+                                        '3' = '3',
+                                        '4' = '4', 
+                                        '5' = '5',
+                                        '6' = '6',
+                                        '7' = '7=Very fluent'))
   } else if (col_name == 'Daily_Email_Frequency') {
     df <- df %>% mutate(Daily_Email_Frequency = recode(Daily_Email_Frequency, 
-                                        '1' = "1=Never", 
-                                        '2' = "2",
-                                        '3' = "3",
-                                        '4' = "4", 
-                                        '5' = "5",
-                                        '6' = "6",
-                                        '7' = "7=Very often"))
+                                        '1' = '1=Never', 
+                                        '2' = '2',
+                                        '3' = '3',
+                                        '4' = '4', 
+                                        '5' = '5',
+                                        '6' = '6',
+                                        '7' = '7=Very often'))
   } else if (col_name == 'Nationality') {
     df <- df %>% mutate(Nationality = recode(Nationality, 
-                                        '1' = "United States", 
-                                        '2' = "Others"))
+                                        '1' = 'United States', 
+                                        '2' = 'Others'))
   } else if (col_name == 'Native_Language') {
     df <- df %>% mutate(Native_Language = recode(Native_Language, 
-                                        '1' = "English", 
-                                        '2' = "Others"))
+                                        '1' = 'English', 
+                                        '2' = 'Others'))
   }
   
   return(df)
@@ -414,7 +393,7 @@ draw_distribution <- function(col_name) {
     ylab(y_lab) +
     scale_x_discrete(limits = get_order(col_name)) +
     theme_bw() +
-    theme(legend.position = "none",
+    theme(legend.position = 'none',
           plot.title = element_text(hjust = 0.5),
           text = element_text(size = 20),
           axis.title = element_text(size = 20),
@@ -422,45 +401,92 @@ draw_distribution <- function(col_name) {
 
   print(plot)
   save_plot(replace_dot_space(title), plot)
-  
-  
-  # plot <- nasa_tlx_freq_df %>% 
-  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
-  #   geom_bar(position='dodge', stat='identity') +
-  #   scale_x_discrete(limits = nasa_task_options) +
-  #   theme_bw() + 
-  #   theme(text = element_text(size = 16),
-  #         axis.title = element_text(size = 16),
-  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
-  # 
-  # print(plot)
-  # 
-  # plot <- plot + 
-  #   theme(text = element_text(size = 20),
-  #         axis.title = element_text(size = 20),
-  #         axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
 }
 
 
 get_biographic_distribution <- function() {
-  # bio_ques_list <- c('City', 'State', 'Postal', 
-  #                  'SubjectID', 'Age', 'Gender',
-  #                  'Nationality', 'Other_Nationality', 'Native_Language', 'Other_Native_Language',
-  #                  'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
+  draw_distribution('Age')
+  draw_distribution('Gender')
+  draw_distribution('Education')
+  draw_distribution('Occupation')
+  draw_distribution('Writing_Proficiency')
+  draw_distribution('Daily_Email_Frequency')
+  draw_distribution('Nationality')
+  draw_distribution('Native_Language')
+}
+
+extract_erq_score_each_row <- function(current_subj_df) {
+  temp_erq_cog_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'ERQ: Cognitive Reappraisal',
+                          'Value' = get_erq_cog_score(current_subj_df),
+                          'MinVal' = 6,
+                          'MaxVal' = 42)
   
-  # draw_distribution('Age')
-  # draw_distribution('Gender')
-  # draw_distribution('Education')
-  # draw_distribution('Occupation')
-  # draw_distribution('Writing_Proficiency')
-  # draw_distribution('Daily_Email_Frequency')
-  # draw_distribution('Nationality')
-  # draw_distribution('Native_Language')
+  temp_erq_sup_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'ERQ: Expressive Suppression',
+                          'Value' = get_erq_sup_score(current_subj_df),
+                          'MinVal' = 4,
+                          'MaxVal' = 28)
+  
+  temp_erq_score_df <- rbind(temp_erq_cog_df, temp_erq_sup_df)
+  
+  if (nrow(erq_score_df) == 0) {
+    erq_score_df <<- temp_erq_score_df
+  } else {
+    erq_score_df <<- rbind(erq_score_df, temp_erq_score_df)
+  }
+}
+
+extract_erq_score <- function() {
+  erq_df <- post_survey_df[, c(22, seq(30, 39))]
+  
+  # message(colnames(erq_df)) ## DO NOT DELETE
+  colnames(erq_df) <- erq_ques_list
+  # print_msg(colnames(erq_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  erq_df <- erq_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  print_msg(str(erq_df))
+  
+  apply(erq_df, 1, function(each_row) extract_erq_score_each_row(each_row))
+  
+  convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
+}
+
+
+extract_pss_score_each_row <- function(current_subj_df) {
+  temp_pss_score_df <- tibble("Subject" = current_subj_df['SubjectID'],
+                          "Title" = "Percieved Stress Scale",
+                          "Value" = get_pss_score(current_subj_df),
+                          "MinVal" = 0,
+                          "MaxVal" = 40)
+  
+  # temp_pss_score_df <- rbind(temp_pss_cog_df, temp_pss_sup_df)
+  
+  if (nrow(pss_score_df) == 0) {
+    pss_score_df <<- temp_pss_score_df
+  } else {
+    pss_score_df <<- rbind(pss_score_df, temp_pss_score_df)
+  }
+}
+
+extract_pss_score <- function() {
+  pss_df <- pre_survey_df[, c(22, seq(33, 42))]
+  
+  message(colnames(pss_df)) ## DO NOT DELETE
+  colnames(pss_df) <- pss_ques_list
+  print_msg(colnames(pss_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  pss_df <- pss_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  print_msg(str(pss_df))
+  
+  apply(pss_df, 1, function(each_row) extract_pss_score_each_row(each_row))
+  convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
 }
 ``` 
-
-
 
 
 <!-- READ DATA GLOBLALLY -->
@@ -478,13 +504,24 @@ read_data()
 
 <!-- NASA TASK PLOTS -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
 ```
-
 
 <!-- NASA TASK PROPORTION TEST -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-get_proportion_test_nasa_tlx()
+# get_proportion_test_nasa_tlx()
+```
+
+
+<!-- Perceived Stress Scale Plots -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_pss_score()
+```
+
+
+<!-- Emotion Regulation Plots -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_erq_score()
 ```
