@@ -56,10 +56,19 @@ na_val <- 'NA'
 
 bio_ques_list <- c('City', 'State', 'Postal', 
                    'SubjectID', 'Age', 'Gender',
-                   'Nationality', 'Other_Nationality', 'Native_Lang', 'Other_Native_Lang',
+                   'Nationality', 'Other_Nationality', 'Native_Language', 'Other_Native_Language',
                    'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
 
-nasa_tlx_ques_list <- c('Stress_Ques', 'Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
+
+education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
+occupation_order <- c("Undergraduate student", "Graduate student", "Staff")
+writing_proficiency_order <- c("1=Not fluent at all", "2", "3", "4", "5", "6", "7=Very fluent")
+email_freq_order <- c("1=Never", "2", "3", "4", "5", "6", "7=Very often")
+nationality_order <- c("United States", "Others")
+native_lang_order <- c("English", "Others")
+
+
+nasa_tlx_ques_list <- c('Stress_Question', 'Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
                         'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
 nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
                        'Neither agree or disagree', 'Somewhat agree', 'Agree', 'Strongly agree')
@@ -71,6 +80,10 @@ nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree',
 #-------------------------#
 convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
+}
+
+remove_na <- function(df, col_list) {
+  return(df[complete.cases(df[, col_list]), ])
 }
 
 get_significance_sign <- function(p_value) { 
@@ -107,8 +120,10 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 
 replace_dot_space <- function(str) {
   gsubfn(".", list("." = "_", " " = "_"), tolower(str))
-  # gsub("\\.", "_", tolower(str))
-  # gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
+}
+
+replace_underscore <- function(str) {
+  gsubfn(".", list("_" = " ", "-" = " "), str)
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
@@ -189,7 +204,7 @@ draw_group_bar_chart_nasa_tlx <- function() {
     scale_x_discrete(limits = nasa_task_options) +
     theme_bw() + 
     theme(text = element_text(size = 16),
-          axis.title = element_text(size = 16),
+          axis.title = element_text(size = 16, hjust = 0.5),
           axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
           plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
   
@@ -198,23 +213,41 @@ draw_group_bar_chart_nasa_tlx <- function() {
   plot <- plot + 
     theme(text = element_text(size = 20),
           axis.title = element_text(size = 20),
-          axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
+          axis.text.x = element_text(size = 16))
+          # axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
   
-  save_plot('nasa-frequency', plot, 18)
+  save_plot('nasa_frequency', plot, 18)
 }
 
-get_bar_plot_df <- function(df) {
+get_nasa_bar_plot_df <- function(df) {
   df <- df %>%
-    gather(Frequency, Value, -Question)
+    gather(Options, Frequency, -Question)
   return(df)
 }
 
-generate_bar_plot <- function(df, title) {
-  plot <- get_bar_plot_df(df) %>%
-    ggplot(aes(x=Frequency, y=Value)) +
+generate_nasa_bar_plot <- function(df, title) {
+  plot <- get_nasa_bar_plot_df(df) %>%
+    ggplot(aes(x=Options, y=Frequency)) +
     geom_bar(stat='identity') +
-    ggtitle(title)
-  print(plot)
+    ggtitle(replace_underscore(title)) +
+    scale_x_discrete(labels=c("agree_freq" = "Agreement", "disagree_freq" = "Disagreement")) +
+    theme_bw() + 
+    theme(text = element_text(size = 16),
+          axis.title = element_text(size = 16, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          plot.title = element_text(size = 20, hjust = 0.5, face = 'bold')) 
+  
+  
+  print_plot <- plot + geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2)
+  print(print_plot)
+  
+  plot <- plot + 
+    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8) +
+    theme(text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          axis.text.x = element_text(size = 16))
+
+  save_plot(tolower(title), plot)
 }
 
 generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val) {
@@ -231,7 +264,7 @@ generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val
   freq_df <- merge(agree_df, disagree_df, by='Question')
   # print_msg(str(freq_df))
   
-  generate_bar_plot(freq_df, nasa_ques)
+  generate_nasa_bar_plot(freq_df, nasa_ques)
     
   print_msg(paste0(nasa_ques, ':'))
   print_msg(paste0('Agree: ', freq_df$agree_freq))
@@ -258,10 +291,6 @@ get_proportion_test_nasa_tlx <- function() {
   }
 }
 
-
-
-
-
 extract_biographic_info <- function() {
   biographic_df <<- pre_survey_df[, c(19:32)]
   
@@ -273,41 +302,161 @@ extract_biographic_info <- function() {
   ## Filter out the data for good subject list only 
   biographic_df <<- biographic_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
-  # print_msg(str(biographic_df))
+  print_msg(str(biographic_df))
+}
+
+get_bio_bar_plot_df <- function(col_name) {
+  df <- remove_na(biographic_df, col_name) 
+  if (col_name == 'Gender') {
+    df <- df %>% mutate(Gender = recode(Gender, '1' = "Male", '2' = "Female"))
+  } else if (col_name == 'Education') {
+    df <- df %>% mutate(Education = recode(Education, 
+                                        '1' = "High school or below", 
+                                        '2' = "Undergraduate",
+                                        '3' = "Master or equivalent",
+                                        '4' = "PhD, JD, or equivalent"))
+  } else if (col_name == 'Occupation') {
+    df <- df %>% mutate(Occupation = recode(Occupation, 
+                                        '1' = "Undergraduate student", 
+                                        '2' = "Graduate student",
+                                        '3' = "Staff"))
+  } else if (col_name == 'Writing_Proficiency') {
+    df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency, 
+                                        '1' = "1=Not fluent at all", 
+                                        '2' = "2",
+                                        '3' = "3",
+                                        '4' = "4", 
+                                        '5' = "5",
+                                        '6' = "6",
+                                        '7' = "7=Very fluent"))
+  } else if (col_name == 'Daily_Email_Frequency') {
+    df <- df %>% mutate(Daily_Email_Frequency = recode(Daily_Email_Frequency, 
+                                        '1' = "1=Never", 
+                                        '2' = "2",
+                                        '3' = "3",
+                                        '4' = "4", 
+                                        '5' = "5",
+                                        '6' = "6",
+                                        '7' = "7=Very often"))
+  } else if (col_name == 'Nationality') {
+    df <- df %>% mutate(Nationality = recode(Nationality, 
+                                        '1' = "United States", 
+                                        '2' = "Others"))
+  } else if (col_name == 'Native_Language') {
+    df <- df %>% mutate(Native_Language = recode(Native_Language, 
+                                        '1' = "English", 
+                                        '2' = "Others"))
+  }
+  
+  return(df)
 }
 
 
+get_angle <- function(col_name) {
+  if (col_name %in% c('Education', 'Occupation')) {
+    return(25)
+  }
+  
+  return(0)
+}
+
+get_hjust <- function(col_name) {
+  if (col_name %in% c('Education', 'Occupation')) {
+    return(1)
+  }
+  
+  return(0.5)
+}
+
+get_order <- function(col_name) {
+  if (col_name == 'Education') {
+    return(education_order)
+  } else if (col_name == 'Occupation') {
+    return(occupation_order)
+  } else if (col_name == 'Writing_Proficiency') {
+    return(writing_proficiency_order)
+  } else if (col_name == 'Daily_Email_Frequency') {
+    return(email_freq_order)
+  } else if (col_name == 'Nationality') {
+    return(nationality_order)
+  } else if (col_name == 'Native_Language') {
+    return(native_lang_order)
+  }
+}
+
+get_x_lab <- function(col_name) {
+  if (col_name == 'Education') {
+    return(paste0(col_name, ' Levels'))
+  }
+  
+  return(col_name)
+}
+
+get_ggplot <- function(df, col_name) {
+  if (col_name == 'Gender') {
+    return(ggplot(data=df, aes(x=df[[col_name]], fill=df[[col_name]])))
+  }
+  
+  return(ggplot(data=df, aes(x=df[[col_name]])))
+}
+  
 
 draw_distribution <- function(col_name) {
-  title <- paste0(col_name, ' Distribution')
-  x_lab <- paste0(col_name, ' of Subjects')
-  y_lab <- 'Frequency'
+  plot_df <- get_bio_bar_plot_df(col_name)
   
-  plot <- ggplot(data=biographic_df, aes(biographic_df[[col_name]])) + 
-    geom_histogram(color='black', fill='grey') +
+  title <- paste0(replace_underscore(col_name), ' Distribution')
+  y_lab <- 'Count'
+  
+  plot <- get_ggplot(plot_df, col_name) +
+    geom_bar() +
     ggtitle(title) +
-    labs(x_lab, y_lab)
-    # labs(x=x_lab, y=y_lab)
-  
+    xlab(get_x_lab(replace_underscore(col_name))) + 
+    ylab(y_lab) +
+    scale_x_discrete(limits = get_order(col_name)) +
+    theme_bw() +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = 0.5),
+          text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          axis.text.x = element_text(size = 16, angle = get_angle(col_name), hjust = get_hjust(col_name)))
+
   print(plot)
   save_plot(replace_dot_space(title), plot)
+  
+  
+  # plot <- nasa_tlx_freq_df %>% 
+  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
+  #   geom_bar(position='dodge', stat='identity') +
+  #   scale_x_discrete(limits = nasa_task_options) +
+  #   theme_bw() + 
+  #   theme(text = element_text(size = 16),
+  #         axis.title = element_text(size = 16),
+  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
+  # 
+  # print(plot)
+  # 
+  # plot <- plot + 
+  #   theme(text = element_text(size = 20),
+  #         axis.title = element_text(size = 20),
+  #         axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
 }
 
 
 get_biographic_distribution <- function() {
   # bio_ques_list <- c('City', 'State', 'Postal', 
   #                  'SubjectID', 'Age', 'Gender',
-  #                  'Nationality', 'Other_Nationality', 'Native_Lang', 'Other_Native_Lang',
+  #                  'Nationality', 'Other_Nationality', 'Native_Language', 'Other_Native_Language',
   #                  'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
   
-  draw_distribution('Age')
-  draw_distribution('Gender')
-  # draw_education_distribution()
-  # draw_nationality_distribution()
-  # draw_native_lang_distribution()
-  # draw_occupation_distribution()
-  # draw_writing_proficiency_distribution()
-  # draw_daily_email_freq_distribution()
+  # draw_distribution('Age')
+  # draw_distribution('Gender')
+  # draw_distribution('Education')
+  # draw_distribution('Occupation')
+  # draw_distribution('Writing_Proficiency')
+  # draw_distribution('Daily_Email_Frequency')
+  # draw_distribution('Nationality')
+  # draw_distribution('Native_Language')
 }
 ``` 
 
@@ -322,20 +471,20 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
-get_biographic_distribution()
+# extract_biographic_info()
+# get_biographic_distribution()
 ```
 
 
 <!-- NASA TASK PLOTS -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
 ```
 
 
 <!-- NASA TASK PROPORTION TEST -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# get_proportion_test_nasa_tlx()
+get_proportion_test_nasa_tlx()
 ```
