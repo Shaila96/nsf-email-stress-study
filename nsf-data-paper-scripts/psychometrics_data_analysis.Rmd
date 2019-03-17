@@ -130,7 +130,7 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 } 
 
 replace_dot_space <- function(str) {
-  gsubfn('.', list('.' = '_', ' ' = '_'), tolower(str))
+  gsubfn('.', list('.' = '_', ' ' = '_', '-' = '_'), tolower(str))
 }
 
 replace_underscore <- function(str) {
@@ -417,13 +417,13 @@ get_biographic_distribution <- function() {
 
 extract_erq_score_each_row <- function(current_subj_df) {
   temp_erq_cog_df <- tibble('Subject' = current_subj_df['SubjectID'],
-                          'Title' = 'ERQ: Cognitive Reappraisal',
+                          'Title' = 'Cognitive Reappraisal',
                           'Value' = get_erq_cog_score(current_subj_df),
                           'MinVal' = 6,
                           'MaxVal' = 42)
   
   temp_erq_sup_df <- tibble('Subject' = current_subj_df['SubjectID'],
-                          'Title' = 'ERQ: Expressive Suppression',
+                          'Title' = 'Expressive Suppression',
                           'Value' = get_erq_sup_score(current_subj_df),
                           'MinVal' = 4,
                           'MaxVal' = 28)
@@ -447,13 +447,11 @@ extract_erq_score <- function() {
   ## Filter out the data for good subject list only 
   erq_df <- erq_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
-  print_msg(str(erq_df))
+  # print_msg(str(erq_df))
   
-  apply(erq_df, 1, function(each_row) extract_erq_score_each_row(each_row))
-  
-  convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
+  invisible(apply(erq_df, 1, function(each_row) extract_erq_score_each_row(each_row)))
+  # convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
 }
-
 
 extract_pss_score_each_row <- function(current_subj_df) {
   temp_pss_score_df <- tibble("Subject" = current_subj_df['SubjectID'],
@@ -461,9 +459,7 @@ extract_pss_score_each_row <- function(current_subj_df) {
                           "Value" = get_pss_score(current_subj_df),
                           "MinVal" = 0,
                           "MaxVal" = 40)
-  
-  # temp_pss_score_df <- rbind(temp_pss_cog_df, temp_pss_sup_df)
-  
+
   if (nrow(pss_score_df) == 0) {
     pss_score_df <<- temp_pss_score_df
   } else {
@@ -474,17 +470,59 @@ extract_pss_score_each_row <- function(current_subj_df) {
 extract_pss_score <- function() {
   pss_df <- pre_survey_df[, c(22, seq(33, 42))]
   
-  message(colnames(pss_df)) ## DO NOT DELETE
+  # message(colnames(pss_df)) ## DO NOT DELETE
   colnames(pss_df) <- pss_ques_list
-  print_msg(colnames(pss_df)) ## DO NOT DELETE
+  # print_msg(colnames(pss_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
   pss_df <- pss_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
-  print_msg(str(pss_df))
+  # print_msg(str(pss_df))
   
-  apply(pss_df, 1, function(each_row) extract_pss_score_each_row(each_row))
-  convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
+  invisible(apply(pss_df, 1, function(each_row) extract_pss_score_each_row(each_row)))
+  # convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
+}
+
+print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, angle=0) {
+  plot <- plot +
+    # facet_wrap(~Title, ncol = 1) +
+    ggtitle(title) +
+    xlab('Scale Range') +
+    ylab(y_lab) +
+    theme_bw() +
+    theme(legend.position = 'none',
+          plot.title = element_text(hjust=0.5),
+          text = element_text(size=20),
+          axis.title = element_text(size=20),
+          axis.text.x = element_text(size=x_axis_text_size, angle=angle))
+  
+  print(plot)
+  save_plot(replace_dot_space(title), plot)
+}
+
+draw_erq_plot <- function() {
+  title <- 'Emotion Regulation Questionnaire'
+  
+  hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
+    geom_bar() + 
+    # facet_wrap(~Title, ncol=1, scales="free_x")
+    facet_wrap(~Title, ncol=1)
+  
+  subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) + 
+    geom_bar(stat="identity") + 
+    facet_wrap(~Title, ncol=1)
+  
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  print_plot(hist_plot, paste(title, '- Histogram'))
+}
+
+draw_pss_plot <- function() {
+  title <- 'Perceived Stress Scale'
+  plot <- ggplot(data=pss_score_df, aes(x=Value)) + 
+    geom_bar() +
+    coord_cartesian(xlim = c(0, 40))  ## min_val=0, max_val=40
+    
+  print_plot(plot, title)
 }
 ``` 
 
@@ -516,12 +554,16 @@ read_data()
 
 
 <!-- Perceived Stress Scale Plots -->
+\newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_pss_score()
+draw_pss_plot()
 ```
 
 
 <!-- Emotion Regulation Plots -->
+\newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_erq_score()
+draw_erq_plot()
 ```
