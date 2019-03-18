@@ -57,7 +57,7 @@ erq_score_df <- tibble()
 bfi_score_df <- tibble()
 
 na_val <- 'NA'
-
+default_height <- 10
 
 bio_ques_list <- c('City', 'State', 'Postal', 
                    'SubjectID', 'Age', 'Gender',
@@ -91,8 +91,9 @@ nationality_order <- c('United States', 'Others')
 native_lang_order <- c('English', 'Others')
 
 
-nasa_tlx_ques_list <- c('Stress_Question', 'Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
+nasa_tlx_ques_list <- c('Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
                         'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
+nasa_tlx_and_stress_ques_list <- c('Stress_Question', nasa_tlx_ques_list) 
 nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
                        'Neither agree or disagree', 'Somewhat agree', 'Agree', 'Strongly agree')
 
@@ -122,7 +123,6 @@ get_significance_sign <- function(p_value) {
 } 
 
 print_msg <- function(msg) {
-  # cat(msg)
   print(msg)
   message(msg)
 }
@@ -149,14 +149,12 @@ replace_underscore <- function(str) {
   gsubfn('.', list('_' = ' ', '-' = ' '), str)
 }
 
-save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
-  # print(plot)
-  
+save_plot <- function(plot_name, plot, width=15, height=default_height) {
   plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.png'))
-  ggsave(plot_path, plot, width=default_width, height=default_height)
+  ggsave(plot_path, plot, width=width, height=height)
   
   plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
-  ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
 }
 
 read_data <- function() {
@@ -169,7 +167,7 @@ extract_nasa_tlx_score <- function() {
   nasa_tlx_df <<- post_survey_df[, c(22, seq(24, 30))]
   
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
-  colnames(nasa_tlx_df) <<- c('SubjectID', nasa_tlx_ques_list)
+  colnames(nasa_tlx_df) <<- c('SubjectID', nasa_tlx_and_stress_ques_list)
   ## print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
@@ -186,10 +184,11 @@ draw_group_bar_chart_nasa_tlx <- function() {
     group_by(Question, Answer) %>%
     summarize(Frequency=n())
   
-  nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_ques_list)  
-  ## convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_and_stress_ques_list)
+  # convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
   
   plot <- nasa_tlx_freq_df %>% 
+    filter(Question != 'Stress_Question') %>%     ## We do not need the seperated stress question for group bar chart
     ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
     geom_bar(position='dodge', stat='identity') +
     scale_x_discrete(limits = nasa_task_options) +
@@ -220,7 +219,7 @@ generate_nasa_bar_plot <- function(df, title) {
   plot <- get_nasa_bar_plot_df(df) %>%
     ggplot(aes(x=Options, y=Frequency)) +
     geom_bar(stat='identity') +
-    ggtitle(replace_underscore(title)) +
+    # ggtitle(replace_underscore(title)) +
     scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Disagreement')) +
     theme_bw() + 
     theme(text = element_text(size = 16),
@@ -272,7 +271,7 @@ generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val
 
 
 get_proportion_test_nasa_tlx <- function() {
-  for (nasa_ques in nasa_tlx_ques_list) {
+  for (nasa_ques in nasa_tlx_and_stress_ques_list) {
     temp_nasa_tlx_freq_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==nasa_ques, ]
     
     generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 4, 'greater')
@@ -396,11 +395,11 @@ draw_biographic_distribution <- function(col_name) {
   plot_df <- get_bio_bar_plot_df(col_name)
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
-  y_lab <- 'Count'
+  y_lab <- 'Frequency'
   
   plot <- get_bio_ggplot(plot_df, col_name) +
     geom_bar() +
-    ggtitle(title) +
+    # ggtitle(title) +
     xlab(get_x_lab(replace_underscore(col_name))) + 
     ylab(y_lab) +
     scale_x_discrete(limits = get_order(col_name)) +
@@ -422,8 +421,8 @@ get_biographic_distribution <- function() {
   draw_biographic_distribution('Occupation')
   draw_biographic_distribution('Writing_Proficiency')
   draw_biographic_distribution('Daily_Email_Frequency')
-  draw_biographic_distribution('Nationality')
-  draw_biographic_distribution('Native_Language')
+  # draw_biographic_distribution('Nationality')
+  # draw_biographic_distribution('Native_Language')
 }
 
 extract_erq_score_each_row <- function(current_subj_df) {
@@ -538,8 +537,7 @@ extract_bfi_score <- function() {
 
 print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, angle=0) {
   plot <- plot +
-    # facet_wrap(~Title, ncol = 1) +
-    ggtitle(title) +
+    # ggtitle(title) +
     xlab('Scale Range') +
     ylab(y_lab) +
     theme_bw() +
@@ -567,21 +565,52 @@ draw_pss_plot <- function() {
   print_plot(hist_plot, paste(title,'- Histogram'))
 }
 
-get_x_limit <- function(erq_type) {
-  if (erq_type=='Cognitive Reappraisal') {
+get_x_limit <- function(ques_type) {
+  if (ques_type=='Cognitive Reappraisal') {
     return(c(6, 42))
-  } else if (erq_type=='Expressive Suppression') {
+  } else if (ques_type=='Expressive Suppression') {
     return(c(4, 28))
-  }
+  } else if (ques_type=='Agreeableness') {
+    return(c(8, 40))
+  } else if (ques_type=='Conscientiousness') {
+    return(c(9, 45))
+  } else if (ques_type=='Extraversion') {
+    return(c(9, 45))
+  } else if (ques_type=='Neuroticism') {
+    return(c(8, 40))
+  } else if (ques_type=='Openness') {
+    return(c(10, 50))
+  } 
+}
+
+get_y_limit <- function(title) {
+  if (title=='Emotion Regulation Questionnaire') {
+    return(c(0, 8))
+  } else if (title=='Big Five Inventory') {
+    return(c(0, 13))
+  } 
+}
+
+get_break_no <- function(title) {
+  if (title=='Emotion Regulation Questionnaire') {
+    return(4)
+  } else if (title=='Big Five Inventory') {
+    return(6)
+  } 
+}
+
+get_plot_height <- function(title) {
+  if (title=='Emotion Regulation Questionnaire') {
+    return(default_height)
+  } else if (title=='Big Five Inventory') {
+    return(20)
+  } 
 }
 
 draw_hist_plot <- function(df, title) {
   ques_sub_type_levels <- levels(factor(df$Title))
   plot_list <- list()
   x_lab <- ''
-  
-  # print_msg(nlevels(ques_sub_type_levels))
-  # print_msg(length(ques_sub_type_levels))
   
   for (ques_sub_type in ques_sub_type_levels) {
     if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
@@ -591,33 +620,38 @@ draw_hist_plot <- function(df, title) {
     hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
       geom_bar() +
       facet_grid(. ~ title) +
-      coord_cartesian(xlim = get_x_limit(ques_sub_type)) +
+      coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
       xlab(x_lab) +
-      ylab('') +   ##'Frequency'
+      ylab('Frequency') +   ##'Frequency'
+      scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)), 
+                                    max(get_x_limit(ques_sub_type)), 
+                                    # by=get_break_no(title))) +
+                                    by=4)) +
       theme_bw() +
       theme(legend.position = 'none',
             plot.title = element_text(hjust=0.5),
             text = element_text(size=20),
-            axis.title = element_text(size=20),
-            axis.text.x = element_text(size=16))
+            axis.text.x = element_text(size=16),
+            strip.text.x = element_text(size=18))
     
     plot_list[[length(plot_list)+1]] <- hist_plot
   }
   
-  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)), 
-                            top=textGrob(paste(title, '- Histogram'), gp=gpar(fontsize=22, font=1)))
-  save_plot(replace_dot_space(paste(title, '- Histogram')), grid_plot)
+  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
+  # , top=textGrob(paste(title, '- Histogram'), gp=gpar(fontsize=22, font=1)))
+  save_plot(replace_dot_space(paste(title, '- Histogram')), grid_plot, height=get_plot_height(title))
 }
 
 
 draw_erq_plot <- function() {
   title <- 'Emotion Regulation Questionnaire'
 
+  ###########################################################
   subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) +
     geom_bar(stat="identity") +
     facet_wrap(~Title, ncol=1)
   print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
-  
+  ###########################################################
   
   draw_hist_plot(erq_score_df, title)
   ###########################################################
@@ -631,19 +665,23 @@ draw_erq_plot <- function() {
 
 draw_bfi_plot <- function() {
   title <- 'Big Five Inventory'
-
-  subj_plot <- ggplot(data=bfi_score_df, aes(x=Subject, y=Value)) + 
-    geom_bar(stat="identity") + 
-    facet_wrap(~Title, ncol=1)
-  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  
   
   ###########################################################
-  # draw_hist_plot(bfi_score_df, title)
-  ###########################################################
-  hist_plot <- ggplot(data=bfi_score_df, aes(x=Value)) +
-    geom_bar() +
+  subj_plot <- ggplot(data=bfi_score_df, aes(x=Subject, y=Value)) +
+    geom_bar(stat="identity") +
     facet_wrap(~Title, ncol=1)
-  print_plot(hist_plot, paste(title, '- Histogram'))
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  ###########################################################
+  
+  
+  ###########################################################
+  draw_hist_plot(bfi_score_df, title)
+  ###########################################################
+  # hist_plot <- ggplot(data=bfi_score_df, aes(x=Value)) +
+  #   geom_bar() +
+  #   facet_wrap(~Title, ncol=1)
+  # print_plot(hist_plot, paste(title, '- Histogram'))
   ###########################################################
 }
 
@@ -664,9 +702,10 @@ read_data()
 
 
 <!-- NASA TASK PLOTS -->
+\newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
 ```
 
 <!-- NASA TASK PROPORTION TEST -->
@@ -687,8 +726,8 @@ read_data()
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 
@@ -696,6 +735,6 @@ draw_erq_plot()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```

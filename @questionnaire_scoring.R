@@ -79,3 +79,11 @@ get_bfi_score <- function(df, forward_ques_list, reverse_ques_list) {
   
   return(bfi_score)
 }
+
+
+
+
+
+
+
+
