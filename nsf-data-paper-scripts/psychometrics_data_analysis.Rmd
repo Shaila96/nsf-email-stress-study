@@ -52,8 +52,9 @@ post_survey_df <- tibble()
 
 biographic_df <- tibble()
 nasa_tlx_freq_df <- tibble()
-erq_score_df <- tibble()
 pss_score_df <- tibble()
+erq_score_df <- tibble()
+bfi_score_df <- tibble()
 
 na_val <- 'NA'
 
@@ -70,6 +71,17 @@ erq_ques_list <- c('SubjectID',
 pss_ques_list <- c('SubjectID',
                    'PSS_Q1', 'PSS_Q2', 'PSS_Q3', 'PSS_Q4', 'PSS_Q5',
                    'PSS_Q6', 'PSS_Q7', 'PSS_Q8', 'PSS_Q9', 'PSS_Q10')
+
+bfi_ques_list <- c ('SubjectID',
+                    'BFI_Q1', 'BFI_Q2', 'BFI_Q3', 'BFI_Q4', 'BFI_Q5',
+                    'BFI_Q6', 'BFI_Q7', 'BFI_Q8', 'BFI_Q9', 'BFI_Q10',
+                    'BFI_Q11', 'BFI_Q12', 'BFI_Q13', 'BFI_Q14', 'BFI_Q15',
+                    'BFI_Q16', 'BFI_Q17', 'BFI_Q18', 'BFI_Q19', 'BFI_Q20',
+                    'BFI_Q21', 'BFI_Q22', 'BFI_Q23', 'BFI_Q24', 'BFI_Q25',
+                    'BFI_Q26', 'BFI_Q27', 'BFI_Q28', 'BFI_Q29', 'BFI_Q30',
+                    'BFI_Q31', 'BFI_Q32', 'BFI_Q33', 'BFI_Q34', 'BFI_Q35',
+                    'BFI_Q36', 'BFI_Q37', 'BFI_Q38', 'BFI_Q39', 'BFI_Q40',
+                    'BFI_Q41', 'BFI_Q42', 'BFI_Q43', 'BFI_Q44')
 
 education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
 occupation_order <- c('Undergraduate student', 'Graduate student', 'Staff')
@@ -371,7 +383,7 @@ get_x_lab <- function(col_name) {
   return(col_name)
 }
 
-get_ggplot <- function(df, col_name) {
+get_bio_ggplot <- function(df, col_name) {
   if (col_name == 'Gender') {
     return(ggplot(data=df, aes(x=df[[col_name]], fill=df[[col_name]])))
   }
@@ -380,13 +392,13 @@ get_ggplot <- function(df, col_name) {
 }
   
 
-draw_distribution <- function(col_name) {
+draw_biographic_distribution <- function(col_name) {
   plot_df <- get_bio_bar_plot_df(col_name)
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
   y_lab <- 'Count'
   
-  plot <- get_ggplot(plot_df, col_name) +
+  plot <- get_bio_ggplot(plot_df, col_name) +
     geom_bar() +
     ggtitle(title) +
     xlab(get_x_lab(replace_underscore(col_name))) + 
@@ -403,16 +415,15 @@ draw_distribution <- function(col_name) {
   save_plot(replace_dot_space(title), plot)
 }
 
-
 get_biographic_distribution <- function() {
-  draw_distribution('Age')
-  draw_distribution('Gender')
-  draw_distribution('Education')
-  draw_distribution('Occupation')
-  draw_distribution('Writing_Proficiency')
-  draw_distribution('Daily_Email_Frequency')
-  draw_distribution('Nationality')
-  draw_distribution('Native_Language')
+  draw_biographic_distribution('Age')
+  draw_biographic_distribution('Gender')
+  draw_biographic_distribution('Education')
+  draw_biographic_distribution('Occupation')
+  draw_biographic_distribution('Writing_Proficiency')
+  draw_biographic_distribution('Daily_Email_Frequency')
+  draw_biographic_distribution('Nationality')
+  draw_biographic_distribution('Native_Language')
 }
 
 extract_erq_score_each_row <- function(current_subj_df) {
@@ -483,6 +494,48 @@ extract_pss_score <- function() {
   # convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
 }
 
+get_bfi_tibble <- function(df, title, forward_ques_list, reverse_ques_list) {
+  total_length <- length(forward_ques_list) + length(reverse_ques_list)
+  return(tibble('Subject' = df['SubjectID'],
+                          'Title' = title,
+                          'Value' = get_bfi_score(df, forward_ques_list, reverse_ques_list),
+                          'MinVal' = total_length,
+                          'MaxVal' = 5*total_length))
+}
+
+extract_bfi_score_each_row <- function(current_subj_df) {
+  temp_bfi_score_df <- rbind(
+    get_bfi_tibble(current_subj_df, 'Extraversion', c(1, 11, 16, 26, 36), c(6, 21, 31)), 
+    get_bfi_tibble(current_subj_df, 'Agreeableness', c(7, 17, 22, 32, 42), c(2, 12, 27, 37)),
+    get_bfi_tibble(current_subj_df, 'Conscientiousness', c(3, 13, 28, 33, 38), c(8, 18, 23, 43)),
+    get_bfi_tibble(current_subj_df, 'Neuroticism', c(4, 14, 19, 29, 39), c(9, 24, 34)),
+    get_bfi_tibble(current_subj_df, 'Openness', c(5, 10, 15, 20, 25, 30, 40, 44 ), c(35, 41))
+    )
+
+  if (nrow(bfi_score_df) == 0) {
+    bfi_score_df <<- temp_bfi_score_df
+  } else {
+    bfi_score_df <<- rbind(bfi_score_df, temp_bfi_score_df)
+  }
+}
+
+extract_bfi_score <- function() {
+  bfi_df <- post_survey_df[, c(22, seq(31, 74))]
+  
+  message(colnames(bfi_df)) ## DO NOT DELETE
+  colnames(bfi_df) <- bfi_ques_list
+  print_msg(colnames(bfi_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  bfi_df <- bfi_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(bfi_df))
+  
+  invisible(apply(bfi_df, 1, function(each_row) extract_bfi_score_each_row(each_row)))
+  convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
+}
+
+
 print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, angle=0) {
   plot <- plot +
     # facet_wrap(~Title, ncol = 1) +
@@ -500,30 +553,100 @@ print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, ang
   save_plot(replace_dot_space(title), plot)
 }
 
-draw_erq_plot <- function() {
-  title <- 'Emotion Regulation Questionnaire'
-  
-  hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
-    geom_bar() + 
-    # facet_wrap(~Title, ncol=1, scales="free_x")
-    facet_wrap(~Title, ncol=1)
-  
-  subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) + 
-    geom_bar(stat="identity") + 
-    facet_wrap(~Title, ncol=1)
-  
-  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
-  print_plot(hist_plot, paste(title, '- Histogram'))
-}
-
 draw_pss_plot <- function() {
   title <- 'Perceived Stress Scale'
-  plot <- ggplot(data=pss_score_df, aes(x=Value)) + 
+  
+  hist_plot <- ggplot(data=pss_score_df, aes(x=Value)) + 
     geom_bar() +
     coord_cartesian(xlim = c(0, 40))  ## min_val=0, max_val=40
+  
+  subj_plot <- ggplot(data=pss_score_df, aes(x=Subject, y=Value)) + 
+    geom_bar(stat="identity")
     
-  print_plot(plot, title)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  print_plot(hist_plot, paste(title,'- Histogram'))
 }
+
+get_x_limit <- function(erq_type) {
+  if (erq_type=='Cognitive Reappraisal') {
+    return(c(6, 42))
+  } else if (erq_type=='Expressive Suppression') {
+    return(c(4, 28))
+  }
+}
+
+draw_hist_plot <- function(df, title) {
+  ques_sub_type_levels <- levels(factor(df$Title))
+  plot_list <- list()
+  x_lab <- ''
+  
+  # print_msg(nlevels(ques_sub_type_levels))
+  # print_msg(length(ques_sub_type_levels))
+  
+  for (ques_sub_type in ques_sub_type_levels) {
+    if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
+    
+    temp_df <- df[df$Title==ques_sub_type, ]
+    temp_df$title <- ques_sub_type
+    hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
+      geom_bar() +
+      facet_grid(. ~ title) +
+      coord_cartesian(xlim = get_x_limit(ques_sub_type)) +
+      xlab(x_lab) +
+      ylab('') +   ##'Frequency'
+      theme_bw() +
+      theme(legend.position = 'none',
+            plot.title = element_text(hjust=0.5),
+            text = element_text(size=20),
+            axis.title = element_text(size=20),
+            axis.text.x = element_text(size=16))
+    
+    plot_list[[length(plot_list)+1]] <- hist_plot
+  }
+  
+  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)), 
+                            top=textGrob(paste(title, '- Histogram'), gp=gpar(fontsize=22, font=1)))
+  save_plot(replace_dot_space(paste(title, '- Histogram')), grid_plot)
+}
+
+
+draw_erq_plot <- function() {
+  title <- 'Emotion Regulation Questionnaire'
+
+  subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) +
+    geom_bar(stat="identity") +
+    facet_wrap(~Title, ncol=1)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  
+  
+  draw_hist_plot(erq_score_df, title)
+  ###########################################################
+  # hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
+  #   geom_bar() + 
+  #   ## facet_wrap(~Title, ncol=1, scales="free_x")
+  #   facet_wrap(~Title, ncol=1)
+  # print_plot(hist_plot, paste(title, '- Histogram'))
+  ###########################################################
+}
+
+draw_bfi_plot <- function() {
+  title <- 'Big Five Inventory'
+
+  subj_plot <- ggplot(data=bfi_score_df, aes(x=Subject, y=Value)) + 
+    geom_bar(stat="identity") + 
+    facet_wrap(~Title, ncol=1)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  
+  ###########################################################
+  # draw_hist_plot(bfi_score_df, title)
+  ###########################################################
+  hist_plot <- ggplot(data=bfi_score_df, aes(x=Value)) +
+    geom_bar() +
+    facet_wrap(~Title, ncol=1)
+  print_plot(hist_plot, paste(title, '- Histogram'))
+  ###########################################################
+}
+
 ``` 
 
 
@@ -556,8 +679,8 @@ read_data()
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 
@@ -566,4 +689,13 @@ draw_pss_plot()
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_erq_score()
 draw_erq_plot()
+```
+
+
+
+<!-- Big Five Inventory-->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_bfi_score()
+draw_bfi_plot()
 ```
