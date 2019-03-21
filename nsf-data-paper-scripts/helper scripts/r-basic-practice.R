@@ -84,7 +84,37 @@
 
 # df = data.frame(animal=c('goat','horse-d','horse','two', 'five'), level=c('five','one','three',30,'abc-horse'), length=c(10, 20, 30, 'horse', 'eight'))
 # df_index <- which(df == "horse", arr.ind=T)
-# df[df_index]
+# df[df_index] 
 
 
-  
+
+
+
+
+
+# library(ggplot2)
+# 
+# # create a dataset
+# specie=c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+# condition=rep(c("normal" , "stress" , "Nitrogen") , 4)
+# value=abs(rnorm(12 , 0 , 15))
+# data=data.frame(specie,condition,value)
+# 
+# str(data)
+# 
+# # Grouped
+# ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+#   geom_bar(position="dodge", stat="identity")
+# 
+# # Stacked
+# ggplot(data, aes(fill=condition, y=value, x=specie)) +
+#   geom_bar( stat="identity")
+# 
+# 
+# # Stacked Percent
+# ggplot(data, aes(fill=condition, y=value, x=specie)) +
+#   geom_bar( stat="identity", position="fill")
+
+
+
+prop.test(c(14, 46), c(60, 60), p = NULL, alternative = "two.sided", correct = TRUE)

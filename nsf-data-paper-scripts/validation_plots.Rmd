@@ -20,33 +20,57 @@ library(gridExtra)
 library(ggpubr) 
 library(kableExtra) 
 library(cowplot) 
-
+library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "BR"
+signal_name <- "N.EDA"
 
+
+## CHANGE THIS!!!!
+check_outlier = F
+
+
+## CHANGE THIS!!!!
+hr_data_only <- F
+file_name_part_sensor_comparison <- ''
+col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "N.EDA", "D.HR", "N.HR")
+
+
+## CHANGE THIS!!!!
+## HR Comparison 
+# hr_data_only = T
+# file_name_part_sensor_comparison <- '-sensor-comparison'
+# col_names_final <- c("Subject", "Condition", "Session", "CovertedTime", "TimeElapsed", "HR", "N.HR")
 
 
 project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
 data_set_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-stress-study-scripts/@Datasets"
 setwd(project_dir)
 
+
+
 data_dir <- 'data'
 plots_dir <- 'plots'
 
 filtered_file_name <- 'full_df_filtered.csv'
+file_name_part_outlier <- ''
 
-full_df <<- read_csv(file.path(data_dir, filtered_file_name))
-# full_df <- read_csv("full_df_filtered.csv", col_types = cols()) 
-# full_df <- full_df[ , !(names(full_df) %in% c("N.EDA", "N.HR"))] 
-full_df$HR <- as.numeric(full_df$HR) 
-# full_df$BR <- as.numeric(full_df$BR) 
+sensor_comparicon_col <- c('HR', 'N.HR')
+condition_list <- c('BH', 'BL', 'IH', 'IL')
+
+
+full_df <<- read_csv(file.path(data_dir, filtered_file_name))[, col_names_final]
+# full_df$HR <- as.numeric(full_df$HR) 
+if (hr_data_only) {
+  full_df <<- full_df[complete.cases(full_df), ]
+}
 
 
 
 # Setting up three (that's right, three!) whole global tibbles. Wow! 
 result_df <- tibble() 
 t_test_df <- tibble() 
+temp_df <- tibble()
 session_compare_df <- tibble() 
 final_testing_df <- tibble()
 plot_list <- list()
@@ -57,17 +81,27 @@ isMatch <- function(string_we_have, pattern_we_are_looking_for) {
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
 } 
 
+replace_dots <- function(str) {
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "-", str)
+}
+
+save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
+  plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=default_width, height=default_height)
+  
+  plot_path <- file.path(project_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
+}
+
 
 # Like "Where's Waldo?" but way less fun. 
 find_subjects <- function() { 
- 
   for (subj_name in levels(factor(full_df$Subject))) { 
-    
     df <- full_df %>% 
       filter(Subject == subj_name) 
     
     tryCatch({ 
-      
       condition <- df$Condition[1] 
       df <- df[ , !(names(df) %in% c("Subject", "Condition", "Task"))] 
       
@@ -91,7 +125,6 @@ find_subjects <- function() {
 # NOTE that this does NOT edit the global dataframe result_df, refer to `mess_with_columns` below for that. 
 # This is like `mess_with_columns`'s little brother - close, but not quite there yet. 
 process_subject <- function(df, subj_name, condition) { 
-  
   # Test to see if the dataframe df actually has some rows in it and it is not just empty (more than five is good enough for me)! 
   if (nrow(df) <= 5) { 
     message(paste0("Dataframe for subject ", subj_name, " is empty. ")) 
@@ -121,13 +154,44 @@ process_subject <- function(df, subj_name, condition) {
 mess_with_the_columns <- function() { 
   
   # We now get rid of columns we don't need any more and adjust the order of our final dataframe, result_df. 
-  col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "N.EDA", "D.HR", "N.HR") 
-  # col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "D.HR") 
   result_df <<- result_df[, (colnames(result_df) %in% col_names_final)] 
   result_df <<- result_df[col_names_final] 
-  # message(result_df)
-} 
+  
+  
+  
+  ## CHANGE THIS for OUTLIER
+  if (check_outlier) {
+    if (signal_name %in% sensor_comparicon_col) {
+      file_name_part_outlier <<- '-no-outlier'
+      for (col in sensor_comparicon_col) {
+        new_result_df <- tibble()
+  
+        for (cond in condition_list) {
+          temp_df <<- result_df[result_df$Condition == cond, ]
+  
+          if (!is_normal(temp_df[[col]])) {
+            print_msg(paste0("Removing outliers for ", cond, " for signal ", col, ": ", boxplot.stats(temp_df[[col]])$out))
+            temp_df[temp_df[[col]] %in% boxplot.stats(temp_df[[col]])$out, col] <<- NA
+  
+            if (is_normal(temp_df[[col]])) {
+              print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is normal"))
+            } else {
+              print_msg(paste0("After removing outliers ", col, " signal for ", cond, " is NOT normal!!!!"))
+            }
+          }
+          new_result_df <- rbind(new_result_df, temp_df)
+        }
+        print('')
+        result_df <<- new_result_df
+      }
+    }
+  }
+  
 
+  ### print_msg(boxplot.stats(temp_col)$out)
+  ### temp_col <- temp_col[!temp_col %in% boxplot.stats(temp_col)$out]
+  ### print_msg(paste0("After removing outliers the data is ", check_normality(temp_col)))
+} 
 
 
 # Function for annotating boxplot with n. It is a very secret formula I cannot disclose at this time. 
@@ -140,456 +204,29 @@ give.n <- function(x) {
 } 
 
 
-
-
-
-# NOTE: I strongly recommend reading the code for the `test_time` function first, as this will make this make a whole LOT more sense. 
-# This function generates the `Sensor Channels per Session` plots. 
-# This specific function just plots for Writing Baseline and Stress Condition, since Dual Task and Presentation 
-# have all their plots on one page, which requires some stupid extra coding. 
-plot1 <- function(condition) { 
-  
-  # We start by gathering all of the sensor data values into `Measurement` and the corresponding values into `Value`. 
-  special_purpose_df <- result_df %>% 
-    gather(Measurement, Value, -Subject, -Condition, -Session) 
-  
-  # We compute the logs for `PP`, `D.EDA`, and `ND.EDA` since they are such small differences, they do not show up in the plot otherwise. 
-  log_measurements <- c("PP", "D.EDA", "N.EDA") 
-  for (measure in log_measurements) { 
-    special_purpose_df[special_purpose_df$Measurement == measure, ]$Value <- 
-            log(special_purpose_df[special_purpose_df$Measurement == measure, ]$Value) 
-  } 
-  
-  # Using `spread` to get columns for each of the different sessions, we now compute the differences that we will eventually plot. 
-  # I hate using `spread` and `gather`, but I have to use them for this. Just try to visualize why this works, or just trust me 
-  # that it does. 
-  special_purpose_df <- special_purpose_df %>% 
-    group_by(Measurement) %>% 
-    spread(Session, Value) %>% 
-    mutate(WB.RB = BaselineWriting - RestingBaseline, 
-           SC.RB = StressCondition - RestingBaseline, 
-           SC.WB = StressCondition - BaselineWriting, 
-           DT.RB = DualTask - RestingBaseline, 
-           DT.WB = DualTask - BaselineWriting, 
-           DT.SC = DualTask - StressCondition, 
-           P.RB = Presentation - RestingBaseline, 
-           P.WB = Presentation - BaselineWriting, 
-           P.SC = Presentation - StressCondition, 
-           P.DT = Presentation - DualTask) %>% 
-  
-  # This line below sets us up to facet_wrap the plots so we can have three different y-axes for our physiological measurements. 
-  # We know which plot needs which axis by this `second` variable I just made up. This is complicated and a bit of a hack, 
-  # but just trust me that it works. 
-  mutate(second = 
-                  ifelse( 
-                  (Measurement == "PP"), "ln( PP )", ifelse( 
-                  (Measurement == "D.EDA" || Measurement == "N.EDA"), "ln( EDA )", "" 
-  ))) 
-  
-  # We now plot the graphs for the following session differences below. 
-  comparison_levels <- c("WB.RB", "SC.RB", "SC.WB") 
-  for (comp in comparison_levels) { 
-    col_vec <- c("PP", "HR", "BR", "D.EDA", "D.HR") 
-    # `sign_vec` below will eventually hold all the fun astericks that took me weeks to figure out how to incorporate. 
-    sign_vec <- NULL 
-    
-    # Okay, now THIS `for` loop computes the special labels for our t-test results, using the global 
-    # t_test_df dataframe to find the exact significance result for our specific label. This will all make sense 
-    # as to how we get these values and why we have to do it like this later. 
-    for (col in col_vec) { 
-      # Check if we have any test results for this specific difference, condition, and measure. 
-      do_we_have_anything <- t_test_df %>% 
-          filter(Difference == comp & Condition == condition & Measure == col) 
-      
-      # If we don't have anything for it, it becomes a '?', indicating we didn't run a test on it. 
-      sign <- "?" 
-      # But if we do have something, then we use that symbol to label the graph! 
-      if (nrow(do_we_have_anything) == 1) { 
-        sign <- do_we_have_anything$Significance 
-      } 
-      # And we append this value to the sign vector from above (now it's his time to shine!). 
-      sign_vec <- c(sign_vec, sign) 
-    } 
-    
-    # Becaue '?' characters are so much larger than '*' characters, we adjust their respective sizes and 
-    # save it in a special `size_vec` vector to use for later. 
-    size_vec <- NULL 
-    for (sign in sign_vec) { 
-      if (sign == "?") { 
-        size <- 5 
-      } else { 
-        size <- 8 
-      } 
-      size_vec <- c(size_vec, size) 
-    } 
-    
-    # Each plot needs to have one and only one condition! 
-    labelling_df <- special_purpose_df %>% 
-      filter(Condition == condition) 
-    
-    # Now we actually plot the plots! Everything here should be pretty self-explanatory... maybe... 
-    # EDIT: Okay, I added documentation for every nearly every line. Happy now? 
-    g1 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>% # we have to ungroup to edit a grouping variable 
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>% # ensure we have order in our plot (starting with `PP`) or else 
-            group_by(Measurement) %>% # group it back again and pretend we never touched it ;) 
-            filter(second == "ln( PP )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) + # have to use aes_string here when using a string for an aesthetic 
-              geom_boxplot() + # duh 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + # adds the horizontal line 
-              theme_bw() + # makes the theme white and black instead of with a gray background 
-              ggtitle(figure_out_special_title(comp, condition)) + # get the special title for the graph 
-              ylab(expression(Delta~"ln("~bar("PP")~")")) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) + # make sure there is no text on the x-axis 
-              stat_summary(fun.data = give.n, geom = "text") + # add the number of observations to each boxplot 
-              scale_x_discrete(labels=c(" ")) + # make sure we have the right label for this specific graph 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + # we expand the limits of the y-axis so the 
-                                                                # '*' characters don't interfere with points. 
-              annotate("text", x=1, y=Inf, label= sign_vec[1], vjust = 1.2, size = size_vec[1]))  # and we add the '*' character for the exact 
-                                                                                                  # x-position and the appropriate size 
-                                                                                                  # calculated above! 
-
-    # Nearly the same thing here...             
-    g2 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "ln( EDA )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~"ln"~bar("( . )"))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_x_discrete(labels=c("D.EDA")) + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[4], vjust = 1.2, size = size_vec[4])) 
-    
-    # ... and here... 
-    g3 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~bar(" . "))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[2], vjust = 1.2, size = size_vec[2]) + 
-              annotate("text", x=2, y=Inf, label= sign_vec[3], vjust = 1.2, size = size_vec[3]) + 
-              annotate("text", x=3, y=Inf, label= sign_vec[6], vjust = 1.2, size = size_vec[6]) + 
-              annotate("text", x=4, y=Inf, label= sign_vec[7], vjust = 1.2, size = size_vec[7])) 
-    
-    # Now we arrange them all to be side-by-side... 
-    g <- ggarrange(g1, g2, g3, ncol = 3, nrow = 1) 
-    
-    # ... and then print it... 
-    print(g) 
-    
-    # ... and then add some more space! Because why not?! 
-    cat("  \n  \n  \n  ") 
-  } 
-} 
-
-
-
-
-
-# This function does nearly the exact same thing as before, but just for the Dual Task sessions 
-# and puts it all on one page. I will only comment the new things here. 
-plot1_dt <- function(condition) { 
-  
-  special_purpose_df <- result_df %>% 
-    gather(Measurement, Value, -Subject, -Condition, -Session) 
-  
-  log_measurements <- c("PP", "D.EDA", "N.EDA") 
-  for (measure in log_measurements) { 
-    special_purpose_df[special_purpose_df$Measurement == measure, ]$Value <- 
-            log(special_purpose_df[special_purpose_df$Measurement == measure, ]$Value) 
-  } 
-
-  special_purpose_df <- special_purpose_df %>% 
-    group_by(Measurement) %>% 
-    spread(Session, Value) %>% 
-    mutate(WB.RB = BaselineWriting - RestingBaseline, 
-           SC.RB = StressCondition - RestingBaseline, 
-           SC.WB = StressCondition - BaselineWriting, 
-           DT.RB = DualTask - RestingBaseline, 
-           DT.WB = DualTask - BaselineWriting, 
-           DT.SC = DualTask - StressCondition, 
-           P.RB = Presentation - RestingBaseline, 
-           P.WB = Presentation - BaselineWriting, 
-           P.SC = Presentation - StressCondition, 
-           P.DT = Presentation - DualTask) %>% 
-  
-  mutate(second = 
-                  ifelse( 
-                  (Measurement == "PP"), "ln( PP )", ifelse( 
-                  (Measurement == "D.EDA" || Measurement == "N.EDA"), "ln( EDA )", "" 
-  ))) 
-  
-  # This line is new, but not really... 
-  comparison_levels <- c("DT.RB", "DT.WB", "DT.SC") 
-  # Oh, we store all the plots in a list and then arrange the list to plot on one page! Neat, eh? 
-  dt_lst <- list() 
-  i <- 1 
-  for (comp in comparison_levels) { 
-    
-    col_vec <- c("PP", "HR", "BR", "D.EDA", "D.HR") 
-    sign_vec <- NULL 
-    for (col in col_vec) { 
-      do_we_have_anything <- t_test_df %>% 
-          filter(Difference == comp & Condition == condition & Measure == col) 
-      
-      sign <- "?" 
-      if (nrow(do_we_have_anything) == 1) { 
-        sign <- do_we_have_anything$Significance 
-      } 
-      sign_vec <- c(sign_vec, sign) 
-    } 
-    
-    size_vec <- NULL 
-    for (sign in sign_vec) { 
-      if (sign == "?") { 
-        size <- 5 
-      } else { 
-        size <- 8 
-      } 
-      size_vec <- c(size_vec, size) 
-    } 
-    
-    labelling_df <- special_purpose_df %>% 
-      filter(Condition == condition) 
-    
-    g1 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>% 
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>% 
-            group_by(Measurement) %>% 
-            filter(second == "ln( PP )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) + 
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-              theme_bw() + 
-              ggtitle(figure_out_special_title(comp, condition)) + 
-              ylab(expression(Delta~"ln("~bar("PP")~")")) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) + 
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_x_discrete(labels=c(" ")) + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[1], vjust = 1.2, size = size_vec[1])) 
-            
-    g2 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "ln( EDA )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~"ln"~bar("( . )"))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_x_discrete(labels=c("D.EDA")) + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[4], vjust = 1.2, size = size_vec[4])) 
-    
-    g3 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~bar(" . "))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[2], vjust = 1.2, size = size_vec[2]) + 
-              annotate("text", x=2, y=Inf, label= sign_vec[3], vjust = 1.2, size = size_vec[3]) + 
-              annotate("text", x=3, y=Inf, label= sign_vec[6], vjust = 1.2, size = size_vec[6]) + 
-              annotate("text", x=4, y=Inf, label= sign_vec[7], vjust = 1.2, size = size_vec[7])) 
-    
-    g <- ggarrange(g1, g2, g3, ncol = 3, nrow = 1) 
-    
-    # Now we just add the plot to the list! 
-    dt_lst[[i]] <- g 
-    i <- i + 1 
-    
-  } 
-  
-  # Now we can return the nice plot with all three in one page! Neat-o and awesome and crafty! 
-  return(ggarrange(dt_lst[[1]], dt_lst[[2]], dt_lst[[3]], ncol = 1, nrow = 3)) 
-} 
-
-
-
-
-
-# No, I am not explaining it here too. Figure it out yourself! 
-plot1_p <- function(condition) { 
-  
-  special_purpose_df <- result_df %>% 
-    gather(Measurement, Value, -Subject, -Condition, -Session) 
-  
-  log_measurements <- c("PP", "D.EDA", "N.EDA") 
-  for (measure in log_measurements) { 
-    special_purpose_df[special_purpose_df$Measurement == measure, ]$Value <- 
-            log(special_purpose_df[special_purpose_df$Measurement == measure, ]$Value) 
-  } 
-
-  special_purpose_df <- special_purpose_df %>% 
-    group_by(Measurement) %>% 
-    spread(Session, Value) %>% 
-    mutate(WB.RB = BaselineWriting - RestingBaseline, 
-           SC.RB = StressCondition - RestingBaseline, 
-           SC.WB = StressCondition - BaselineWriting, 
-           DT.RB = DualTask - RestingBaseline, 
-           DT.WB = DualTask - BaselineWriting, 
-           DT.SC = DualTask - StressCondition, 
-           P.RB = Presentation - RestingBaseline, 
-           P.WB = Presentation - BaselineWriting, 
-           P.SC = Presentation - StressCondition, 
-           P.DT = Presentation - DualTask) %>% 
-
-  mutate(second = 
-                  ifelse( 
-                  (Measurement == "PP"), "ln( PP )", ifelse( 
-                  (Measurement == "D.EDA" || Measurement == "N.EDA"), "ln( EDA )", "" 
-  ))) 
-  
-  comparison_levels <- c("P.RB", "P.WB", "P.SC", "P.DT") 
-  dt_lst <- list() 
-  i <- 1 
-  for (comp in comparison_levels) { 
-    
-    col_vec <- c("PP", "HR", "BR", "D.EDA", "D.HR") 
-    sign_vec <- NULL 
-    for (col in col_vec) { 
-      do_we_have_anything <- t_test_df %>% 
-          filter(Difference == comp & Condition == condition & Measure == col) 
-      
-      sign <- "?" 
-      if (nrow(do_we_have_anything) == 1) { 
-        sign <- do_we_have_anything$Significance 
-      } 
-      sign_vec <- c(sign_vec, sign) 
-    } 
-    
-    size_vec <- NULL 
-    for (sign in sign_vec) { 
-      if (sign == "?") { 
-        size <- 5 
-      } else { 
-        size <- 8 
-      } 
-      size_vec <- c(size_vec, size) 
-    } 
-    
-    labelling_df <- special_purpose_df %>% 
-      filter(Condition == condition) 
-
-    g1 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>% 
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>% 
-            group_by(Measurement) %>% 
-            filter(second == "ln( PP )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) + 
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-              theme_bw() + 
-              ggtitle(figure_out_special_title(comp, condition)) + 
-              ylab(expression(Delta~"ln("~bar("PP")~")")) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) + 
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_x_discrete(labels=c(" ")) + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[1], vjust = 1.2, size = size_vec[1])) 
-            
-    g2 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "ln( EDA )") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~"ln"~bar("( . )"))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_x_discrete(labels=c("D.EDA")) + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[4], vjust = 1.2, size = size_vec[4]) + 
-              annotate("text", x=2, y=Inf, label= sign_vec[5], vjust = 1.2, size = size_vec[5])) 
-    
-    g3 <- ggplotGrob(labelling_df %>% 
-            ungroup(Measurement) %>%
-            mutate(Measurement = factor(Measurement, levels = col_vec)) %>%
-            group_by(Measurement) %>%
-            filter(second == "") %>% 
-            ggplot(aes_string(x = "Measurement", y = comp)) +
-              geom_boxplot() + 
-              geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
-              theme_bw() + 
-              ggtitle(" ") + 
-              ylab(expression(Delta~bar(" . "))) + 
-              theme(axis.title.x=element_blank(), axis.text.x = element_text(size=10)) +
-              stat_summary(fun.data = give.n, geom = "text") + 
-              scale_y_continuous(expand = c(0.15, 0, 0.3, 0)) + 
-              annotate("text", x=1, y=Inf, label= sign_vec[2], vjust = 1.2, size = size_vec[2]) + 
-              annotate("text", x=2, y=Inf, label= sign_vec[3], vjust = 1.2, size = size_vec[3]) + 
-              annotate("text", x=3, y=Inf, label= sign_vec[6], vjust = 1.2, size = size_vec[6]) + 
-              annotate("text", x=4, y=Inf, label= sign_vec[7], vjust = 1.2, size = size_vec[7])) 
-    
-    g <- ggarrange(g1, g2, g3, ncol = 3, nrow = 1) 
-    
-    dt_lst[[i]] <- g 
-    
-    i <- i + 1 
-    
-  } 
-  return(ggarrange(dt_lst[[1]], dt_lst[[2]], dt_lst[[3]], dt_lst[[4]], ncol = 1, nrow = 4)) 
-} 
-
-
-
-
-# Wow, we made it though plot 1s! Great job! Go take a break. 
-# ... 
-# Are you back? Ready to work now, slacker? Good! 
-# Let's go on to the next round of plots! 
+## Wow, we made it though plot 1s! Great job! Go take a break. 
+## ... 
+## Are you back? Ready to work now, slacker? Good! 
+## Let's go on to the next round of plots! 
 plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) { 
-  # This is pretty important, per Professor Pavlidis' request, we note that no matter what, these columns 
-  # need to be logged and applied as a t-test. So we do just that by setting their test-type to "transformed t-test." 
+  ## This is pretty important, per Professor Pavlidis' request, we note that no matter what, these columns 
+  ## need to be logged and applied as a t-test. So we do just that by setting their test-type to "transformed t-test." 
   if (col == "PP" || col == "D.EDA" || col == "N.EDA") {
     test_type <- "tt"
   }
   
-  # Simple mode: activated. 
+  ## Simple mode: activated. 
   label <- figure_out_labels(col, test_type) 
   title <- figure_out_title(col, cond, test_type) 
   
-  # We set up the intended order for displaying the differences. 
+  ## We set up the intended order for displaying the differences. 
   # comparison_levels <- c("WB.RB", "SC.RB", "SC.WB", "DT.RB", "DT.WB", "DT.SC",
   #                        "P.RB", "P.WB", "P.SC", "P.DT")
   
   comparison_levels <- c("WB.RB", "SC.RB", "DT.RB", "P.RB")
   
-  # We like '*' characters in our graphs, so we do this! Yay! 
-  # EDIT: Note that `t_test_df` is the very last table you see generated in the PDF. 
+  ## We like '*' characters in our graphs, so we do this! Yay! 
+  ## EDIT: Note that `t_test_df` is the very last table you see generated in the PDF. 
   do_we_have_anything <- t_test_df %>% 
       filter(Measure == col & Condition == cond) 
   
@@ -624,7 +261,7 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
   write.table(middle_df, file = file.path(project_dir, data_dir, "@middle_df.csv"), row.names=F, sep = ',')
   
   # Fun plotting time now! Everything here SHOULD be pretty straight-forward, especially after reading the code for `plot1`... 
-  print(middle_df$Subject)
+  # print(middle_df$Subject)
   
   gg <- ggplot(middle_df, aes(x = Comparison, y = Value)) + 
           geom_boxplot() + 
@@ -656,8 +293,21 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
   plot_list[[length(plot_list) + 1]] <<- gg
 } 
 
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
 
+is_normal <- function(data) {
+  return(shapiro.test(data)$p.value >= 0.05)
+}
 
+check_normality <- function(data) {
+  if (is_normal(data)) {
+    return('normal.')
+  }
+  return('not normal.')
+}
 
 
 # We finally made it! Now we can finally compute all the tests. 
@@ -665,7 +315,7 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
 # Yeah, I know. 
 # I had to write it and then re-write it to get it here. 
 # I hope you can feel my pain. 
-test_time <- function(condition, col, full = TRUE) { 
+test_time <- function(condition, col, full = TRUE) {
   
   # Set a global variable to determine which test we do: 
   # 't' = t-test 
@@ -725,9 +375,11 @@ test_time <- function(condition, col, full = TRUE) {
     shapiro_test_results <- shapiro.test(temp_col) 
     # This line below will make much more sense in just a bit... 
     temp_for_plotting <- temp 
+    
+    # Dang, it wasn't Normal
     if (shapiro_test_results$p.value < 0.05) { 
       if (!full) { 
-        message(paste0(col, " is NOT normal (p = ", round(shapiro_test_results$p.value, 4), "). Adjusting with `log` now. ")) 
+        print_msg(paste0(col, " is NOT normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Adjusting with `log` now. ")) 
         flush.console() 
       } 
       # Dang, it wasn't Normal, so try correcting with a shift and then ln. 
@@ -736,7 +388,7 @@ test_time <- function(condition, col, full = TRUE) {
         if (min(temp_col) <= 0) { 
           shift_val <- min(temp_col) + 0.001 
           if (!full) { 
-            message(paste0(col, " values less than 0, shifted each value up by ", shift_val, ". ")) 
+            print_msg(paste0(col, " values less than 0, shifted each value up by ", shift_val, "for ", condition, ". ")) 
             flush.console() 
           } 
         } 
@@ -761,34 +413,34 @@ test_time <- function(condition, col, full = TRUE) {
         
         # Dang, STILL not normal, so correct with ln anyway (per Professor Pavlidis' request), but this time permanently. 
         test_type <- "w" 
-        if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-          shift_val <- 0 
-          if (min(temp[[col]]) <= 0) { 
-            shift_val <- min(temp[[col]]) + 0.001 
-          } 
-          temp[[col]] <- log(temp[[col]]) + shift_val 
-        } 
+        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+        #   shift_val <- 0 
+        #   if (min(temp[[col]]) <= 0) { 
+        #     shift_val <- min(temp[[col]]) + 0.001 
+        #   } 
+        #   temp[[col]] <- log(temp[[col]]) + shift_val 
+        # } 
       } else { 
         if (!full) { 
-          message(paste0("Transformed data for ", col, " is now normal (p = ", round(shapiro_test_results$p.value, 4), 
+          print_msg(paste0("Transformed data for ", col, " is now normal (p = ", round(shapiro_test_results$p.value, 4), 
                          "). Continuing with t-test. ")) 
           flush.console() 
         } 
         
         # We are doing a transformed t-test, so we still have to permanently log our data for this column! 
         test_type <- "tt" 
-        if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-          shift_val <- 0 
-          if (min(temp[[col]]) <= 0) { 
-            shift_val <- min(temp[[col]]) + 0.001 
-          } 
-          temp[[col]] <- log(temp[[col]]) + shift_val 
-        } 
+        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+        #   shift_val <- 0 
+        #   if (min(temp[[col]]) <= 0) { 
+        #     shift_val <- min(temp[[col]]) + 0.001 
+        #   } 
+        #   temp[[col]] <- log(temp[[col]]) + shift_val 
+        # } 
       } 
     } else { 
       # Wow, it was actually Normal first try? Neat! 
       if (!full) { 
-        message(paste0(col, " is normal (p = ", round(shapiro_test_results$p.value, 4), "). Continuing with t-test. ")) 
+        print_msg(paste0(col, " is normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Continuing with t-test. ")) 
         flush.console() 
       } 
       test_type <- "t" 
@@ -827,7 +479,7 @@ test_time <- function(condition, col, full = TRUE) {
       # the power here and can do whatever we want. 
       if (col == "PP" || col == "D.EDA" || col == "N.EDA") { 
         if (!full) { 
-          message(paste0(col, " is close enough to normal. Continuing with t-test. ")) 
+          print_msg(paste0(col, " is close enough to normal. Continuing with t-test. ")) 
           flush.console() 
         } 
         test_type = "tt" 
@@ -1003,9 +655,6 @@ test_time <- function(condition, col, full = TRUE) {
 } 
 
 
-
-
-
 # Whew! We made it! Now let's go on to the easier functions that are WAY more self-explanatory! 
 interpret_results <- function(p_value) { 
   if (p_value > 0.05) { 
@@ -1050,20 +699,20 @@ figure_out_labels <- function(col_name, test_type) {
   if (isMatch(col_name, 'PP')) { 
     return(expression(Delta~"ln("~bar("PP")~paste(') [',''^'o','C',''^2,']')))
   } else if (isMatch(col_name, 'HR')) {
-    if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
-    }
-    return(expression(Delta~'Heart Rate [BPM]'))
+    # if (test_type == "tt") {
+    #   return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
+    # }
+    return(expression(Delta~bar('Heart Rate')~' [BPM]'))
   } else if (isMatch(col_name, 'BR')) { 
-    if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
-    }
-    return(expression(Delta~'Breathing Rate [BPM]')) 
+    # if (test_type == "tt") {
+    #   return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
+    # }
+    return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
   } else if (isMatch(col_name, 'EDA')) {
     if (test_type == "tt") {
-      return(expression(Delta~"ln("~bar("EDA")~') [BPM]'))
+      return(expression(Delta~"ln("~bar("EDA")~paste(') [', mu, 'S]')))
     }
-    return(expression(Delta~'EDA ['~mu~'S]')) 
+    return(expression(Delta~bar('EDA')~' ['~mu~'S]')) 
   } 
   return('Unknown axis.') 
 } 
@@ -1126,130 +775,132 @@ mess_with_the_columns()
 
 
 
-\newpage  
-# Batch-High (BH) 
+\newpage
+# Batch-High (BH)
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
-measure_vec <- c(signal_name) 
+measure_vec <- c(signal_name)
 
-cond <- "BH" 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col, FALSE) 
-} 
-``` 
+cond <- "BH"
+for (col in measure_vec) {
+  lst <- test_time(cond, col, FALSE)
+}
+```
 
-\newpage  
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col) 
-  if (!is.na(lst)) { 
-    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'BH_boxplot.pdf', 'A') 
-    # interpret_results_after(cond, col) 
-    plot.new() 
-  } 
-} 
+\newpage
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+for (col in measure_vec) {
+  lst <- test_time(cond, col)
+  if (!is.na(lst)) {
+    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'BH_boxplot.pdf', 'A')
+    # interpret_results_after(cond, col)
+    plot.new()
+  }
+}
 ```
 
 
 
-\newpage  
-# Batch-Low (BL) 
+\newpage
+# Batch-Low (BL)
 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-cond <- "BL" 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col, FALSE) 
-} 
-``` 
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+cond <- "BL"
+for (col in measure_vec) {
+  lst <- test_time(cond, col, FALSE)
+}
+```
 
-\newpage 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col) 
-  if (!is.na(lst)) { 
-    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'BL_boxplot.pdf', 'B') 
-    # interpret_results_after(cond, col) 
-    plot.new() 
-  } 
-} 
-``` 
+\newpage
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+for (col in measure_vec) {
+  lst <- test_time(cond, col)
+  if (!is.na(lst)) {
+    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'BL_boxplot.pdf', 'B')
+    # interpret_results_after(cond, col)
+    plot.new()
+  }
+}
+```
 
 
 
-\newpage  
-# Intermittent-High (IH) 
+\newpage
+# Intermittent-High (IH)
 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-cond <- "IH" 
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+cond <- "IH"
 
-## THIS IS EXTREMELY IMPORTANT TO UNDERSTANDING THIS SCRIPT: 
-# So as you might know from looking at the end-PDF from this script, we need to run the plots BEFORE we print out the test results. 
-# BUT, we can't print out the plots until we figure out the test results for each different column and plot the '*' character for each. 
-# And we can't just figure these out in the plots on the spot since each column / condition could potentially run with a totally different 
-# test than the one next to it, so... 
-# ... 
-# We have to run `test_time` twice: once to calculate the '*'s for us, then one to actually print out the results. 
-# I know, it is a pain and surely not very efficient, but it is the only way I could think of meeting these pretty ridiculous requests 
-# without making something way too complicated. 
-# Make sure this all makes sense to you before continuing, or else this whole script will have made no sense. 
-# If you do understand this, then the whole script will suddenly make a whole lot more sense in its very seemingly poort organization. 
-for (col in measure_vec) { 
-  # We compute the test results for each column first. 
-  lst <- test_time(cond, col, FALSE) 
-} 
-``` 
+## THIS IS EXTREMELY IMPORTANT TO UNDERSTANDING THIS SCRIPT:
+# So as you might know from looking at the end-PDF from this script, we need to run the plots BEFORE we print out the test results.
+# BUT, we can't print out the plots until we figure out the test results for each different column and plot the '*' character for each.
+# And we can't just figure these out in the plots on the spot since each column / condition could potentially run with a totally different
+# test than the one next to it, so...
+# ...
+# We have to run `test_time` twice: once to calculate the '*'s for us, then one to actually print out the results.
+# I know, it is a pain and surely not very efficient, but it is the only way I could think of meeting these pretty ridiculous requests
+# without making something way too complicated.
+# Make sure this all makes sense to you before continuing, or else this whole script will have made no sense.
+# If you do understand this, then the whole script will suddenly make a whole lot more sense in its very seemingly poort organization.
+for (col in measure_vec) {
+  # We compute the test results for each column first.
+  lst <- test_time(cond, col, FALSE)
+}
+```
 
-\newpage 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-# Okay, great. So we know that `test_time` will return a list when specified to, so now we finally get to see what this list does! 
-# cond <- "IH" 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col) 
-  if (!is.na(lst)) { 
-    # That's right, it all gets fed into the Plot 2 function, then printed out via the `interpret_results_after` function call below! 
-    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'IH_boxplot.pdf', 'C') 
-    if (!is.na(as.character(lst[[5]]))) { 
-      cat(as.character(lst[[5]])) 
-      lst[[5]] <- NA 
+\newpage
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+# Okay, great. So we know that `test_time` will return a list when specified to, so now we finally get to see what this list does!
+# cond <- "IH"
+for (col in measure_vec) {
+  lst <- test_time(cond, col)
+  if (!is.na(lst)) {
+    # That's right, it all gets fed into the Plot 2 function, then printed out via the `interpret_results_after` function call below!
+    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'IH_boxplot.pdf', 'C')
+    if (!is.na(as.character(lst[[5]]))) {
+      cat(as.character(lst[[5]]))
+      lst[[5]] <- NA
     }
-    # interpret_results_after(cond, col) 
-    plot.new() 
-    # Wow, wasn't that just neat-o? And also extremely and incredibly complicated... 
-  } 
-} 
+    # interpret_results_after(cond, col)
+    plot.new()
+    # Wow, wasn't that just neat-o? And also extremely and incredibly complicated...
+  }
+}
 ```
 
 
-\newpage  
-# Intermittent-Low (IL) 
+\newpage
+# Intermittent-Low (IL)
 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-# Now we can kind of sit back and relax while we rinse and repeat for each condition. 
-cond <- "IL" 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col, FALSE) 
-} 
-``` 
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+# Now we can kind of sit back and relax while we rinse and repeat for each condition.
+cond <- "IL"
+for (col in measure_vec) {
+  lst <- test_time(cond, col, FALSE)
+}
+```
 
-\newpage 
-```{r echo = FALSE, warning = FALSE, message = FALSE} 
-for (col in measure_vec) { 
-  lst <- test_time(cond, col) 
-  if (!is.na(lst)) { 
-    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'IL_boxplot.pdf', 'D') 
-    # interpret_results_after(cond, col) 
-    plot.new() 
-  } 
-} 
+\newpage
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+for (col in measure_vec) {
+  lst <- test_time(cond, col)
+  if (!is.na(lst)) {
+    plot2(as.tibble(lst[[1]]), as.character(lst[[2]]), as.character(lst[[3]]), as.character(lst[[4]]), 'IL_boxplot.pdf', 'D')
+    # interpret_results_after(cond, col)
+    plot.new()
+  }
+}
 ```
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
-plot_path <- file.path(plots_dir, paste0(tolower(signal_name), '-validation-plot-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-
-
 grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
-save_plot(plot_path, grid_plot, base_height = 10, base_width = 15)
+
+# plot_path <- file.path(plots_dir, paste0(tolower(signal_name), '-validation-plot-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+plot_path <- file.path(plots_dir, paste0(replace_dots(tolower(signal_name)), '-validation-plot', file_name_part_sensor_comparison, file_name_part_outlier))
+save_plot(plot_path, grid_plot)
+
+
 write.table(final_testing_df, file = file.path(data_set_dir, "testing_df.csv"), row.names=F, sep = ',')
 write.table(result_df, file = file.path(data_set_dir, "result_df.csv"), row.names=F, sep = ',')
 write.table(result_df, file = file.path(project_dir, data_dir, "result_df.csv"), row.names=F, sep = ',')
-``` 
+```

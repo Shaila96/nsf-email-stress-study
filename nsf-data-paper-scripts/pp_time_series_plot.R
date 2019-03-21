@@ -50,12 +50,18 @@ session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Pres
 #---FUNCTION DEFINITION---#
 #-------------------------#
 save_plot <- function(plot_name, plot) {
-  plot_path <- file.path(current_dir, plot_name)
+  plot_path <- file.path(current_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=10, height=10)
+  
+  plot_path <- file.path(current_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=10, height=10)
 }
 
 #---- Add one space if it finds any CamelCase ----#
 get_session_name <- function(session_name) {
+  if (session_name == 'BaselineWriting') {
+    return('Single Task')
+  }
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
 
@@ -150,7 +156,8 @@ generate_pp_plot <- function() {
   print(grid_plot)
   
   #---- SAVING GRID PLOT ----#
-  plot_path <- file.path(plots_dir, paste0('pp-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+  # plot_path <- file.path(plots_dir, paste0('pp-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+  plot_path <- file.path(plots_dir, paste0('pp-time-series'))
   save_plot(plot_path, grid_plot)
 }
 
