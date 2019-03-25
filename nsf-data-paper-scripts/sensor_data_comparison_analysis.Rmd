@@ -484,7 +484,7 @@ generate_hr_plot()
 ```
 
 \newpage
-# T Test - Mean Heart Rate - Per Session
+# T Test - Mean Heart Rate - All Session
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 mean_hr_df <- mean_df[, hr_col_list]
@@ -492,7 +492,7 @@ t_test_hr(mean_hr_df, 'HR Boxplot - all sessions', 'hr-boxplot-all-sessions')
 ```
 
 \newpage
-# T Test - Mean Heart Rate - Session-Baseline
+# T Test - Mean Heart Rate - Per Session
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 for (session_name in session_list) {

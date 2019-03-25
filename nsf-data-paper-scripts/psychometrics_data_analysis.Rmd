@@ -38,6 +38,7 @@ setwd(project_dir)
 
 data_dir <- 'data'
 survey_data_dir <- 'survey-data'
+performane_data_dir <- 'performane-data'
 plots_dir <- 'plots'
 
 data_file_name <- 'result_df.csv'
@@ -343,6 +344,8 @@ extract_biographic_info <- function() {
   biographic_df <<- biographic_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
   # print_msg(str(biographic_df))
+  
+  # convert_to_csv(biographic_df, file.path(performane_data_dir, 'biographic_data.csv'))
 }
 
 get_bio_bar_plot_df <- function(col_name) {
@@ -476,6 +479,7 @@ get_biographic_distribution <- function() {
   draw_biographic_distribution('Occupation')
   draw_biographic_distribution('Writing_Proficiency')
   draw_biographic_distribution('Daily_Email_Frequency')
+  
   
   #### draw_biographic_distribution('Nationality')
   #### draw_biographic_distribution('Native_Language')
@@ -770,36 +774,36 @@ get_biographic_distribution()
 <!-- NASA TASK PLOTS -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
 ```
 
 <!-- NASA TASK PROPORTION TEST -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-get_proportion_test_nasa_tlx()
+# get_proportion_test_nasa_tlx()
 ```
 
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```

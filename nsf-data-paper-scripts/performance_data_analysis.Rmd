@@ -53,6 +53,7 @@ plots_dir <- file.path(data_paper_dir, 'plots')
 ets_score_file_name <- 'essay_score_master_file.csv'
 nlp_file_name <- 'essay_nlp_results.csv'
 writing_time_file_name <- 'writing_time_dual_task.csv'
+biographic_file_name <- 'biographic_data.csv'
 # essay_file_name <- 'essay_all.xlsx'
 
 good_subj_file_name <- 'subj_good_df.csv'
@@ -73,6 +74,10 @@ good_subj_list <- tibble()
 #-------------------------#
 convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+specify_decimal <- function(x, k) {
+  trimws(format(round(x, k), nsmall=k))
 }
 
 remove_na <- function(df, col_list) {
@@ -215,6 +220,12 @@ find_good_subj_and_extract_writing_time <- function() {
     }) 
   })
   
+  
+  writing_time_dt_df <<- writing_time_dt_df %>% 
+    mutate(EmailType = case_when(
+      is_match(Condition, 'B') ~ paste0(Writing, ' - Batch Email'),
+      is_match(Condition, 'I') ~ paste0(Writing, ' - Intermittent Email')))
+  
   convert_to_csv(writing_time_dt_df, file.path(performance_data_dir, 'writing_time_dual_task.csv'))
 }
 
@@ -283,54 +294,123 @@ draw_nlp_plots <- function() {
   }
 }
 
-
-draw_writing_time_plots <- function() {
-  print_msg(str(writing_time_dt_df))
-  
-  writing_time_dt_df <<- writing_time_dt_df %>% 
-    mutate(EmailType = case_when(
-      is_match(Condition, 'B') ~ 'Batch Email',
-      is_match(Condition, 'I') ~ 'Intermittent Email'))
-  
-  print_msg(str(writing_time_dt_df))
-  
-  
-  # email_type <- c('B', 'I')
+draw_essay_email_plots <- function() {
   writing_type_levels <- levels(factor(writing_time_dt_df$Writing))
   for (writing_type in writing_type_levels) {
     temp_writing_time_dt_df <- writing_time_dt_df[writing_time_dt_df$Writing==writing_type, ]
-    
-    hist_plot <- temp_writing_time_dt_df %>% 
-      ggplot(aes(x=Time)) + 
+
+    hist_plot <- temp_writing_time_dt_df %>%
+      ggplot(aes(x=Time)) +
       geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
                    binwidth=100,
-                   colour="black", 
+                   colour="black",
                    fill="white") +
-      geom_density(alpha=.2, 
+      geom_density(alpha=.2,
                    fill="royalblue1") +
       # facet_wrap(~EmailType, ncol=1) +
+      xlab('Time [s]') +
       ylab('Density') +
       theme_bw() +
       theme(text = element_text(size=20),
             axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
             panel.spacing = unit(1.5, "lines"))
-    
+
     print(hist_plot)
     save_plot(paste0(tolower(writing_type), '_time'), hist_plot)
-    
-    
+
     hist_plot <- hist_plot +
        facet_wrap(~EmailType, ncol=1)
-    
+
     print(hist_plot)
     save_plot(paste0(tolower(writing_type), '_time_splitted'), hist_plot)
   }
 }
 
+
+draw_essay_email_combined_plots <- function() {
+  writing_time_mean_df <- writing_time_dt_df %>%
+    group_by(EmailType) %>%
+    summarise(MeanTime=mean(Time, na.rm=T))
+  
+  hist_plot <- writing_time_dt_df %>% 
+      ggplot(aes(x=Time)) +
+      geom_histogram(aes(y=..density..),
+                   binwidth=100,
+                   colour="black",
+                   fill="white") +
+      geom_density(alpha=.2,
+                   fill="royalblue1") +
+      geom_vline(data=writing_time_mean_df, 
+               mapping=aes(xintercept=writing_time_mean_df$MeanTime),
+               color="red", 
+               linetype="dashed", 
+               size=1) +
+      facet_wrap(~EmailType, ncol=2) +
+      # facet_wrap(vars(Writing, EmailType), ncol=2) +
+      xlab('Time [s]') +
+      ylab('Density') +
+      theme_bw() +
+      theme(text = element_text(size=20),
+            axis.text.x = element_text(size=16),
+            strip.text.x = element_text(size=18),
+            panel.spacing = unit(1.5, "lines"))
+  
+  print(hist_plot)
+  save_plot('email_essay_batch_intermittent', hist_plot)
+}
+
+
+draw_writing_time_plots <- function() {
+  # draw_essay_email_plots()
+  draw_essay_email_combined_plots()
+}
+
+draw_regression_plots <- function() {
+  biographic_df <- read_csv(file.path(performance_data_dir, biographic_file_name))
+  email_time_df <- writing_time_dt_df[writing_time_dt_df$Writing=='Emails', ]
+  email_df <- merge(biographic_df, email_time_df, by.x='SubjectID', by.y='Subject')
+  print_msg(str(email_df))
+  
+  cor_test <- cor.test(email_df$Daily_Email_Frequency, email_df$Time, method = "pearson")
+  print_msg(cor_test)
+  
+  subj_no <- email_df %>% summarize(n = n())
+  annot_label <- paste("n =", subj_no, 
+                       ", p =", specify_decimal(cor_test$p.value, 3), 
+                       ", R =", specify_decimal(cor_test$estimate, 3))
+  print_msg(annot_label)
+  
+  
+  plot <- email_df %>%
+    ggplot(aes(Daily_Email_Frequency, Time)) +
+    geom_point(size = 3) +
+    geom_smooth(method = "lm") +
+    # ggtitle(title) + 
+    theme_bw() + 
+    xlab('Daily Email Frequency') +
+    ylab('Time [s]') +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    annotate("text",
+         x=max(email_df$Daily_Email_Frequency)-2,
+         y=Inf,
+         hjust=1,
+         vjust=1.5,
+         label=annot_label,
+         fontface = 'italic', 
+         size = 6) +
+    theme(text = element_text(size=16),
+          axis.title = element_text(size = 16),
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+  print(plot)
+  
+  save_plot('email_time_regression', plot)
+}
+
 draw_plots <- function() {
   # draw_nlp_plots()
-  draw_writing_time_plots()
+  # draw_writing_time_plots()
+  # draw_regression_plots()
 }
 ``` 
 
