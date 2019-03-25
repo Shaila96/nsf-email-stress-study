@@ -1,0 +1,348 @@
+---
+title: 'Performance Data Analysis'
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(XLConnect)
+library(plyr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr)
+library(directlabels)
+
+require(xlsx)
+library(readxl)
+library(lubridate)
+library(gsubfn)
+
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+# setwd(root_dir)
+
+raw_data_dir <- 'nsf-stress-study'
+super_session_pattern <- '^SuperSession$' 
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+performance_data_dir <- file.path(data_dir, 'performane-data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+
+ets_score_file_name <- 'essay_score_master_file.csv'
+nlp_file_name <- 'essay_nlp_results.csv'
+writing_time_file_name <- 'writing_time_dual_task.csv'
+# essay_file_name <- 'essay_all.xlsx'
+
+good_subj_file_name <- 'subj_good_df.csv'
+
+
+default_height <- 10
+default_width <- 15
+
+
+ets_score_df <- tibble()
+nlp_score_df <- tibble()
+writing_time_dt_df <- tibble()
+good_subj_list <- tibble()
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+remove_na <- function(df, col_list) {
+  return(df[complete.cases(df[, col_list]), ])
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+} 
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+replace_to_underscore <- function(str) {
+  gsubfn('.', list('.' = '_', ' ' = '_', '-' = '_'), tolower(str))
+}
+
+replace_to_space <- function(str) {
+  gsubfn('.', list('_' = ' ', '-' = ' '), str)
+}
+
+get_all_directory_list <- function(directory) { 
+  return(list.dirs(path=directory, full.names=F, recursive=F)) 
+} 
+
+get_matched_file_names <- function(directory, file_pattern) { 
+  return(list.files(path=directory, pattern=file_pattern, recursive=F)) 
+} 
+
+is_matched_string <- function(pattern, str) { 
+  return(grepl(pattern, str, perl=TRUE)) 
+} 
+
+split_camel_case <- function(str) {
+  return(gsub("([A-Z])", " \\1", str))
+}
+
+save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+  
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
+}
+
+extract_writing_time <- function(session_dir, subj_name) {
+  subj_interface_file_pattern <- paste0('^[^~].*-', subj_name, '.xlsx') 
+  subj_interface_file_name <- get_matched_file_names(session_dir, subj_interface_file_pattern) 
+  
+  # We figure out the condition of the subject so we can tell everyone! 
+  condition <- NA 
+  if (is_match(subj_interface_file_name, "intermittent-high")) { 
+    condition <- "IH" 
+  } else if (is_match(subj_interface_file_name, "batch-high")) { 
+    condition <- "BH" 
+  } else if (is_match(subj_interface_file_name, "intermittent-low")) { 
+    condition <- "IL" 
+  } else if (is_match(subj_interface_file_name, "batch-low")) { 
+    condition <- "BL" 
+  }
+  
+  subj_interface_df <- readWorksheet(XLConnect::loadWorkbook(file.path(session_dir, subj_interface_file_name)), sheet = 'Sheet1')
+  
+  email_1_response_time <- subj_interface_df$Email.1.Response.Time
+  email_2_response_time <- subj_interface_df$Email.2.Response.Time
+  email_3_response_time <- subj_interface_df$Email.3.Response.Time
+  email_4_response_time <- subj_interface_df$Email.4.Response.Time
+  email_5_response_time <- subj_interface_df$Email.5.Response.Time
+  email_6_response_time <- subj_interface_df$Email.6.Response.Time
+  email_7_response_time <- subj_interface_df$Email.7.Response.Time
+  email_8_response_time <- subj_interface_df$Email.8.Response.Time
+
+  emails_response_time <- sum(email_1_response_time,
+                              email_2_response_time,
+                              email_3_response_time,
+                              email_4_response_time,
+                              email_5_response_time,
+                              email_6_response_time,
+                              email_7_response_time,
+                              email_8_response_time,
+                              na.rm = TRUE)
+
+  if (emails_response_time == 0) {
+    message(paste0("Error for subject ", subj_name, ": total email time is 0."))
+    flush.console()
+    return()
+  }
+
+  essay_response_time <- (50 * 60) - emails_response_time
+
+  email_df <- tibble('Subject'=subj_name, "Condition"=condition, "Writing"="Emails", "Time"=emails_response_time)
+  essay_df <- tibble('Subject'=subj_name, "Condition"=condition, "Writing"="Essay", "Time"=essay_response_time)
+  writing_time_dt_df <<- rbind(writing_time_dt_df, email_df, essay_df)
+}
+
+find_good_subj_and_extract_writing_time <- function() {
+  setwd(root_dir)
+  good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
+  grp_list <- get_all_directory_list(raw_data_dir)
+  
+  sapply(grp_list, function(grp_name) { 
+    grp_dir <- file.path(raw_data_dir, grp_name) 
+    subj_list <- get_all_directory_list(grp_dir) 
+    
+    sapply(subj_list, function(subj_name) { 
+    #sapply(subj_list[6], function(subj_name) { 
+      
+      subj_dir <- file.path(grp_dir, subj_name) 
+      #session_list <- list.dirs(path=subj_dir, full.names=F, recursive=F) 
+      session_list <- get_all_directory_list(subj_dir) 
+      session_list <- session_list[is_matched_string(super_session_pattern, session_list)] 
+      
+      sapply(session_list, function(session_name) { 
+      #sapply(session_list[3], function(session_name) { 
+        
+        session_dir <- file.path(getwd(), subj_dir, session_name) 
+        
+        tryCatch({ 
+          if(subj_name %in% good_subj_list$Subject) {
+            extract_writing_time(session_dir, subj_name)
+            
+            print_msg(paste0(grp_name, '-', subj_name, '-', session_name, ': SUCCESSFUL'))
+          } else {
+            print_msg(paste0(grp_name, '-', subj_name, '-', session_name, ': NOT PROCESSED'))
+          }
+        }, 
+        warning=function(cond) { 
+          print_msg('----------------------------------------------------------') 
+          print_msg(paste0(grp_name, '-', subj_name, '-', session_name, ': WARNING')) 
+          print_msg(paste0(cond, '\n')) 
+        }, 
+        error=function(cond) { 
+          print_msg('----------------------------------------------------------') 
+          print_msg(paste0(grp_name, '-', subj_name, '-', session_name, ': ERROR!!')) 
+          print_msg(paste0(cond, '\n')) 
+        }) 
+      }) 
+    }) 
+  })
+  
+  convert_to_csv(writing_time_dt_df, file.path(performance_data_dir, 'writing_time_dual_task.csv'))
+}
+
+read_data <- function() {
+  # ets_score_df <<- read_csv(file.path(performance_data_dir, ets_score_file_name))
+  nlp_score_df <<- read_csv(file.path(performance_data_dir, nlp_file_name))
+  writing_time_dt_df <<- read_csv(file.path(performance_data_dir, writing_time_file_name))
+    
+  good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
+
+  nlp_score_df <<- merge(good_subj_list, nlp_score_df, by='Subject') %>% 
+    mutate(Essay=fct_recode(Essay, "Single Task"="WB", "Dual Task"="DT"))
+  # print_msg(str(nlp_score_df))
+}
+
+get_bin_width <- function(col_name) {
+  if (col_name=='WordCount') {
+    return(10)
+  } else if (col_name=='SentenceCount') {
+    return(1)
+  }
+}
+
+draw_nlp_hist_plot <- function(col_name, nlp_score_mean_df) {
+  hist_plot <- nlp_score_df %>% 
+    ggplot(aes(x=nlp_score_df[[col_name]])) + 
+    geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                 binwidth=get_bin_width(col_name),
+                 colour="black", 
+                 fill="white") +
+    geom_density(alpha=.2, 
+                 fill="royalblue1") +
+    geom_vline(data=nlp_score_mean_df, 
+               mapping=aes(xintercept=nlp_score_mean_df[[paste0('Mean', col_name)]]),
+               color="red", 
+               linetype="dashed", 
+               size=1) +
+    # facet_wrap(~Essay, ncol=1, scales='free_y') +
+    facet_wrap(~Essay, ncol=1) +
+    xlab(split_camel_case(col_name)) +
+    ylab('Density') +
+    theme_bw() +
+    theme(text = element_text(size=20),
+          axis.text.x = element_text(size=16),
+          strip.text.x = element_text(size=18),
+          panel.spacing = unit(1.5, "lines"))
+    
+  print(hist_plot)
+  save_plot(tolower(col_name), hist_plot)
+}
+
+draw_nlp_plots <- function() {
+  # essay_type_levels <- levels(factor(nlp_score_df$Essay))
+  # for (essay_type in essay_type_levels) {
+  #   temp_nlp_score_df <- nlp_score_df[nlp_score_df$Essay==essay_type, ]
+  # }
+  
+  nlp_score_mean_df <- nlp_score_df %>%
+    group_by(Essay) %>%
+    summarise(MeanWordCount=mean(WordCount, na.rm=T),
+              MeanSentenceCount=mean(SentenceCount, na.rm=T))
+  
+  col_names <- c('WordCount', 'SentenceCount')
+  for(col_name in col_names) {
+    draw_nlp_hist_plot(col_name, nlp_score_mean_df)
+  }
+}
+
+
+draw_writing_time_plots <- function() {
+  print_msg(str(writing_time_dt_df))
+  
+  writing_time_dt_df <<- writing_time_dt_df %>% 
+    mutate(EmailType = case_when(
+      is_match(Condition, 'B') ~ 'Batch Email',
+      is_match(Condition, 'I') ~ 'Intermittent Email'))
+  
+  print_msg(str(writing_time_dt_df))
+  
+  
+  # email_type <- c('B', 'I')
+  writing_type_levels <- levels(factor(writing_time_dt_df$Writing))
+  for (writing_type in writing_type_levels) {
+    temp_writing_time_dt_df <- writing_time_dt_df[writing_time_dt_df$Writing==writing_type, ]
+    
+    hist_plot <- temp_writing_time_dt_df %>% 
+      ggplot(aes(x=Time)) + 
+      geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                   binwidth=100,
+                   colour="black", 
+                   fill="white") +
+      geom_density(alpha=.2, 
+                   fill="royalblue1") +
+      # facet_wrap(~EmailType, ncol=1) +
+      ylab('Density') +
+      theme_bw() +
+      theme(text = element_text(size=20),
+            axis.text.x = element_text(size=16),
+            strip.text.x = element_text(size=18),
+            panel.spacing = unit(1.5, "lines"))
+    
+    print(hist_plot)
+    save_plot(paste0(tolower(writing_type), '_time'), hist_plot)
+    
+    
+    hist_plot <- hist_plot +
+       facet_wrap(~EmailType, ncol=1)
+    
+    print(hist_plot)
+    save_plot(paste0(tolower(writing_type), '_time_splitted'), hist_plot)
+  }
+}
+
+draw_plots <- function() {
+  # draw_nlp_plots()
+  draw_writing_time_plots()
+}
+``` 
+
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# find_good_subj_and_extract_writing_time()
+read_data()
+```
+
+
+<!-- DRAW PLOTS -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+draw_plots()
+```

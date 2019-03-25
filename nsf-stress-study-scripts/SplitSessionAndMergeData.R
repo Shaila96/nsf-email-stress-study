@@ -248,7 +248,8 @@ splitSessions <- function(session_dir, subj_name) {
   pp_file_name <- getMatchedFileNames(session_dir, pp_file_pattern)
   nr_pp_file_name <- getMatchedFileNames(session_dir, nr_pp_file_pattern)
   
-  subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx')
+  # subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx')
+  subj_interface_file_pattern <- paste0('^[^~].*-', subj_name, '.xlsx') 
   subj_interface_file_name <- getMatchedFileNames(session_dir, subj_interface_file_pattern)
   marker_file_name <- getMatchedFileNames(session_dir, marker_file_pattern)
   

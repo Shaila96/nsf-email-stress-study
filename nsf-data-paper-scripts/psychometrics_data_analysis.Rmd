@@ -141,8 +141,8 @@ print_significance <- function(prop_test, alternative_val) {
   print_msg(paste0('than the proportion of disagreement, with a p-value = ', p_val))
 }
 
-is_match <- function(string_we_have, pattern_we_are_looking_for) { 
-  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
 } 
 
 replace_dot_space <- function(str) {
@@ -604,7 +604,7 @@ print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, ang
           axis.title = element_text(size=20),
           axis.text.x = element_text(size=x_axis_text_size, angle=angle))
   
-  if (grepl('NASA TLX', title)) {
+  if (is_match(title, 'NASA TLX')) {
     plot <- plot + 
       # scale_x_discrete(breaks=nasa_task_options, labels=c(1:7)) +
       theme(strip.text = element_text(size=18),
