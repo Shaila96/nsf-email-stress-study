@@ -234,8 +234,6 @@ generate_signal_plot <- function(col_name) {
         xlab(x_axis_label) +
         ylab(get_y_axis_label(col_name)) 
       
-      
-      
       # print(raw_data_plot)
    
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
@@ -327,10 +325,8 @@ generate_filtered_plots <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE} 
-
 # We are done with all functions
 # Now we just call the functions we made, sit back, and relax! 
 read_data()
 generate_filtered_plots()
-
 ``` 
