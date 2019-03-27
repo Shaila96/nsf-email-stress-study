@@ -25,8 +25,8 @@ good_subj_file_name <- 'subj_good_df.csv'
 mean_file_name <- 'result_df.csv'
 
 
-# session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
-session_list <- c('Presentation')
+session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+# session_list <- c('Presentation')
 
 
 
@@ -162,8 +162,7 @@ get_subj_with_high_eda <- function() {
 
   for(session_name in session_list) {
     session_df <- filtered_df %>% filter(Session == session_name)
-    session_df <- session_df[session_df$N.EDA > 5, 
-                             ]
+    session_df <- session_df[session_df$N.EDA > 5, ]
     bad_subjects <- levels(factor((session_df$Subject)))
     print(session_name)
     print(bad_subjects)
@@ -241,6 +240,10 @@ get_subj_for_long_session <- function() {
   }
 } 
 
+get_subj_high_eda <- function() {
+  
+}
+
 get_bad_subjects <- function() {
   # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
@@ -248,11 +251,11 @@ get_bad_subjects <- function() {
   # get_subj_high_br()
   # all_other_functions()
   
-  # get_subj_with_high_eda()
+  get_subj_with_high_eda()
   # check_hr_both_sensor('T011')
   # get_missing_subj_for_pp()
   
-  get_subj_for_long_session()
+  # get_subj_for_long_session()
 }
 
 

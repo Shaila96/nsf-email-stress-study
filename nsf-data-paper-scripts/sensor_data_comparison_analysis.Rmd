@@ -37,6 +37,7 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
+filtered_data_file_name <- 'full_df_filtered.csv'
 data_file_name <- 'result_df.csv'
 
 condition_types <- c('L', 'H')
@@ -55,6 +56,8 @@ perspiration_col_list <- c(common_col_list, perspiration_signal_list)
 
 
 
+
+filtered_df <- tibble()
 mean_df <- tibble()
 mean_diff_df <- tibble()
 new_mean_diff_df <- tibble()
@@ -183,8 +186,13 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
 
-generate_mean_diff_data <- function() {
+read_data <- function() {
   mean_df <<- read_csv(file.path(data_dir, data_file_name))[, all_signal_col_list]
+  filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))[, c(hr_col_list, 'TimeElapsed')]
+}
+
+generate_mean_diff_data <- function() {
+  # mean_df <<- read_csv(file.path(data_dir, data_file_name))[, all_signal_col_list]
   # print_msg(paste0('1. No. of rows - Initially: ', nrow(mean_df)))
   
   mean_diff_df <<- mean_df %>%
@@ -361,12 +369,37 @@ get_significance_sign <- function(p_value) {
   } 
 } 
 
-t_test_hr <- function(df, plot_title, file_name) {
+draw_line_plot_for_outliers <- function(df, session_name) {
+  outlier_df <- df[df$Value %in% boxplot(df$Value, plot=FALSE)$out, ]
+  print_msg(outlier_df)
+  
+  filtered_df <- filtered_df %>% 
+    gather(Signal, Value, -Subject, -Condition, -Session, -TimeElapsed)
+  
+  for(subj in outlier_df$Subject) {
+    temp_filtered_df <- filtered_df %>% 
+      filter(Session==session_name & Subject==subj)
+      # filter(Subject==subj & if (session_name!='all-session') Session==session_name)
+    
+    plot <- temp_filtered_df %>% 
+      ggplot(aes(x=TimeElapsed, y=Value)) +
+      geom_line(aes(color=Signal)) +
+      ggtitle(paste0(session_name, ': ', subj)) +
+      ylab('Heart Rate [BPM]') +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
+    
+    print(plot)
+  }
+}
+
+t_test_hr <- function(df, session_name=NA, plot_title, file_name) {
   ## H0:m=0, Ha:m???0 (different)
   t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
   # print_msg(paste0('----------HR Box Plot Data: ', head(df, 2)))
-
-  get_box_plot(get_data_for_boxplot(df), 
+  
+  box_plot_df <- get_data_for_boxplot(df)
+  get_box_plot(box_plot_df, 
                'Signal', 
                'Value', 
                'Heart Rate', 
@@ -379,7 +412,10 @@ t_test_hr <- function(df, plot_title, file_name) {
   print_msg(paste('The mean differences between the HR from two sensors are', 
                   check_significance(t_test)))
   
-  
+  if (session_name!='all-session') {
+    draw_line_plot_for_outliers(box_plot_df, session_name)
+  }
+  # draw_line_plot_for_outliers(box_plot_df, session_name)
 }
 
 generate_eda_vs_pp_plot <- function() {
@@ -466,6 +502,7 @@ generate_hr_plot <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
 generate_mean_diff_data()
 ```
 
@@ -473,14 +510,14 @@ generate_mean_diff_data()
 # EDA vs PP - Scatter Plot (Session-Baseline)
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-generate_eda_vs_pp_plot()
+# generate_eda_vs_pp_plot()
 ```
 
 \newpage
 # Zephyr HR vs E4 HR - Scatter Plot (Session-Baseline)
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-generate_hr_plot()
+# generate_hr_plot()
 ```
 
 \newpage
@@ -488,7 +525,10 @@ generate_hr_plot()
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 mean_hr_df <- mean_df[, hr_col_list]
-t_test_hr(mean_hr_df, 'HR Boxplot - all sessions', 'hr-boxplot-all-sessions')
+t_test_hr(mean_hr_df, 
+          'all-session',
+          plot_title='HR Boxplot - all sessions', 
+          file_name='hr-boxplot-all-sessions')
 ```
 
 \newpage
@@ -500,16 +540,66 @@ for (session_name in session_list) {
     for (condition_type in condition_types) {
       mean_hr_df <- mean_df[mean_df$Session==session_name
                                       & is_match(mean_df$Condition, condition_type), hr_col_list]
-      t_test_hr(mean_hr_df,
-                paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
-                paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
+      t_test_hr(mean_hr_df, 
+                session_name,
+                plot_title=paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
+                file_name=paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
     }
   } else {
     mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list]
     t_test_hr(mean_hr_df, 
-              paste0('HR Boxplot - ', get_session_title(session_name)), 
-              paste0('hr_boxplot_', get_session_title(session_name)))
+              session_name,
+              plot_title=paste0('HR Boxplot - ', get_session_title(session_name)), 
+              file_name=paste0('hr_boxplot_', get_session_title(session_name)))
   }
+  cat("\\newpage\n")
 }
+```
+
+
+<!-- \newpage -->
+<!-- EDA High valued subjects -->
+<!-- \newpage -->
+<!-- [1] "RestingBaseline" -->
+<!-- [1] "T032" "T132" -->
+<!-- [1] 2 -->
+<!-- [1] "BaselineWriting" -->
+<!-- [1] "T032" "T132" -->
+<!-- [1] 2 -->
+<!-- [1] "StressCondition" -->
+<!-- [1] "T032" "T132" -->
+<!-- [1] 2 -->
+<!-- [1] "DualTask" -->
+<!-- [1] "T011" "T032" "T132" -->
+<!-- [1] 3 -->
+<!-- [1] "Presentation" -->
+<!-- [1] "T132" -->
+<!-- [1] 1 -->
+
+<!-- \newpage -->
+<!-- # HR Comparison - T132 -->
+<!-- \newpage -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# subj_list <- c('T132', 'T032', 'T011')
+# 
+# for(subj in subj_list) {
+#   for(session_name in session_list) {
+#     
+#     temp_filtered_df <- filtered_df %>% 
+#       filter(Session==session_name & Subject==subj) %>% 
+#       gather(Signal, Value, -Subject, -Condition, -Session, -TimeElapsed) 
+#     
+#     plot <- temp_filtered_df %>% 
+#       ggplot(aes(x=TimeElapsed, y=Value)) +
+#       geom_line(aes(color=Signal)) +
+#       ggtitle(paste0(session_name, ': ', subj)) +
+#       ylab('Heart Rate [BPM]') +
+#       theme_bw() +
+#       theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
+#     
+#     print(plot)
+#   }
+#   cat("\\pagebreak\n")
+# }
 
 ```

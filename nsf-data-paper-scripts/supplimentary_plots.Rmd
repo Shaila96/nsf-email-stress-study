@@ -1,0 +1,87 @@
+---
+title: "Sensor Data Comparison Analysis"
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+# library(ggpubr) 
+# library(directlabels)
+library(gsubfn)
+
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+setwd(root_dir)
+
+# raw_data_dir <- 'nsf-stress-study'
+# super_session_pattern <- '^SuperSession$' 
+# performance_data_dir <- file.path(data_dir, 'performane-data')
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+
+filtered_data_file_name <- 'full_df_filtered.csv'
+data_file_name <- 'result_df.csv'
+
+# good_subj_file_name <- 'subj_good_df.csv'
+
+filtered_df <- tibble()
+# good_subj_list <- tibble()
+``` 
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+
+read_data <- function() {
+  filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))
+  # good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
+  # print_msg(str(filtered_df))
+}
+
+
+draw_plots <- function() {
+  subj_list <- levels(factor(filtered_df$Subject))
+  # print_msg(subj_list)
+  for(subj in subj_list) {
+    print_msg(subj)
+    cat("\n\n\\newpage\n")
+  }
+}
+```
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+<!-- DRAW PLOTS -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+draw_plots()
+```
