@@ -557,24 +557,29 @@ for (session_name in session_list) {
 ```
 
 
-<!-- \newpage -->
-<!-- EDA High valued subjects -->
-<!-- \newpage -->
-<!-- [1] "RestingBaseline" -->
-<!-- [1] "T032" "T132" -->
-<!-- [1] 2 -->
-<!-- [1] "BaselineWriting" -->
-<!-- [1] "T032" "T132" -->
-<!-- [1] 2 -->
-<!-- [1] "StressCondition" -->
-<!-- [1] "T032" "T132" -->
-<!-- [1] 2 -->
-<!-- [1] "DualTask" -->
-<!-- [1] "T011" "T032" "T132" -->
-<!-- [1] 3 -->
-<!-- [1] "Presentation" -->
-<!-- [1] "T132" -->
-<!-- [1] 1 -->
+\newpage
+EDA High valued subjects (5<)
+\newpage
+[1] "RestingBaseline"
+[1] "T032" "T132"
+
+
+[1] "BaselineWriting"
+[1] "T032" "T132"
+
+
+[1] "StressCondition"
+[1] "T032" "T132"
+
+
+[1] "DualTask"
+[1] "T011" "T032" "T132"
+
+
+[1] "Presentation"
+[1] "T132"
+
+
 
 <!-- \newpage -->
 <!-- # HR Comparison - T132 -->
