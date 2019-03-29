@@ -604,6 +604,8 @@ write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_non_filt
 #             row.names=F, sep = ',')
 # write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_filtered"), file_name_extension, ".csv"),
 #             row.names=F, sep = ',')
+# write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_filtered_supplementary"), file_name_extension, ".csv"),
+#             row.names=F, sep = ',')
 ###################################################################################################################
 
 

@@ -1,0 +1,250 @@
+---
+title: "Supplimentary Plots"
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr)
+# library(directlabels)
+library(gsubfn)
+
+# source('T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts/@multiplot.R')
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+setwd(root_dir)
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
+
+# filtered_data_file_name <- 'full_df_non_filtered.csv'
+# mean_data_file_name <- 'need_to_change.csv' ##NEED TO CHANGE!!!!
+# hr_col_names <- c('HR.non.filtered', 'N.HR.non.filtered')
+# eda_col_name <- 'N.EDA.non.filtered'
+
+filtered_data_file_name <- 'full_df_filtered_supplementary.csv'
+mean_data_file_name <- 'result_df.csv'
+hr_col_names <- c('HR', 'N.HR')
+eda_col_name <- 'N.EDA'
+
+common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
+hr_col_list <- c(common_col_names, hr_col_names)
+
+hr_col_vec <- c('coral', 'dodgerblue')
+hr_mean_col_vec <- c('coral3', 'dodgerblue3')
+
+filtered_df <- tibble()
+mean_df <- tibble()
+mean_of_mean_df <- tibble()
+``` 
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+}
+
+figure_out_labels <- function(col_name) { 
+  if (is_match(col_name, 'HR')) { 
+    return('Heart Rate [BPM]') 
+  } else if (is_match(col_name, 'N.EDA')) { 
+    return(expression(paste('EDA [', mu, 'S]'))) 
+  } 
+  return('Unknown axis')
+}
+
+#---- Add one space if it finds any CamelCase ----#
+get_session_name <- function(session_name) {
+  if (session_name == 'BaselineWriting') {
+    return('Single Task')
+  }
+  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+}
+
+read_data <- function() {
+  filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))
+  mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
+  mean_of_mean_df <<- mean_df %>% 
+    select(-Subject, -Condition) %>% 
+    group_by(Session) %>% 
+    summarise_each(funs(mean(., na.rm = TRUE)))
+  
+  # convert_to_csv(mean_of_mean_df, file.path(data_dir, 'mean_of_mean.csv'))
+}
+
+
+get_session_mean <- function(session, col_name) {
+  mean <- mean_of_mean_df %>%
+    filter(Session==session) %>%
+    select(col_name) %>% 
+    unlist(.)
+  return(mean)
+}
+
+get_mean <- function(subj, session, col_name) {
+  mean <- mean_df %>%
+    filter(Session==session & Subject==subj) %>%
+    select(col_name) %>% 
+    unlist(.)
+  return(mean)
+}
+
+draw_plots <- function() {
+  subj_list <- levels(factor(filtered_df$Subject))
+  # subj_list <- c('T031', 'T032', 'T132')
+  # subj_list <- c('T011', 'T032')
+  # subj_list <- c('T005', 'T051')
+  # subj_list <- c('T145')
+  
+  for(subj in subj_list) {
+    
+    message('')
+    message(subj)
+    message('-----------------')
+    
+    # plot_list <- list()
+    
+    for (session in session_list) {
+      message(session)
+      temp_plot_list <- list()
+      # df <- filtered_df %>% 
+      #   filter(Subject==subj, Session==session)
+      
+      hr_df <- filtered_df %>% 
+        filter(Subject==subj, Session==session) %>% 
+        select(hr_col_list) %>% 
+        gather(Signal, Value, hr_col_names) %>% 
+        filter(!is.na(Value))
+        
+      hr_factors <- levels(factor(hr_df$Signal))
+      
+      temp_hr_col_vec <- vector()
+      temp_hr_mean_col_vec <- vector()
+      for(idx in 1:length(hr_col_names)) {
+        if(hr_col_names[idx] %in% hr_factors) {
+          temp_hr_col_vec <- c(temp_hr_col_vec, hr_col_vec[idx])
+          temp_hr_mean_col_vec <- c(temp_hr_mean_col_vec, hr_mean_col_vec[idx])
+        }
+      }
+      
+      if(nrow(hr_df)>0) {
+        hr_plot <- hr_df %>%
+          ggplot(aes(x=TimeElapsed, y=Value, colour=Signal)) +
+          geom_line() +
+          scale_colour_manual(values=temp_hr_col_vec) +
+          ggtitle(paste0(subj, ': ', get_session_name(session))) +
+          xlab('Time [s]') +
+          ylab(figure_out_labels('HR')) +
+          theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                legend.title=element_blank(),
+                legend.position="bottom")
+        
+        for(idx in 1:length(hr_factors)) {
+          hr_plot <- hr_plot +
+            geom_hline(yintercept=get_mean(subj, session, hr_factors[idx]), 
+                     linetype="dashed",
+                     size=1.2,
+                     color=temp_hr_mean_col_vec[idx])
+        }
+        
+        temp_plot_list[[length(temp_plot_list)+1]] <- hr_plot
+        
+        
+        # plot_list[[length(plot_list)+1]] <- hr_plot
+        # print(hr_plot)
+      }
+      
+      
+      eda_df <- filtered_df %>% 
+        filter(Subject==subj, Session==session) %>% 
+        select(common_col_names, eda_col_name) %>% 
+        gather(Signal, Value, eda_col_name) %>% 
+        filter(!is.na(Value))
+      
+      if(nrow(eda_df)>0) {
+        eda_y_lim <- if(max(eda_df[[eda_col_name]]) < 5) 5 else max(eda_df[[eda_col_name]])
+
+        eda_plot <- eda_df %>%
+          ggplot(aes(x=TimeElapsed, y=Value, colour=Signal)) +
+          geom_line() +
+          scale_colour_manual(values='mediumseagreen') +
+          ggtitle(paste0(subj, ': ', get_session_name(session))) +
+          xlab('Time [s]') +
+          ylab(figure_out_labels(eda_col_name)) +
+          ylim(0, eda_y_lim) +
+          geom_hline(yintercept=get_session_mean(session, eda_col_name),
+                     size=1.2,
+                     color="darkgreen") +
+          theme(plot.title=element_text(hjust = 0.5, face = "bold"),
+                legend.title=element_blank(),
+                legend.position='bottom')
+
+        temp_plot_list[[length(temp_plot_list)+1]] <- eda_plot
+        
+        
+        # plot_list[[length(plot_list)+1]] <- eda_plot
+        # print(eda_plot)
+        
+      } 
+      
+      if(length(temp_plot_list)!=0) {
+        grid_plot <- grid.arrange(grobs=temp_plot_list, ncol=2)
+      }
+      
+      # grid_plot <- grid.arrange(hr_plot, eda_plot, ncol=2)
+
+      ## COWPLOT
+      # grid_plot <- plot_grid(plotlist=temp_plot_list, ncol=2)
+      # print(grid_plot)
+      
+      # grid_plot <- marrangeGrob(temp_plot_list, ncol=2, nrow=1)
+      # grid_plot <- do.call(marrangeGrob, c(temp_plot_list, nrow=1, ncol=2, list(top=NULL) ))
+      # print(grid_plot)
+    }
+    cat("\n\n\n\\newpage\n")
+  }
+}
+```
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+\newpage
+<!-- DRAW PLOTS -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+draw_plots()
+```
