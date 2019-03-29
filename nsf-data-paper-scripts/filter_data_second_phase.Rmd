@@ -1,0 +1,81 @@
+---
+title: "Sensor Data Comparison Analysis"
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(gsubfn)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+setwd(root_dir)
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
+
+first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+mean_data_file_name <- 'result_df.csv'
+
+common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
+hr_col_list <- c(common_col_names, hr_col_names)
+
+first_phase_filtered_df <- tibble()
+
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+}
+
+read_data <- function() {
+  first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+}
+
+``` 
+
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# generate_eda_vs_pp_plot()
+```
