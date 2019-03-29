@@ -45,10 +45,12 @@ session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'Dual
 # hr_col_names <- c('HR.non.filtered', 'N.HR.non.filtered')
 # eda_col_name <- 'N.EDA.non.filtered'
 
-filtered_data_file_name <- 'full_df_filtered_supplementary.csv'
+filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
 mean_data_file_name <- 'result_df.csv'
 hr_col_names <- c('HR', 'N.HR')
+hr_new_col_names <- c('C-HR', 'W-HR')
 eda_col_name <- 'N.EDA'
+eda_new_col_name <- 'EDA'
 
 common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
 hr_col_list <- c(common_col_names, hr_col_names)
@@ -96,6 +98,8 @@ get_session_name <- function(session_name) {
 read_data <- function() {
   filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))
   mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
+  colnames(mean_df) <<- c('Subject', 'Condition', 'Session', 'PP', 'C-HR', 'BR', 'D.EDA', 'EDA', 'D.HR', 'W-HR')
+  
   mean_of_mean_df <<- mean_df %>% 
     select(-Subject, -Condition) %>% 
     group_by(Session) %>% 
@@ -121,11 +125,23 @@ get_mean <- function(subj, session, col_name) {
   return(mean)
 }
 
+get_eda_max_y_limit <- function(df) {
+  if(max(df[[eda_new_col_name]]) < 5) 5 else max(df[[eda_new_col_name]])
+}
+
+get_hr_y_min_lim <- function(df) {
+  if(min(df$Value) < 50) min(df$Value) else 50
+}
+
+get_hr_y_max_lim <- function(df) {
+  if(max(df$Value) > 120) max(df$Value) else 120
+}
+
 draw_plots <- function() {
-  subj_list <- levels(factor(filtered_df$Subject))
+  # subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T011', 'T032')
-  # subj_list <- c('T005', 'T051')
+  subj_list <- c('T005', 'T051', 'T145')
   # subj_list <- c('T145')
   
   for(subj in subj_list) {
@@ -139,21 +155,21 @@ draw_plots <- function() {
     for (session in session_list) {
       message(session)
       temp_plot_list <- list()
-      # df <- filtered_df %>% 
-      #   filter(Subject==subj, Session==session)
       
       hr_df <- filtered_df %>% 
         filter(Subject==subj, Session==session) %>% 
         select(hr_col_list) %>% 
         gather(Signal, Value, hr_col_names) %>% 
+        mutate(Signal=replace(Signal, Signal=='HR', 'C-HR'),
+               Signal=replace(Signal, Signal=='N.HR', 'W-HR')) %>%
         filter(!is.na(Value))
         
       hr_factors <- levels(factor(hr_df$Signal))
       
       temp_hr_col_vec <- vector()
       temp_hr_mean_col_vec <- vector()
-      for(idx in 1:length(hr_col_names)) {
-        if(hr_col_names[idx] %in% hr_factors) {
+      for(idx in 1:length(hr_new_col_names)) {
+        if(hr_new_col_names[idx] %in% hr_factors) {
           temp_hr_col_vec <- c(temp_hr_col_vec, hr_col_vec[idx])
           temp_hr_mean_col_vec <- c(temp_hr_mean_col_vec, hr_mean_col_vec[idx])
         }
@@ -167,6 +183,7 @@ draw_plots <- function() {
           ggtitle(paste0(subj, ': ', get_session_name(session))) +
           xlab('Time [s]') +
           ylab(figure_out_labels('HR')) +
+          ylim(get_hr_y_min_lim(hr_df), get_hr_y_max_lim(hr_df)) +
           theme(plot.title = element_text(hjust = 0.5, face = "bold"),
                 legend.title=element_blank(),
                 legend.position="bottom")
@@ -181,7 +198,6 @@ draw_plots <- function() {
         
         temp_plot_list[[length(temp_plot_list)+1]] <- hr_plot
         
-        
         # plot_list[[length(plot_list)+1]] <- hr_plot
         # print(hr_plot)
       }
@@ -190,12 +206,11 @@ draw_plots <- function() {
       eda_df <- filtered_df %>% 
         filter(Subject==subj, Session==session) %>% 
         select(common_col_names, eda_col_name) %>% 
-        gather(Signal, Value, eda_col_name) %>% 
+        gather(Signal, Value, eda_col_name) %>%
+        mutate(Signal=replace(Signal, Signal=='N.EDA', 'EDA')) %>%
         filter(!is.na(Value))
       
       if(nrow(eda_df)>0) {
-        eda_y_lim <- if(max(eda_df[[eda_col_name]]) < 5) 5 else max(eda_df[[eda_col_name]])
-
         eda_plot <- eda_df %>%
           ggplot(aes(x=TimeElapsed, y=Value, colour=Signal)) +
           geom_line() +
@@ -203,8 +218,8 @@ draw_plots <- function() {
           ggtitle(paste0(subj, ': ', get_session_name(session))) +
           xlab('Time [s]') +
           ylab(figure_out_labels(eda_col_name)) +
-          ylim(0, eda_y_lim) +
-          geom_hline(yintercept=get_session_mean(session, eda_col_name),
+          ylim(0, get_eda_max_y_limit(eda_df)) +
+          geom_hline(yintercept=get_session_mean(session, eda_new_col_name),
                      size=1.2,
                      color="darkgreen") +
           theme(plot.title=element_text(hjust = 0.5, face = "bold"),
@@ -212,7 +227,6 @@ draw_plots <- function() {
                 legend.position='bottom')
 
         temp_plot_list[[length(temp_plot_list)+1]] <- eda_plot
-        
         
         # plot_list[[length(plot_list)+1]] <- eda_plot
         # print(eda_plot)
@@ -233,7 +247,7 @@ draw_plots <- function() {
       # grid_plot <- do.call(marrangeGrob, c(temp_plot_list, nrow=1, ncol=2, list(top=NULL) ))
       # print(grid_plot)
     }
-    cat("\n\n\n\\newpage\n")
+    cat("\\newpage\n")
   }
 }
 ```
