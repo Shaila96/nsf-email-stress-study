@@ -37,8 +37,18 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-filtered_data_file_name <- 'full_df_filtered.csv'
-data_file_name <- 'result_df.csv'
+
+
+### CHANGE THIS
+# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+# data_file_name <- 'result_df_first_phase.csv'
+
+### CHANGE THIS
+filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+data_file_name <- 'result_df_second_phase.csv'
+
+
+
 
 condition_types <- c('L', 'H')
 session_list <- c('RestingBaseline', 'BaselineWriting', 'DualTask', 'Presentation', 'StressCondition')
@@ -506,19 +516,19 @@ read_data()
 generate_mean_diff_data()
 ```
 
-\newpage
-# EDA vs PP - Scatter Plot (Session-Baseline)
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-# generate_eda_vs_pp_plot()
-```
+<!-- \newpage -->
+<!-- # EDA vs PP - Scatter Plot (Session-Baseline) -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- # generate_eda_vs_pp_plot() -->
+<!-- ``` -->
 
-\newpage
-# Zephyr HR vs E4 HR - Scatter Plot (Session-Baseline)
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-# generate_hr_plot()
-```
+<!-- \newpage -->
+<!-- # Zephyr HR vs E4 HR - Scatter Plot (Session-Baseline) -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- # generate_hr_plot() -->
+<!-- ``` -->
 
 \newpage
 # T Test - Mean Heart Rate - All Session
@@ -545,6 +555,7 @@ for (session_name in session_list) {
                 plot_title=paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
                 file_name=paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
     }
+    cat("\\newpage\n")
   } else {
     mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list]
     t_test_hr(mean_hr_df, 
@@ -557,27 +568,27 @@ for (session_name in session_list) {
 ```
 
 
-\newpage
-EDA High valued subjects (5<)
-\newpage
-[1] "RestingBaseline"
-[1] "T032" "T132"
+<!-- \newpage -->
+<!-- EDA High valued subjects (5<) -->
+<!-- \newpage -->
+<!-- [1] "RestingBaseline" -->
+<!-- [1] "T032" "T132" -->
 
 
-[1] "BaselineWriting"
-[1] "T032" "T132"
+<!-- [1] "BaselineWriting" -->
+<!-- [1] "T032" "T132" -->
 
 
-[1] "StressCondition"
-[1] "T032" "T132"
+<!-- [1] "StressCondition" -->
+<!-- [1] "T032" "T132" -->
 
 
-[1] "DualTask"
-[1] "T011" "T032" "T132"
+<!-- [1] "DualTask" -->
+<!-- [1] "T011" "T032" "T132" -->
 
 
-[1] "Presentation"
-[1] "T132"
+<!-- [1] "Presentation" -->
+<!-- [1] "T132" -->
 
 
 

@@ -1242,5 +1242,5 @@ for (col in measure_vec) {
 grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
 save_plot(paste0("@Combined-Report-", signal_name, ".pdf"), grid_plot, base_height = 10, base_width = 15)
 write.table(final_testing_df, file = "@Datasets/testing_df.csv", row.names=F, sep = ',') 
-write.table(result_df, file = "@Datasets/result_df.csv", row.names=F, sep = ',') 
+write.table(result_df, file = "@Datasets/result_df_first_phase.csv", row.names=F, sep = ',') 
 ``` 

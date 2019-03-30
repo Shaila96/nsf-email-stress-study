@@ -1,5 +1,5 @@
 ---
-title: "Sensor Data Comparison Analysis"
+title: "Second Phase Data Filtering"
 header-includes:
 - \usepackage{booktabs}
 - \usepackage{sectsty} \sectionfont{\centering}
@@ -45,7 +45,9 @@ bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
 # hr_col_list <- c(common_col_names, hr_col_names)
 
 first_phase_filtered_df <- tibble()
+second_phase_filtered_df <- tibble()
 bad_moderate_signal_df <- tibble()
+
 
 
 
@@ -165,21 +167,65 @@ make_bad_moderate_signal_data <- function() {
 
 
 read_data <- function() {
-  first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  # first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
   bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
 }
 
-remove_partial_bad_signal <- function(subj, session, signal, from, to) {
-  ## NEED TO WRITE CODE
+get_session_name <- function(session_abbr) {
+  if (session_abbr=='RB') {
+    return('RestingBaseline')
+  } else if (session_abbr=='BW') {
+    return('BaselineWriting')
+  } else if (session_abbr=='ST') {
+    return('BaselineWriting')
+  } else if (session_abbr=='SC') {
+    return('StressCondition')
+  } else if (session_abbr=='DT') {
+    return('DualTask')
+  } else if (session_abbr=='P') {
+    return('Presentation')
+  }
+  
 }
 
-remove_full_bad_signal() <- function() {
-  ## NEED TO WRITE CODE
+replace_by_NA <- function(row_df) {
+  print_msg(row_df['Subject'])
+  print_msg(get_session_name(row_df['Session']))
+  # print_msg(row_df['Signal'])
+             
+  second_phase_filtered_df[second_phase_filtered_df$Subject==row_df['Subject'] &
+                           second_phase_filtered_df$Session==get_session_name(row_df['Session']),
+                           row_df['Signal']] <<- NA
+}
+
+remove_full_bad_signal <- function() {
+  bad_signal_df <- bad_moderate_signal_df %>% filter(Condition=='Bad')
+  
+  invisible(apply(bad_signal_df, 1, function(row) replace_by_NA(row)))
+  convert_to_csv(second_phase_filtered_df[order(second_phase_filtered_df$Subject),], 
+                 file.path(data_dir, 'full_df_second_phase_filtered.csv'))
+  
+  mean_df <- second_phase_filtered_df %>% 
+    select(-CovertedTime, -TimeElapsed, -Task) %>% 
+    group_by(Subject,	Session, Condition) %>% 
+    summarize_all(mean, na.rm=T) %>% 
+    ungroup()
+  
+  convert_to_csv(mean_df, file.path(data_dir, 'result_df_second_phase.csv'))
+}
+
+remove_partial_bad_signal <- function(subj, session, signal, from, to) {
+  second_phase_filtered_df[second_phase_filtered_df$Subject==subj &
+                           second_phase_filtered_df$Session==get_session_name(session) &
+                           second_phase_filtered_df$TimeElapsed >= from &
+                           second_phase_filtered_df$TimeElapsed <= to,
+                           signal] <<- NA
 }
 
 filter_data_second_phase <- function() {
-  remove_partial_bad_signal('T092', 'RB', 'HR', from=0, to=34) ## NEED TO WRITE CODE
-  remove_full_bad_signal() ## NEED TO WRITE CODE
+  remove_partial_bad_signal('T092', 'RB', 'HR', from=0, to=34)
+  remove_full_bad_signal()
 }
 
 ``` 
@@ -188,7 +234,7 @@ filter_data_second_phase <- function() {
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 read_data()
-# make_bad_moderate_signal_data()
+make_bad_moderate_signal_data()
 ```
 
 \newpage

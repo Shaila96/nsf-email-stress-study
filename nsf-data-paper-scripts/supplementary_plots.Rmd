@@ -40,13 +40,25 @@ plots_dir <- file.path(data_paper_dir, 'plots')
 
 session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
 
-# filtered_data_file_name <- 'full_df_non_filtered.csv'
-# mean_data_file_name <- 'need_to_change.csv' ##NEED TO CHANGE!!!!
-# hr_col_names <- c('HR.non.filtered', 'N.HR.non.filtered')
-# eda_col_name <- 'N.EDA.non.filtered'
 
-filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-mean_data_file_name <- 'result_df.csv'
+### CHANGE THIS
+# # filtered_data_file_name <- 'full_df_non_filtered.csv'
+# # mean_data_file_name <- 'need_to_change.csv' ##NEED TO CHANGE!!!!
+# # hr_col_names <- c('HR.non.filtered', 'N.HR.non.filtered')
+# # eda_col_name <- 'N.EDA.non.filtered'
+
+
+
+### CHANGE THIS
+# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+# mean_data_file_name <- 'result_df_first_phase.csv'
+
+
+### CHANGE THIS
+filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+mean_data_file_name <- 'result_df_second_phase.csv'
+
+
 hr_col_names <- c('HR', 'N.HR')
 hr_new_col_names <- c('C-HR', 'W-HR')
 eda_col_name <- 'N.EDA'
@@ -98,7 +110,7 @@ get_session_name <- function(session_name) {
 read_data <- function() {
   filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))
   mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
-  colnames(mean_df) <<- c('Subject', 'Condition', 'Session', 'PP', 'C-HR', 'BR', 'D.EDA', 'EDA', 'D.HR', 'W-HR')
+  mean_df <<- rename(mean_df, 'C-HR'='HR', 'W-HR'='N.HR', 'EDA'='N.EDA')
   
   mean_of_mean_df <<- mean_df %>% 
     select(-Subject, -Condition) %>% 
@@ -138,11 +150,11 @@ get_hr_y_max_lim <- function(df) {
 }
 
 draw_plots <- function() {
-  # subj_list <- levels(factor(filtered_df$Subject))
+  subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T011', 'T032')
-  subj_list <- c('T005', 'T051', 'T145')
-  # subj_list <- c('T145')
+  # subj_list <- c('T005', 'T051', 'T145')
+  # subj_list <- c('T031')
   
   for(subj in subj_list) {
     

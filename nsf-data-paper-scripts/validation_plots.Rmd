@@ -901,6 +901,6 @@ save_plot(plot_path, grid_plot)
 
 
 write.table(final_testing_df, file = file.path(data_set_dir, "testing_df.csv"), row.names=F, sep = ',')
-write.table(result_df, file = file.path(data_set_dir, "result_df.csv"), row.names=F, sep = ',')
-write.table(result_df, file = file.path(project_dir, data_dir, "result_df.csv"), row.names=F, sep = ',')
+write.table(result_df, file = file.path(data_set_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
+write.table(result_df, file = file.path(project_dir, data_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
 ```
