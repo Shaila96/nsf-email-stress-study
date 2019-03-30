@@ -38,12 +38,14 @@ plots_dir <- file.path(data_paper_dir, 'plots')
 session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
 
 first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-mean_data_file_name <- 'result_df.csv'
+bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+# mean_data_file_name <- 'result_df.csv'
 
-common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
-hr_col_list <- c(common_col_names, hr_col_names)
+# common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
+# hr_col_list <- c(common_col_names, hr_col_names)
 
 first_phase_filtered_df <- tibble()
+bad_moderate_signal_df <- tibble()
 
 
 
@@ -63,8 +65,121 @@ is_match <- function(str, pattern) {
   return(grepl(pattern, str)) 
 }
 
+add_bad_moderate_signal <- function(subj, session, signal, condition) {
+  bad_moderate_signal_df <<- rbind(bad_moderate_signal_df, 
+                                  tibble(
+                                    'Subject'=subj,
+                                    'Session'=session,
+                                    'Signal'=signal,
+                                    'Condition'=condition
+                                    )
+                                  )
+}
+
+make_bad_moderate_signal_data <- function() {
+  
+  add_bad_moderate_signal('T011', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T016', 'SC', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T016', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T019', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T019', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T019', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T019', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T031', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'DT', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T032', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T032', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T032', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T032', 'DT', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T035', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'DT', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T047', 'SC', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T051', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T061', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T061', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T063', 'P', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T064', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T065', 'P', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T066', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T068', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T068', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T078', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T079', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T082', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T083', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T083', 'ST', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T085', 'P', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T091', 'ST', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T092', 'RB', 'HR', 'Moderate - Removed Bad Signal Part')
+  add_bad_moderate_signal('T092', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T093', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T094', 'P', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T099', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T106', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T106', 'DT', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T106', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T113', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T113', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T114', 'P', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T132', 'P', 'N.HR', 'Moderate') ## Need to check EDA
+  add_bad_moderate_signal('T157', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T174', 'SC', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T174', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T174', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T176', 'ST', 'N.HR', 'Moderate')
+  
+
+  convert_to_csv(bad_moderate_signal_df, file.path(data_dir, 'bad_moderate_signal.csv'))
+  
+}
+
+
+
+
+
+
+
+
 read_data <- function() {
   first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
+}
+
+remove_partial_bad_signal <- function(subj, session, signal, from, to) {
+  ## NEED TO WRITE CODE
+}
+
+remove_full_bad_signal() <- function() {
+  ## NEED TO WRITE CODE
+}
+
+filter_data_second_phase <- function() {
+  remove_partial_bad_signal('T092', 'RB', 'HR', from=0, to=34) ## NEED TO WRITE CODE
+  remove_full_bad_signal() ## NEED TO WRITE CODE
 }
 
 ``` 
@@ -73,9 +188,10 @@ read_data <- function() {
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 read_data()
+# make_bad_moderate_signal_data()
 ```
 
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# generate_eda_vs_pp_plot()
+filter_data_second_phase()
 ```
