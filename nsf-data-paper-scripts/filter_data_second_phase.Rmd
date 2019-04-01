@@ -104,8 +104,8 @@ make_bad_moderate_signal_data <- function() {
   add_bad_moderate_signal('T035', 'DT', 'N.HR', 'Bad')
   add_bad_moderate_signal('T035', 'P', 'N.HR', 'Moderate')
   
-  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Moderate')
-  add_bad_moderate_signal('T047', 'SC', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Moderate') #####################
+  add_bad_moderate_signal('T047', 'SC', 'N.HR', 'Bad') #####################
   
   add_bad_moderate_signal('T051', 'P', 'N.HR', 'Moderate')
   
@@ -138,7 +138,7 @@ make_bad_moderate_signal_data <- function() {
   add_bad_moderate_signal('T099', 'P', 'N.HR', 'Bad')
   
   add_bad_moderate_signal('T106', 'ST', 'N.HR', 'Bad')
-  add_bad_moderate_signal('T106', 'DT', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T106', 'DT', 'N.HR', 'Bad') #####################
   add_bad_moderate_signal('T106', 'P', 'N.HR', 'Moderate')
   
   add_bad_moderate_signal('T113', 'ST', 'N.HR', 'Moderate')
@@ -156,7 +156,7 @@ make_bad_moderate_signal_data <- function() {
   
 
   convert_to_csv(bad_moderate_signal_df, file.path(data_dir, 'bad_moderate_signal.csv'))
-  
+  # convert_to_csv(bad_moderate_signal_df, 'bad_moderate_signal.csv')
 }
 
 
@@ -201,6 +201,7 @@ replace_by_NA <- function(row_df) {
 
 remove_full_bad_signal <- function() {
   bad_signal_df <- bad_moderate_signal_df %>% filter(Condition=='Bad')
+  print_msg(bad_signal_df)
   
   invisible(apply(bad_signal_df, 1, function(row) replace_by_NA(row)))
   convert_to_csv(second_phase_filtered_df[order(second_phase_filtered_df$Subject),], 
@@ -233,8 +234,8 @@ filter_data_second_phase <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-read_data()
 make_bad_moderate_signal_data()
+read_data()
 ```
 
 \newpage

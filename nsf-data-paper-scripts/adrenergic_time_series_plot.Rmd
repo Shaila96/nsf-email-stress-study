@@ -34,8 +34,9 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-filtered_file_name <- 'full_df_filtered.csv'
 non_filtered_file_name <- 'full_df_non_filtered.csv'
+# filtered_file_name <- 'full_df_filtered.csv'
+filtered_file_name <- 'full_df_second_phase_filtered.csv'
 
 filtered_df <- tibble()
 raw_df <- tibble()
@@ -313,8 +314,8 @@ generate_signal_plot <- function(col_name) {
 
 generate_filtered_plots <- function() {
   # signal_list <- c("HR", "BR", "N.EDA", "N.HR", "D.EDA", "D.HR")
-  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("BR")
+  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  signal_list <- c("N.HR")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)

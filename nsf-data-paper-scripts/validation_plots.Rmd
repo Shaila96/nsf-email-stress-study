@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.EDA"
+signal_name <- "N.HR"
 
 
 ## CHANGE THIS!!!!
@@ -52,7 +52,10 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-filtered_file_name <- 'full_df_filtered.csv'
+# filtered_file_name <- 'full_df_filtered.csv'
+filtered_file_name <- 'full_df_second_phase_filtered.csv'
+
+
 file_name_part_outlier <- ''
 
 sensor_comparicon_col <- c('HR', 'N.HR')
@@ -901,6 +904,6 @@ save_plot(plot_path, grid_plot)
 
 
 write.table(final_testing_df, file = file.path(data_set_dir, "testing_df.csv"), row.names=F, sep = ',')
-write.table(result_df, file = file.path(data_set_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
-write.table(result_df, file = file.path(project_dir, data_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
+# write.table(result_df, file = file.path(data_set_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
+# write.table(result_df, file = file.path(project_dir, data_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
 ```
