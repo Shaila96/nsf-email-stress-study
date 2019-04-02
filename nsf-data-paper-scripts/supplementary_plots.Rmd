@@ -50,13 +50,13 @@ session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'Dual
 
 
 ### CHANGE THIS
-# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-# mean_data_file_name <- 'result_df_first_phase.csv'
+filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+mean_data_file_name <- 'result_df_first_phase.csv'
 
 
 ### CHANGE THIS
-filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
-mean_data_file_name <- 'result_df_second_phase.csv'
+# filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+# mean_data_file_name <- 'result_df_second_phase.csv'
 
 
 hr_col_names <- c('HR', 'N.HR')
@@ -138,7 +138,7 @@ get_mean <- function(subj, session, col_name) {
 }
 
 get_eda_max_y_limit <- function(df) {
-  if(max(df[[eda_new_col_name]]) < 5) 5 else max(df[[eda_new_col_name]])
+  if(max(df$Value) < 5) 5 else max(df$Value)
 }
 
 get_hr_y_min_lim <- function(df) {
@@ -154,7 +154,7 @@ draw_plots <- function() {
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T011', 'T032')
   # subj_list <- c('T005', 'T051', 'T145')
-  # subj_list <- c('T031')
+  # subj_list <- c('T132')
   
   for(subj in subj_list) {
     
@@ -221,6 +221,8 @@ draw_plots <- function() {
         gather(Signal, Value, eda_col_name) %>%
         mutate(Signal=replace(Signal, Signal=='N.EDA', 'EDA')) %>%
         filter(!is.na(Value))
+      
+      # print_msg(get_eda_max_y_limit(eda_df))
       
       if(nrow(eda_df)>0) {
         eda_plot <- eda_df %>%

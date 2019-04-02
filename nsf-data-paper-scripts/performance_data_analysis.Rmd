@@ -52,21 +52,28 @@ performance_data_dir <- file.path(data_dir, 'performane-data')
 plots_dir <- file.path(data_paper_dir, 'plots')
 
 
-ets_score_file_name <- 'essay_score_master_file.csv'
+ets_score_master_file_name <- 'essay_score_master_file.csv'
+ets_score_file_name <- 'ets_score_final.csv'
+ets_score_long_file_name <- 'ets_score_long_final.csv'
+
 nlp_file_name <- 'essay_nlp_results.csv'
 writing_time_file_name <- 'writing_time_dual_task.csv'
-ets_score_file_name <- 'essay_score_master_file.csv'
 biographic_file_name <- 'biographic_data.csv'
 # essay_file_name <- 'essay_all.xlsx'
 
 good_subj_file_name <- 'subj_good_df.csv'
+
+ets_performance_col_names <- c('Criterion Score', 
+                               'Grammar Errors', 
+                               'Usage Errors', 
+                               'Mechanic Errors', 
+                               'Style Errors')
 
 
 default_height <- 10
 default_width <- 15
 
 
-ets_score_df <- tibble()
 nlp_score_df <- tibble()
 writing_time_dt_df <- tibble()
 good_subj_list <- tibble()
@@ -235,7 +242,6 @@ find_good_subj_and_extract_writing_time <- function() {
 read_data <- function() {
   nlp_score_df <<- read_csv(file.path(performance_data_dir, nlp_file_name))
   writing_time_dt_df <<- read_csv(file.path(performance_data_dir, writing_time_file_name))
-  ets_score_df <<- read_csv(file.path(performance_data_dir, ets_score_file_name))[, c(1:6)]
     
   good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
 
@@ -410,25 +416,65 @@ draw_regression_plots <- function() {
   save_plot('email_time_regression', plot)
 }
 
+extract_ets_score <- function() {
+  ets_score_df <<- read_csv(file.path(performance_data_dir, ets_score_master_file_name))[, c(1:6)]
+  colnames(ets_score_df) <<- c('Subject', ets_performance_col_names)
+  ## GET THE FIRST NUMBER
+  ets_score_df[['Criterion Score']] <<- stri_extract_first_regex(ets_score_df[['Criterion Score']], "[0-9]+")
+  
+  ## SEPARATE THE SUBJECT COLUMN INTO 3 COLUMN(BY UNDERSCORE)
+  ets_score_df <<- ets_score_df %>%
+    separate(Subject, c("Subject", "ConditionETS", 'Session')) %>% 
+    mutate(Session = recode(Session, 'DT' = "Dual Task", 'WB' = "Single Task"))
+  # print_msg(str(new_ets_score_df))
+    
+
+  ets_score_long_df <- ets_score_df %>%
+    gather(PerformanceCriteria, Value, -Subject, -ConditionETS, -Session)
+  
+  convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
+  convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
+}
+
+
+draw_ets_plots <- function() {
+  # ets_score_df <- read_csv(file.path(performance_data_dir, ets_score_file_name))
+  ets_score_long_df <- read_csv(file.path(performance_data_dir, ets_score_long_file_name))
+  
+  ets_plot <- ets_score_long_df %>%
+    ggplot(aes(x=Value)) +
+    facet_wrap(~PerformanceCriteria, ncol=2, scales='free') +
+    geom_density(aes(fill=Session), alpha=.5) + 
+    xlab('') +
+    ylab('Density') +
+    theme(text = element_text(size=20),
+          legend.position="bottom",
+          legend.title=element_blank())
+
+  print(ets_plot)
+  save_plot('ets_score', ets_plot)
+  
+  # ets_plot <- ets_score_df %>% 
+  #   ggplot(aes(x=CriterionScore)) +
+  #   geom_density(aes(fill=Session), alpha=.2)
+  # 
+  # print(ets_plot)
+}
+
+
+draw_ets_score_plots <- function() {
+  extract_ets_score()
+  draw_ets_plots()
+}
+
+
 draw_plots <- function() {
   # draw_nlp_plots()
   # draw_writing_time_plots()
   # draw_regression_plots()
+  draw_ets_score_plots()
 }
 
-extract_ets_score <- function() {
-  colnames(ets_score_df) <- c('Subject', 'CriterionScore', 'GrammarErrors',
-                              'UsageErrors', 'MechanicErrors', 'StyleErrors')
-  ## GET THE FIRST NUMBER
-  ets_score_df$CriterionScore <- stri_extract_first_regex(ets_score_df$CriterionScore, "[0-9]+")
-  
-  ## SEPARATE THE SUBJECT COLUMN INTO 3 COLUMN(BY UNDERSCORE)
-  new_ets_score_df <- extract_criterion_score(ets_score_df) %>%
-    separate(Subject, c("Subject", "ConditionETS", 'Session'))
-  # print_msg(str(new_ets_score_df))
-
-  convert_to_csv(new_ets_score_df, file.path(performance_data_dir, 'ets_score_final.csv'))
-}
 ``` 
 
 
@@ -436,11 +482,10 @@ extract_ets_score <- function() {
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 # find_good_subj_and_extract_writing_time()
 read_data()
-extract_ets_score()
 ```
 
 
 <!-- DRAW PLOTS -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# draw_plots()
+draw_plots()
 ```
