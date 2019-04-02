@@ -124,7 +124,7 @@ is_matched_string <- function(pattern, str) {
 } 
 
 split_camel_case <- function(str) {
-  return(gsub("([A-Z])", " \\1", str))
+  return(gsub('([A-Z])', ' \\1', str))
 }
 
 save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
@@ -141,14 +141,14 @@ extract_writing_time <- function(session_dir, subj_name) {
   
   # We figure out the condition of the subject so we can tell everyone! 
   condition <- NA 
-  if (is_match(subj_interface_file_name, "intermittent-high")) { 
-    condition <- "IH" 
-  } else if (is_match(subj_interface_file_name, "batch-high")) { 
-    condition <- "BH" 
-  } else if (is_match(subj_interface_file_name, "intermittent-low")) { 
-    condition <- "IL" 
-  } else if (is_match(subj_interface_file_name, "batch-low")) { 
-    condition <- "BL" 
+  if (is_match(subj_interface_file_name, 'intermittent-high')) { 
+    condition <- 'IH' 
+  } else if (is_match(subj_interface_file_name, 'batch-high')) { 
+    condition <- 'BH' 
+  } else if (is_match(subj_interface_file_name, 'intermittent-low')) { 
+    condition <- 'IL' 
+  } else if (is_match(subj_interface_file_name, 'batch-low')) { 
+    condition <- 'BL' 
   }
   
   subj_interface_df <- readWorksheet(XLConnect::loadWorkbook(file.path(session_dir, subj_interface_file_name)), sheet = 'Sheet1')
@@ -173,15 +173,15 @@ extract_writing_time <- function(session_dir, subj_name) {
                               na.rm = TRUE)
 
   if (emails_response_time == 0) {
-    message(paste0("Error for subject ", subj_name, ": total email time is 0."))
+    message(paste0('Error for subject ', subj_name, ': total email time is 0.'))
     flush.console()
     return()
   }
 
   essay_response_time <- (50 * 60) - emails_response_time
 
-  email_df <- tibble('Subject'=subj_name, "Condition"=condition, "Writing"="Emails", "Time"=emails_response_time)
-  essay_df <- tibble('Subject'=subj_name, "Condition"=condition, "Writing"="Essay", "Time"=essay_response_time)
+  email_df <- tibble('Subject'=subj_name, 'Condition'=condition, 'Writing'='Emails', 'Time'=emails_response_time)
+  essay_df <- tibble('Subject'=subj_name, 'Condition'=condition, 'Writing'='Essay', 'Time'=essay_response_time)
   writing_time_dt_df <<- rbind(writing_time_dt_df, email_df, essay_df)
 }
 
@@ -246,7 +246,7 @@ read_data <- function() {
   good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
 
   nlp_score_df <<- merge(good_subj_list, nlp_score_df, by='Subject') %>% 
-    mutate(Essay=fct_recode(Essay, "Single Task"="WB", "Dual Task"="DT"))
+    mutate(Essay=fct_recode(Essay, 'Single Task'='WB', 'Dual Task'='DT'))
   # print_msg(str(nlp_score_df))
 }
 
@@ -263,14 +263,14 @@ draw_nlp_hist_plot <- function(col_name, nlp_score_mean_df) {
     ggplot(aes(x=nlp_score_df[[col_name]])) + 
     geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
                  binwidth=get_bin_width(col_name),
-                 colour="black", 
-                 fill="white") +
+                 colour='black', 
+                 fill='white') +
     geom_density(alpha=.2, 
-                 fill="royalblue1") +
+                 fill='royalblue1') +
     geom_vline(data=nlp_score_mean_df, 
                mapping=aes(xintercept=nlp_score_mean_df[[paste0('Mean', col_name)]]),
-               color="red", 
-               linetype="dashed", 
+               color='red', 
+               linetype='dashed', 
                size=1) +
     # facet_wrap(~Essay, ncol=1, scales='free_y') +
     facet_wrap(~Essay, ncol=1) +
@@ -280,7 +280,7 @@ draw_nlp_hist_plot <- function(col_name, nlp_score_mean_df) {
     theme(text = element_text(size=20),
           axis.text.x = element_text(size=16),
           strip.text.x = element_text(size=18),
-          panel.spacing = unit(1.5, "lines"))
+          panel.spacing = unit(1.5, 'lines'))
     
   print(hist_plot)
   save_plot(tolower(col_name), hist_plot)
@@ -312,10 +312,10 @@ draw_essay_email_plots <- function() {
       ggplot(aes(x=Time)) +
       geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
                    binwidth=100,
-                   colour="black",
-                   fill="white") +
+                   colour='black',
+                   fill='white') +
       geom_density(alpha=.2,
-                   fill="royalblue1") +
+                   fill='royalblue1') +
       # facet_wrap(~EmailType, ncol=1) +
       xlab('Time [s]') +
       ylab('Density') +
@@ -323,7 +323,7 @@ draw_essay_email_plots <- function() {
       theme(text = element_text(size=20),
             axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
-            panel.spacing = unit(1.5, "lines"))
+            panel.spacing = unit(1.5, 'lines'))
 
     print(hist_plot)
     save_plot(paste0(tolower(writing_type), '_time'), hist_plot)
@@ -346,14 +346,14 @@ draw_essay_email_combined_plots <- function() {
       ggplot(aes(x=Time)) +
       geom_histogram(aes(y=..density..),
                    binwidth=100,
-                   colour="black",
-                   fill="white") +
+                   colour='black',
+                   fill='white') +
       geom_density(alpha=.2,
-                   fill="royalblue1") +
+                   fill='royalblue1') +
       geom_vline(data=writing_time_mean_df, 
                mapping=aes(xintercept=writing_time_mean_df$MeanTime),
-               color="red", 
-               linetype="dashed", 
+               color='red', 
+               linetype='dashed', 
                size=1) +
       facet_wrap(~EmailType, ncol=2) +
       # facet_wrap(vars(Writing, EmailType), ncol=2) +
@@ -363,7 +363,7 @@ draw_essay_email_combined_plots <- function() {
       theme(text = element_text(size=20),
             axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
-            panel.spacing = unit(1.5, "lines"))
+            panel.spacing = unit(1.5, 'lines'))
   
   print(hist_plot)
   save_plot('email_essay_batch_intermittent', hist_plot)
@@ -375,32 +375,32 @@ draw_writing_time_plots <- function() {
   draw_essay_email_combined_plots()
 }
 
-draw_regression_plots <- function() {
+draw_email_time_regression_plots <- function() {
   biographic_df <- read_csv(file.path(performance_data_dir, biographic_file_name))
   email_time_df <- writing_time_dt_df[writing_time_dt_df$Writing=='Emails', ]
   email_df <- merge(biographic_df, email_time_df, by.x='SubjectID', by.y='Subject')
   print_msg(str(email_df))
   
-  cor_test <- cor.test(email_df$Daily_Email_Frequency, email_df$Time, method = "pearson")
+  cor_test <- cor.test(email_df$Daily_Email_Frequency, email_df$Time, method = 'pearson')
   print_msg(cor_test)
   
   subj_no <- email_df %>% summarize(n = n())
-  annot_label <- paste("n =", subj_no, 
-                       ", p =", specify_decimal(cor_test$p.value, 3), 
-                       ", R =", specify_decimal(cor_test$estimate, 3))
+  annot_label <- paste('n =', subj_no, 
+                       ', p =', specify_decimal(cor_test$p.value, 3), 
+                       ', R =', specify_decimal(cor_test$estimate, 3))
   print_msg(annot_label)
   
   
   plot <- email_df %>%
     ggplot(aes(Daily_Email_Frequency, Time)) +
     geom_point(size = 3) +
-    geom_smooth(method = "lm") +
+    geom_smooth(method = 'lm') +
     # ggtitle(title) + 
     theme_bw() + 
     xlab('Daily Email Frequency') +
     ylab('Time [s]') +
     scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
-    annotate("text",
+    annotate('text',
          x=max(email_df$Daily_Email_Frequency)-2,
          y=Inf,
          hjust=1,
@@ -410,7 +410,7 @@ draw_regression_plots <- function() {
          size = 6) +
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+          plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
   print(plot)
   
   save_plot('email_time_regression', plot)
@@ -420,12 +420,12 @@ extract_ets_score <- function() {
   ets_score_df <<- read_csv(file.path(performance_data_dir, ets_score_master_file_name))[, c(1:6)]
   colnames(ets_score_df) <<- c('Subject', ets_performance_col_names)
   ## GET THE FIRST NUMBER
-  ets_score_df[['Criterion Score']] <<- stri_extract_first_regex(ets_score_df[['Criterion Score']], "[0-9]+")
+  ets_score_df[['Criterion Score']] <<- stri_extract_first_regex(ets_score_df[['Criterion Score']], '[0-9]+')
   
   ## SEPARATE THE SUBJECT COLUMN INTO 3 COLUMN(BY UNDERSCORE)
   ets_score_df <<- ets_score_df %>%
-    separate(Subject, c("Subject", "ConditionETS", 'Session')) %>% 
-    mutate(Session = recode(Session, 'DT' = "Dual Task", 'WB' = "Single Task"))
+    separate(Subject, c('Subject', 'ConditionETS', 'Session')) %>% 
+    mutate(Session = recode(Session, 'DT' = 'Dual Task', 'WB' = 'Single Task'))
   # print_msg(str(new_ets_score_df))
     
 
@@ -448,7 +448,8 @@ draw_ets_plots <- function() {
     xlab('') +
     ylab('Density') +
     theme(text = element_text(size=20),
-          legend.position="bottom",
+          legend.position='bottom',
+          legend.spacing.x = unit(0.2, 'cm'),
           legend.title=element_blank())
 
   print(ets_plot)
@@ -471,7 +472,7 @@ draw_ets_score_plots <- function() {
 draw_plots <- function() {
   # draw_nlp_plots()
   # draw_writing_time_plots()
-  # draw_regression_plots()
+  # draw_email_time_regression_plots()
   draw_ets_score_plots()
 }
 
