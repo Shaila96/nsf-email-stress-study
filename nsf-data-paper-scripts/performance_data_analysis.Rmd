@@ -34,6 +34,7 @@ library(readxl)
 library(lubridate)
 library(gsubfn)
 library(stringi)
+library(GoodmanKruskal)
 
 
 
@@ -141,14 +142,10 @@ extract_writing_time <- function(session_dir, subj_name) {
   
   # We figure out the condition of the subject so we can tell everyone! 
   condition <- NA 
-  if (is_match(subj_interface_file_name, 'intermittent-high')) { 
-    condition <- 'IH' 
-  } else if (is_match(subj_interface_file_name, 'batch-high')) { 
-    condition <- 'BH' 
-  } else if (is_match(subj_interface_file_name, 'intermittent-low')) { 
-    condition <- 'IL' 
-  } else if (is_match(subj_interface_file_name, 'batch-low')) { 
-    condition <- 'BL' 
+  if (is_match(subj_interface_file_name, 'intermittent')) { 
+    condition <- 'Intermittent' 
+  } else if (is_match(subj_interface_file_name, 'batch')) { 
+    condition <- 'Batch' 
   }
   
   subj_interface_df <- readWorksheet(XLConnect::loadWorkbook(file.path(session_dir, subj_interface_file_name)), sheet = 'Sheet1')
@@ -369,10 +366,28 @@ draw_essay_email_combined_plots <- function() {
   save_plot('email_essay_batch_intermittent', hist_plot)
 }
 
+draw_essay_email_stacked_bar_plots <- function() {
+  stacked_plot <- writing_time_dt_df %>% 
+    ggplot(aes(fill=Writing, y=Time, x=Subject)) + 
+    facet_wrap(~Condition, ncol=1, scales='free') +
+    geom_bar(stat="identity") + 
+    ylab('Time [s]') +
+    guides(fill = guide_legend(reverse=T)) +
+    theme(text = element_text(size=20),
+          axis.text.x = element_text(angle = 90, hjust = 1),
+          panel.spacing = unit(1.5, 'lines'),
+          legend.position='bottom',
+          legend.spacing.x = unit(0.2, 'cm'),
+          legend.title=element_blank())
+  print(stacked_plot)
+  save_plot('email_essay_stacked_plot', stacked_plot)
+}
+
 
 draw_writing_time_plots <- function() {
   # draw_essay_email_plots()
-  draw_essay_email_combined_plots()
+  # draw_essay_email_combined_plots()
+  draw_essay_email_stacked_bar_plots()
 }
 
 draw_email_time_regression_plots <- function() {
@@ -425,15 +440,14 @@ extract_ets_score <- function() {
   ## SEPARATE THE SUBJECT COLUMN INTO 3 COLUMN(BY UNDERSCORE)
   ets_score_df <<- ets_score_df %>%
     separate(Subject, c('Subject', 'ConditionETS', 'Session')) %>% 
-    mutate(Session = recode(Session, 'DT' = 'Dual Task', 'WB' = 'Single Task'))
+    mutate(Session = recode(Session, 'WB' = 'Single Task', 'DT' = 'Dual Task')) 
   # print_msg(str(new_ets_score_df))
     
-
   ets_score_long_df <- ets_score_df %>%
     gather(PerformanceCriteria, Value, -Subject, -ConditionETS, -Session)
   
-  convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
-  convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
+  # convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
+  # convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
 }
 
 
@@ -447,6 +461,7 @@ draw_ets_plots <- function() {
     geom_density(aes(fill=Session), alpha=.5) + 
     xlab('') +
     ylab('Density') +
+    guides(fill = guide_legend(reverse=T)) +
     theme(text = element_text(size=20),
           legend.position='bottom',
           legend.spacing.x = unit(0.2, 'cm'),
@@ -454,18 +469,30 @@ draw_ets_plots <- function() {
 
   print(ets_plot)
   save_plot('ets_score', ets_plot)
+}
+
+draw_ets_regression_plot <- function() {
+  ets_score_df <- read_csv(file.path(performance_data_dir, ets_score_file_name))
+  biographic_df <- read_csv(file.path(performance_data_dir, biographic_file_name))
+  # email_time_df <- writing_time_dt_df[writing_time_dt_df$Writing=='Emails', ]
+  ets_bio_df <- merge(biographic_df, ets_score_df, by.x='SubjectID', by.y='Subject')
+  print_msg(str(ets_bio_df))
   
-  # ets_plot <- ets_score_df %>% 
-  #   ggplot(aes(x=CriterionScore)) +
-  #   geom_density(aes(fill=Session), alpha=.2)
-  # 
-  # print(ets_plot)
+  cor_test <- cor.test(ets_bio_df$Writing_Proficiency, ets_bio_df[['Criterion Score']], method = 'spearman')
+  print_msg(cor_test)
+  
+  plot <- ets_bio_df %>%
+    ggplot(aes(Writing_Proficiency, ets_bio_df[['Criterion Score']])) +
+    geom_point(size = 3) +
+    geom_smooth(method = 'lm')
+  print(plot)
 }
 
 
 draw_ets_score_plots <- function() {
-  extract_ets_score()
-  draw_ets_plots()
+  # extract_ets_score()
+  # draw_ets_plots()
+  draw_ets_regression_plot()
 }
 
 

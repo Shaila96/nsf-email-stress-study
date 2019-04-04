@@ -50,13 +50,13 @@ session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'Dual
 
 
 ### CHANGE THIS
-filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-mean_data_file_name <- 'result_df_first_phase.csv'
+# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+# mean_data_file_name <- 'result_df_first_phase.csv'
 
 
 ### CHANGE THIS
-# filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
-# mean_data_file_name <- 'result_df_second_phase.csv'
+filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+mean_data_file_name <- 'result_df_second_phase.csv'
 
 
 hr_col_names <- c('HR', 'N.HR')

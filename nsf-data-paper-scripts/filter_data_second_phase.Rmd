@@ -34,20 +34,19 @@ setwd(root_dir)
 data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
 data_dir <- file.path(data_paper_dir, 'data')
 plots_dir <- file.path(data_paper_dir, 'plots')
+survey_data_dir <- file.path(data_dir, 'survey-data')
 
 session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
 
 first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+mean_data_file_name <- 'result_df_first_phase.csv'
 bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
-# mean_data_file_name <- 'result_df.csv'
-
-# common_col_names <- c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed')
-# hr_col_list <- c(common_col_names, hr_col_names)
+pre_survey_file_name <- 'pre-survey.csv'
 
 first_phase_filtered_df <- tibble()
 second_phase_filtered_df <- tibble()
 bad_moderate_signal_df <- tibble()
-
+pre_survey_df <- tibble()
 
 
 
@@ -67,15 +66,27 @@ is_match <- function(str, pattern) {
   return(grepl(pattern, str)) 
 }
 
-add_bad_moderate_signal <- function(subj, session, signal, condition) {
+add_bad_moderate_signal <- function(subj, session, signal, condition, reason='') {
+  ## Add diff(c_hr - w_hr)
+  
   bad_moderate_signal_df <<- rbind(bad_moderate_signal_df, 
                                   tibble(
                                     'Subject'=subj,
                                     'Session'=session,
                                     'Signal'=signal,
-                                    'Condition'=condition
+                                    'Condition'=condition,
+                                    'Reason'=reason
                                     )
                                   )
+}
+
+add_subject_info <- function() {
+  # Add age, gender
+  print_msg(str(pre_survey_df))
+  # bio_df <- pre_survey_df %>% mutate(Gender = recode(Gender,
+  #                                       '1' = 'Male',
+  #                                       '2' = 'Female'))
+  # bad_moderate_signal_df <<- merge(bad_moderate_signal_df, bio_df, by='Subject')
 }
 
 make_bad_moderate_signal_data <- function() {
@@ -93,6 +104,7 @@ make_bad_moderate_signal_data <- function() {
   add_bad_moderate_signal('T031', 'RB', 'N.HR', 'Bad')
   add_bad_moderate_signal('T031', 'SC', 'N.HR', 'Bad')
   add_bad_moderate_signal('T031', 'DT', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
   
   add_bad_moderate_signal('T032', 'RB', 'N.HR', 'Bad')
   add_bad_moderate_signal('T032', 'SC', 'N.HR', 'Bad')
@@ -154,22 +166,23 @@ make_bad_moderate_signal_data <- function() {
   
   add_bad_moderate_signal('T176', 'ST', 'N.HR', 'Moderate')
   
-
+  
+  ##############################
+  add_subject_info()
+  ##############################
+  
+  
   convert_to_csv(bad_moderate_signal_df, file.path(data_dir, 'bad_moderate_signal.csv'))
-  # convert_to_csv(bad_moderate_signal_df, 'bad_moderate_signal.csv')
+  
 }
-
-
-
-
-
-
-
 
 read_data <- function() {
   # first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
   second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
   bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
+  pre_survey_df <<- read_csv(file.path(survey_data_dir, pre_survey_file_name))[, c(22:24)]
+  colnames(pre_survey_df) <<- c('Subject', 'Age', 'Gender')
 }
 
 get_session_name <- function(session_abbr) {
