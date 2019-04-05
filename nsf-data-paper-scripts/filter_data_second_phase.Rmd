@@ -116,7 +116,7 @@ make_bad_moderate_signal_data <- function() {
   add_bad_moderate_signal('T035', 'DT', 'N.HR', 'Bad')
   add_bad_moderate_signal('T035', 'P', 'N.HR', 'Moderate')
   
-  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Moderate') #####################
+  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Bad') #####################
   add_bad_moderate_signal('T047', 'SC', 'N.HR', 'Bad') #####################
   
   add_bad_moderate_signal('T051', 'P', 'N.HR', 'Moderate')

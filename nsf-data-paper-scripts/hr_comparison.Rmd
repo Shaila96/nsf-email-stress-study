@@ -128,8 +128,6 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 
 replace_dot_space <- function(str) {
   gsubfn(".", list("." = "_", " " = "_"), tolower(str))
-  # gsub("\\.", "_", str)
-  # gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
 }
 
 ## Function for annotating boxplot with n.
@@ -137,7 +135,6 @@ get_n <- function(df) {
   return(c(y=-Inf, vjust = -1, label=length(df))) 
 } 
 
-# 'RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask'
 get_session_title <- function(session_name, condition_type=NA) {
   if (session_name=='RestingBaseline') {
     return('Resting Baseline')
@@ -187,8 +184,6 @@ get_condition_type <- function(str) {
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
-  # print(plot)
-  
   plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=default_width, height=default_height)
   
@@ -296,9 +291,9 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
   ## Very Bad Coding :P
   if(x_col=='HR') point=10 else point=3
 
-  annot_label <- paste("n =", subj_no, 
-                       ", p =", specify_decimal(cor_test$p.value, point), 
-                       ", R =", specify_decimal(cor_test$estimate, 3))
+  annot_label <- paste0("n = ", subj_no, 
+                       ", p = ", specify_decimal(cor_test$p.value, point), 
+                       ", R = ", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +

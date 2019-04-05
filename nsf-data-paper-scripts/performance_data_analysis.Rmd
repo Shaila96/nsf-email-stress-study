@@ -367,20 +367,48 @@ draw_essay_email_combined_plots <- function() {
 }
 
 draw_essay_email_stacked_bar_plots <- function() {
-  stacked_plot <- writing_time_dt_df %>% 
-    ggplot(aes(fill=Writing, y=Time, x=Subject)) + 
+  stacked_plot <- writing_time_dt_df %>%
+    ggplot(aes(fill=Writing, y=Time, x=reorder(Subject, -Time))) +
     facet_wrap(~Condition, ncol=1, scales='free') +
-    geom_bar(stat="identity") + 
+    geom_bar(stat="identity") +
     ylab('Time [s]') +
     guides(fill = guide_legend(reverse=T)) +
     theme(text = element_text(size=20),
           axis.text.x = element_text(angle = 90, hjust = 1),
           panel.spacing = unit(1.5, 'lines'),
-          legend.position='bottom',
+          legend.position='top',
           legend.spacing.x = unit(0.2, 'cm'),
           legend.title=element_blank())
   print(stacked_plot)
   save_plot('email_essay_stacked_plot', stacked_plot)
+  
+  # plot_list <- list()
+  # for (condition in levels(factor(writing_time_dt_df$Condition))) {
+  #   temp_writing_time_dt_df <- writing_time_dt_df %>%
+  #     filter(Condition==condition) 
+  #   # %>%
+  #   #   arrange(desc(Time))
+  # 
+  #   print_msg(str(temp_writing_time_dt_df))
+  #   stacked_plot <- temp_writing_time_dt_df %>%
+  #     ggplot(aes(fill=Writing, x=reorder(Subject, -Time), y=Time)) +
+  #     # facet_wrap(~Condition, ncol=1, scales='free') +
+  #     # facet_grid(. ~ condition) +
+  #     geom_bar(stat="identity") +
+  #     ylab('Time [s]') +
+  #     guides(fill = guide_legend(reverse=T)) +
+  #     theme(text = element_text(size=20),
+  #           axis.text.x = element_text(angle = 90, hjust = 1),
+  #           panel.spacing = unit(1.5, 'lines'),
+  #           legend.position='top',
+  #           legend.spacing.x = unit(0.2, 'cm'),
+  #           legend.title=element_blank())
+  #   print(stacked_plot)
+  #   plot_list[[length(plot_list)+1]] <- stacked_plot
+  # }
+  # 
+  # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
+  # save_plot('email_essay_stacked_plot', stacked_plot)
 }
 
 
@@ -469,23 +497,79 @@ draw_ets_plots <- function() {
 
   print(ets_plot)
   save_plot('ets_score', ets_plot)
+  
+  ###############################################################################################
+  ####                                 MEAN LINE PLOT                                       #####
+  ####https://stackoverflow.com/questions/10942360/how-to-get-geom-vline-to-honor-facet-wrap#####
+  ###############################################################################################
 }
 
 draw_ets_regression_plot <- function() {
   ets_score_df <- read_csv(file.path(performance_data_dir, ets_score_file_name))
   biographic_df <- read_csv(file.path(performance_data_dir, biographic_file_name))
-  # email_time_df <- writing_time_dt_df[writing_time_dt_df$Writing=='Emails', ]
   ets_bio_df <- merge(biographic_df, ets_score_df, by.x='SubjectID', by.y='Subject')
+  
+  # ets_bio_df <- ets_bio_df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency,
+  #                                       '1' = '1',
+  #                                       '2' = '2',
+  #                                       '3' = '3',
+  #                                       '4' = '4',
+  #                                       '5' = '5',
+  #                                       '6' = '6',
+  #                                       '7' = '7'))
+  # 
+  # 
+  # ets_bio_df <- ets_bio_df %>%
+  #   mutate(Writing_Proficiency=factor(Writing_Proficiency, levels = c(1, 2, 3, 4, 5, 6, 7)))
+  
   print_msg(str(ets_bio_df))
   
-  cor_test <- cor.test(ets_bio_df$Writing_Proficiency, ets_bio_df[['Criterion Score']], method = 'spearman')
-  print_msg(cor_test)
   
-  plot <- ets_bio_df %>%
-    ggplot(aes(Writing_Proficiency, ets_bio_df[['Criterion Score']])) +
-    geom_point(size = 3) +
-    geom_smooth(method = 'lm')
-  print(plot)
+  session_level <- levels(factor(ets_bio_df$Session))
+  for (session in session_level) {
+    temp_ets_bio_df <- ets_bio_df[ets_bio_df$Session==session, ]
+    
+    cor_test <- cor.test(temp_ets_bio_df$Writing_Proficiency,
+                     temp_ets_bio_df[['Criterion Score']],
+                     method = 'spearman')
+    print_msg(cor_test)
+    
+    subj_no <- temp_ets_bio_df %>% summarize(n = n())
+    annot_label <- paste0("n = ", subj_no, 
+                       ", p = ", specify_decimal(cor_test$p.value, 4), 
+                       ", R = ", specify_decimal(cor_test$estimate, 3))
+    print_msg(annot_label)
+    # print_msg(min(as.numeric(temp_ets_bio_df[['Writing_Proficiency']])))
+    # print_msg(max(as.numeric(temp_ets_bio_df[['Criterion Score']])))
+  
+  
+    reg_plot <- temp_ets_bio_df %>%
+      ggplot(aes(Writing_Proficiency, temp_ets_bio_df[['Criterion Score']])) +
+      geom_point(size=3, color='red', alpha=0.2) +
+      geom_smooth(method = 'lm') +
+      xlab('Writing Proficiency') +
+      ylab('ETS Criterion Score') +
+      scale_y_continuous(expand=c(0.2, 0, 0.2, 0)) +
+      annotate("text",
+        # x=min(as.numeric(temp_ets_bio_df[['Writing_Proficiency']])),
+        # y=max(as.numeric(temp_ets_bio_df[['Criterion Score']])),
+        # x=4,
+        # y=6,
+        x=-Inf,
+        y=Inf,
+        hjust=0.00001,
+        vjust=2,
+        label=annot_label,
+        fontface = 'italic', 
+        size = 6) +
+      # xlim(1, 7) +
+      # ylim(1, 6) +
+      theme(text = element_text(size=20))
+    
+    print(reg_plot)
+    save_plot(paste0('ets_regression_', replace_to_underscore(tolower(session))), reg_plot)
+      
+  }
 }
 
 
@@ -498,9 +582,9 @@ draw_ets_score_plots <- function() {
 
 draw_plots <- function() {
   # draw_nlp_plots()
-  # draw_writing_time_plots()
+  draw_writing_time_plots()
   # draw_email_time_regression_plots()
-  draw_ets_score_plots()
+  # draw_ets_score_plots()
 }
 
 ``` 
