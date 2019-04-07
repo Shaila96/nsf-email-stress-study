@@ -42,10 +42,13 @@ plots_dir <- 'plots'
 ### CHANGE THIS
 # filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
 # data_file_name <- 'result_df_first_phase.csv'
+# quality_control_version <- 'qc1'
 
 ### CHANGE THIS
 filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
 data_file_name <- 'result_df_second_phase.csv'
+quality_control_version <- 'qc2'
+
 
 
 
@@ -271,17 +274,18 @@ generate_residual_plots <- function(df, x_col, y_col, file_name) {
   fit <- lm(df[[x_col]] ~ df[[y_col]], data = df)  ## Fit the model
   print_msg(summary(fit))
 
-  plot_path <- file.path(plots_dir, paste0('residual-', replace_dot_space(tolower(file_name)), '.png'))
+  plot_path <- file.path(plots_dir, paste0('residual_', replace_dot_space(tolower(file_name)), '_', quality_control_version, '.png'))
   png(plot_path, width=12, height=8, units = 'in', res = 300)
   par(mfrow=c(2, 2))
   plot(fit)
   # dev.off()
   
-  plot_path <- file.path(plots_dir, paste0('single-residual-', replace_dot_space(tolower(file_name)), '.png'))
+  plot_path <- file.path(plots_dir, paste0('single_residual_', replace_dot_space(tolower(file_name)), '_', quality_control_version, '.png'))
   png(plot_path, width=12, height=8, units = 'in', res = 300)
   par(mfrow=c(1, 1))
   plot(fit, which=c(1))
   dev.off()
+  
 }
 
 get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name, transformed=F) {
@@ -317,7 +321,7 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
           plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
   print(plot)
   
-  plot_path <- file.path(plots_dir, replace_dot_space(tolower(file_name)))
+  plot_path <- file.path(plots_dir, paste0('regression_', file_name, '_', quality_control_version))
   save_plot(plot_path, plot)
   
   ## RESIDUAL PLOTS 
@@ -471,7 +475,7 @@ generate_eda_vs_pp_plot <- function() {
                    figure_out_labels('PP', T), 
                    figure_out_labels('EDA', T), 
                    'EDA vs PP Plot',
-                   'eda-vs-pp',
+                   'eda_vs_pp',
                    T)
   
   cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
@@ -491,7 +495,7 @@ generate_hr_plot <- function() {
                    figure_out_labels('HR'),
                    figure_out_labels('N.HR'),
                    'Chest HR vs Wrist HR',
-                   'chest-hr-vs-wrist-hr')
+                   'c_hr_vs_w_hr')
   
   # cor_test <- cor.test(new_mean_diff_df$HR, new_mean_diff_df$N.HR, method = "pearson")
   # print_msg(cor_test)
@@ -529,42 +533,42 @@ generate_mean_diff_data()
 generate_hr_plot()
 ```
 
-\newpage
-# T Test - Mean Heart Rate - All Session
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-mean_hr_df <- mean_df[, hr_col_list]
-t_test_hr(mean_hr_df, 
-          'all-session',
-          plot_title='HR Boxplot - all sessions', 
-          file_name='hr-boxplot-all-sessions')
-```
+<!-- \newpage -->
+<!-- # T Test - Mean Heart Rate - All Session -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- mean_hr_df <- mean_df[, hr_col_list] -->
+<!-- t_test_hr(mean_hr_df,  -->
+<!--           'all-session', -->
+<!--           plot_title='HR Boxplot - all sessions',  -->
+<!--           file_name='hr-boxplot-all-sessions') -->
+<!-- ``` -->
 
-\newpage
-# T Test - Mean Heart Rate - Per Session
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-for (session_name in session_list) {
-  if (session_name=='StressCondition') {
-    for (condition_type in condition_types) {
-      mean_hr_df <- mean_df[mean_df$Session==session_name
-                                      & is_match(mean_df$Condition, condition_type), hr_col_list]
-      t_test_hr(mean_hr_df, 
-                session_name,
-                plot_title=paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
-                file_name=paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
-    }
-    cat("\\newpage\n")
-  } else {
-    mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list]
-    t_test_hr(mean_hr_df, 
-              session_name,
-              plot_title=paste0('HR Boxplot - ', get_session_title(session_name)), 
-              file_name=paste0('hr_boxplot_', get_session_title(session_name)))
-  }
-  cat("\\newpage\n")
-}
-```
+<!-- \newpage -->
+<!-- # T Test - Mean Heart Rate - Per Session -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- for (session_name in session_list) { -->
+<!--   if (session_name=='StressCondition') { -->
+<!--     for (condition_type in condition_types) { -->
+<!--       mean_hr_df <- mean_df[mean_df$Session==session_name -->
+<!--                                       & is_match(mean_df$Condition, condition_type), hr_col_list] -->
+<!--       t_test_hr(mean_hr_df,  -->
+<!--                 session_name, -->
+<!--                 plot_title=paste0('HR Boxplot - ', get_session_title(session_name, condition_type)), -->
+<!--                 file_name=paste0('hr_boxplot_', get_session_title(session_name, condition_type))) -->
+<!--     } -->
+<!--     cat("\\newpage\n") -->
+<!--   } else { -->
+<!--     mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list] -->
+<!--     t_test_hr(mean_hr_df,  -->
+<!--               session_name, -->
+<!--               plot_title=paste0('HR Boxplot - ', get_session_title(session_name)),  -->
+<!--               file_name=paste0('hr_boxplot_', get_session_title(session_name))) -->
+<!--   } -->
+<!--   cat("\\newpage\n") -->
+<!-- } -->
+<!-- ``` -->
 
 
 <!-- \newpage -->

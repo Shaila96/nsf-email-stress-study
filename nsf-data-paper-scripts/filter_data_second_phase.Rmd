@@ -1,5 +1,5 @@
 ---
-title: "Second Phase Data Filtering"
+title: "Quality Control - Second Phase"
 header-includes:
 - \usepackage{booktabs}
 - \usepackage{sectsty} \sectionfont{\centering}
@@ -23,6 +23,7 @@ library(grid)
 library(gridExtra)
 library(ggpubr) 
 library(gsubfn)
+library(knitr)
 
 
 #-------------------------#
@@ -46,9 +47,6 @@ pre_survey_file_name <- 'pre-survey.csv'
 first_phase_filtered_df <- tibble()
 second_phase_filtered_df <- tibble()
 bad_moderate_signal_df <- tibble()
-pre_survey_df <- tibble()
-
-
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -81,12 +79,12 @@ add_bad_moderate_signal <- function(subj, session, signal, condition, reason='')
 }
 
 add_subject_info <- function() {
-  # Add age, gender
-  print_msg(str(pre_survey_df))
-  # bio_df <- pre_survey_df %>% mutate(Gender = recode(Gender,
-  #                                       '1' = 'Male',
-  #                                       '2' = 'Female'))
-  # bad_moderate_signal_df <<- merge(bad_moderate_signal_df, bio_df, by='Subject')
+  pre_survey_df <- read_csv(file.path(survey_data_dir, pre_survey_file_name))[, c(22:24)]
+  colnames(pre_survey_df) <- c('Subject', 'Age', 'Gender')
+  bio_df <- pre_survey_df %>% mutate(Gender = recode(Gender,
+                                        '1' = 'Male',
+                                        '2' = 'Female'))
+  bad_moderate_signal_df <<- merge(bad_moderate_signal_df, bio_df, by='Subject')
 }
 
 make_bad_moderate_signal_data <- function() {
@@ -142,7 +140,7 @@ make_bad_moderate_signal_data <- function() {
   add_bad_moderate_signal('T085', 'P', 'N.HR', 'Moderate')
   add_bad_moderate_signal('T091', 'ST', 'N.HR', 'Moderate')
   
-  add_bad_moderate_signal('T092', 'RB', 'HR', 'Moderate - Removed Bad Signal Part')
+  add_bad_moderate_signal('T092', 'RB', 'HR', 'Partly Bad') ## Removed Bad Signal Part
   add_bad_moderate_signal('T092', 'P', 'N.HR', 'Moderate')
   
   add_bad_moderate_signal('T093', 'SC', 'N.HR', 'Bad')
@@ -166,14 +164,13 @@ make_bad_moderate_signal_data <- function() {
   
   add_bad_moderate_signal('T176', 'ST', 'N.HR', 'Moderate')
   
-  
+  ##############################
+  ###     Add age, gender    ###
   ##############################
   add_subject_info()
   ##############################
   
-  
   convert_to_csv(bad_moderate_signal_df, file.path(data_dir, 'bad_moderate_signal.csv'))
-  
 }
 
 read_data <- function() {
@@ -181,8 +178,6 @@ read_data <- function() {
   second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
   mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
   bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
-  pre_survey_df <<- read_csv(file.path(survey_data_dir, pre_survey_file_name))[, c(22:24)]
-  colnames(pre_survey_df) <<- c('Subject', 'Age', 'Gender')
 }
 
 get_session_name <- function(session_abbr) {
@@ -199,13 +194,27 @@ get_session_name <- function(session_abbr) {
   } else if (session_abbr=='P') {
     return('Presentation')
   }
-  
+}
+
+get_printable_session_name <- function(x) {
+  sapply(x, function(session_abbr){
+    if (session_abbr=='RB') {
+      return('Resting Baseline')
+    } else if (session_abbr=='ST') {
+      return('Single Task')
+    } else if (session_abbr=='SC') {
+      return('Stress Condition')
+    } else if (session_abbr=='DT') {
+      return('Dual Task')
+    } else if (session_abbr=='P') {
+      return('Presentation')
+    }
+  })
 }
 
 replace_by_NA <- function(row_df) {
-  print_msg(row_df['Subject'])
-  print_msg(get_session_name(row_df['Session']))
-  # print_msg(row_df['Signal'])
+  message(row_df['Subject'])
+  message(get_session_name(row_df['Session']))
              
   second_phase_filtered_df[second_phase_filtered_df$Subject==row_df['Subject'] &
                            second_phase_filtered_df$Session==get_session_name(row_df['Session']),
@@ -214,7 +223,6 @@ replace_by_NA <- function(row_df) {
 
 remove_full_bad_signal <- function() {
   bad_signal_df <- bad_moderate_signal_df %>% filter(Condition=='Bad')
-  print_msg(bad_signal_df)
   
   invisible(apply(bad_signal_df, 1, function(row) replace_by_NA(row)))
   convert_to_csv(second_phase_filtered_df[order(second_phase_filtered_df$Subject),], 
@@ -251,7 +259,36 @@ make_bad_moderate_signal_data()
 read_data()
 ```
 
-\newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 filter_data_second_phase()
+```
+
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+temp_bad_moderate_signal_df <- bad_moderate_signal_df %>%
+  select(Subject, Gender, Age, Session, Signal, Condition) %>% 
+  mutate(Session=get_printable_session_name(Session)) %>% 
+  # mutate(Session=case_when(Session=='P' ~ 'Presentation',
+  #                          Session=='RB' ~ 'Resting Baseline',
+  #                          Session=='ST' ~ 'Single Task',
+  #                          Session=='SC' ~ 'Stress Condition',
+  #                          Session=='DT' ~ 'Dual Task')) %>% 
+  mutate(Signal=case_when(Signal=='HR' ~ 'C-HR',
+                          Signal=='N.HR' ~ 'W-HR'))
+                           
+bad_signal_df <- temp_bad_moderate_signal_df %>% 
+  filter(is_match(Condition, 'Bad'))
+
+moderate_signal_df <- temp_bad_moderate_signal_df %>% 
+  filter(is_match(Condition, 'Moderate'))
+```
+
+
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+kable(bad_signal_df)
+```
+
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+kable(moderate_signal_df)
 ```
