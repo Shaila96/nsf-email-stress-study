@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.HR"
+signal_name <- "N.EDA"
 
 
 ## CHANGE THIS!!!!
@@ -52,9 +52,9 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-# filtered_file_name <- 'full_df_filtered.csv'
-filtered_file_name <- 'full_df_second_phase_filtered.csv'
 
+
+filtered_file_name <- 'full_df_second_phase_filtered.csv'
 
 file_name_part_outlier <- ''
 
@@ -342,7 +342,8 @@ test_time <- function(condition, col, full = TRUE) {
   # Now we can filter by condition and ensuring that we have enough subjects for that condition based on the `n` computed right above. 
   temp <- temp %>% 
     group_by(Condition) %>% 
-    filter(Condition == condition && n() >= n) 
+    # filter(n() >= n) %>% 
+    filter(Condition == condition)
 
   # I guess we didn't have enough subjects for this condition! 
   if (nrow(temp) == 0) { 

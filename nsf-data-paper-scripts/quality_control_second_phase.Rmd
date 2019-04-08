@@ -64,13 +64,27 @@ is_match <- function(str, pattern) {
   return(grepl(pattern, str)) 
 }
 
+get_session_name <- function(session_abbr) {
+  if (session_abbr=='RB') {
+    return('RestingBaseline')
+  } else if (session_abbr=='ST') {
+    return('BaselineWriting')
+  } else if (session_abbr=='SC') {
+    return('StressCondition')
+  } else if (session_abbr=='DT') {
+    return('DualTask')
+  } else if (session_abbr=='P') {
+    return('Presentation')
+  }
+}
+
 add_bad_moderate_signal <- function(subj, session, signal, condition, reason='') {
   ## Add diff(c_hr - w_hr)
   
   bad_moderate_signal_df <<- rbind(bad_moderate_signal_df, 
                                   tibble(
                                     'Subject'=subj,
-                                    'Session'=session,
+                                    'Session'=get_session_name(session),
                                     'Signal'=signal,
                                     'Condition'=condition,
                                     'Reason'=reason
@@ -180,44 +194,24 @@ read_data <- function() {
   bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
 }
 
-get_session_name <- function(session_abbr) {
-  if (session_abbr=='RB') {
-    return('RestingBaseline')
-  } else if (session_abbr=='BW') {
-    return('BaselineWriting')
-  } else if (session_abbr=='ST') {
-    return('BaselineWriting')
-  } else if (session_abbr=='SC') {
-    return('StressCondition')
-  } else if (session_abbr=='DT') {
-    return('DualTask')
-  } else if (session_abbr=='P') {
-    return('Presentation')
-  }
-}
-
+#---- Add one space if it finds any CamelCase ----#
 get_printable_session_name <- function(x) {
   sapply(x, function(session_abbr){
-    if (session_abbr=='RB') {
-      return('Resting Baseline')
-    } else if (session_abbr=='ST') {
+    if (session_abbr == 'BaselineWriting') {
       return('Single Task')
-    } else if (session_abbr=='SC') {
-      return('Stress Condition')
-    } else if (session_abbr=='DT') {
-      return('Dual Task')
-    } else if (session_abbr=='P') {
-      return('Presentation')
     }
+    return(gsub("([a-z])([A-Z])", "\\1 \\2", session_abbr))
   })
 }
 
 replace_by_NA <- function(row_df) {
   message(row_df['Subject'])
-  message(get_session_name(row_df['Session']))
+  message(row_df['Session'])
+  # message(get_session_name(row_df['Session']))
              
   second_phase_filtered_df[second_phase_filtered_df$Subject==row_df['Subject'] &
-                           second_phase_filtered_df$Session==get_session_name(row_df['Session']),
+                           # second_phase_filtered_df$Session==get_session_name(row_df['Session']),
+                           second_phase_filtered_df$Session==row_df['Session'],
                            row_df['Signal']] <<- NA
 }
 
@@ -239,7 +233,8 @@ remove_full_bad_signal <- function() {
 
 remove_partial_bad_signal <- function(subj, session, signal, from, to) {
   second_phase_filtered_df[second_phase_filtered_df$Subject==subj &
-                           second_phase_filtered_df$Session==get_session_name(session) &
+                           # second_phase_filtered_df$Session==get_session_name(session) &
+                           second_phase_filtered_df$Session==session &
                            second_phase_filtered_df$TimeElapsed >= from &
                            second_phase_filtered_df$TimeElapsed <= to,
                            signal] <<- NA

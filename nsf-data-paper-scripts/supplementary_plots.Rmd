@@ -50,13 +50,16 @@ session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'Dual
 
 
 ### CHANGE THIS
-# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-# mean_data_file_name <- 'result_df_first_phase.csv'
+filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+mean_data_file_name <- 'result_df_first_phase.csv'
 
 
 ### CHANGE THIS
-filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
-mean_data_file_name <- 'result_df_second_phase.csv'
+# filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+# mean_data_file_name <- 'result_df_second_phase.csv'
+
+
+bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
 
 
 hr_col_names <- c('HR', 'N.HR')
@@ -73,6 +76,7 @@ hr_mean_col_vec <- c('coral3', 'dodgerblue3')
 filtered_df <- tibble()
 mean_df <- tibble()
 mean_of_mean_df <- tibble()
+bad_moderate_signal_df <- tibble()
 ``` 
 
 
@@ -86,7 +90,14 @@ print_msg <- function(msg) {
   message(msg)
 }
 
+is_not_null <- function(str) {
+  return(!is.null(str) & length(str) > 0)
+}
+
 is_match <- function(str, pattern) { 
+  if(!is_not_null(str)) {
+    return(FALSE)
+  }
   return(grepl(pattern, str)) 
 }
 
@@ -109,6 +120,7 @@ get_session_name <- function(session_name) {
 
 read_data <- function() {
   filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))
+  bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
   mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
   mean_df <<- rename(mean_df, 'C-HR'='HR', 'W-HR'='N.HR', 'EDA'='N.EDA')
   
@@ -149,11 +161,33 @@ get_hr_y_max_lim <- function(df) {
   if(max(df$Value) > 120) max(df$Value) else 120
 }
 
+# get_session_name <- function(session_abbr) {
+#   if (session_abbr=='RB') {
+#     return('RestingBaseline')
+#   } else if (session_abbr=='ST') {
+#     return('BaselineWriting')
+#   } else if (session_abbr=='SC') {
+#     return('StressCondition')
+#   } else if (session_abbr=='DT') {
+#     return('DualTask')
+#   } else if (session_abbr=='P') {
+#     return('Presentation')
+#   }
+# }
+
+condition_of_subject <- function(subj, session) {
+  condition <- bad_moderate_signal_df %>% 
+    filter(Subject==subj) %>% 
+    filter(Session==session) %>% 
+    pull(Condition)
+  return(condition)
+}
+
 draw_plots <- function() {
   subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
-  # subj_list <- c('T011', 'T032')
   # subj_list <- c('T005', 'T051', 'T145')
+  # subj_list <- c('T016', 'T031')
   # subj_list <- c('T132')
   
   for(subj in subj_list) {
@@ -195,11 +229,22 @@ draw_plots <- function() {
           ggtitle(paste0(subj, ': ', get_session_name(session))) +
           xlab('Time [s]') +
           ylab(figure_out_labels('HR')) +
-          ylim(get_hr_y_min_lim(hr_df), get_hr_y_max_lim(hr_df)) +
-          theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          ylim(get_hr_y_min_lim(hr_df), get_hr_y_max_lim(hr_df))
+          
+          
+        if(is_match(condition_of_subject(subj, session), 'Bad')) {
+          hr_plot <- hr_plot + theme(panel.background = element_rect(fill = '#ffece6', colour = '#cc3300'))
+        } else if (is_match(condition_of_subject(subj, session), 'Moderate')) {
+          hr_plot <- hr_plot + theme(panel.background = element_rect(fill = '#fffae6', colour = '#665200'))
+        } else {
+          hr_plot <- hr_plot + theme_bw()
+        }
+        
+        
+        hr_plot <- hr_plot + theme(plot.title = element_text(hjust = 0.5, face = "bold"),
                 legend.title=element_blank(),
                 legend.position="bottom")
-        
+      
         for(idx in 1:length(hr_factors)) {
           hr_plot <- hr_plot +
             geom_hline(yintercept=get_mean(subj, session, hr_factors[idx]), 
@@ -207,6 +252,11 @@ draw_plots <- function() {
                      size=1.2,
                      color=temp_hr_mean_col_vec[idx])
         }
+        
+        
+        
+        
+        # print_msg(condition_of_subject(subj, session))
         
         temp_plot_list[[length(temp_plot_list)+1]] <- hr_plot
         
@@ -236,6 +286,7 @@ draw_plots <- function() {
           geom_hline(yintercept=get_session_mean(session, eda_new_col_name),
                      size=1.2,
                      color="darkgreen") +
+          theme_bw() +
           theme(plot.title=element_text(hjust = 0.5, face = "bold"),
                 legend.title=element_blank(),
                 legend.position='bottom')
