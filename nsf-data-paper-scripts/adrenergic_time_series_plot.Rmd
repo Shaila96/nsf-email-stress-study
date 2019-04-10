@@ -23,6 +23,7 @@ library(gridExtra)
 library(ggpubr) 
 library(directlabels)
 library(gsubfn)
+library(scales)
 
 
 #-------------------------#
@@ -98,13 +99,13 @@ get_y_axis_label <- function(col_name) {
 
 get_plot_title <- function(col_name) {
   if (col_name == 'HR') { 
-    return('Heart Rate - Zephyr') 
+    return('HR_w : Heart Rate via Wrist Sensor')
   } else if (isMatch(col_name, 'BR')) { 
-    return('Breathing Rate - Zephyr') 
+    return('BR_c : Breathing Rate via Chest Sensor')
   } else if (isMatch(col_name, 'N.EDA')) { 
-    return('Non Dominant EDA - E4 Empatica') 
+    return('EDA : Electrodermal Cctivity via Wrist Sensor') 
   } else if (isMatch(col_name, 'N.HR')) { 
-    return('Non Dominant Heart Rate - E4 Empatica') 
+    return('HR_w : Heart Rate via Wrist Sensor') 
   } 
   return('')
 }
@@ -232,6 +233,9 @@ generate_signal_plot <- function(col_name) {
           ) +
         xlim(0, max_x) +
         ylim(min(raw_df[raw_signal_col_name]), max(raw_df[raw_signal_col_name])) +
+        # coord_trans(y="log2") +
+        # scale_y_log10(breaks=c(0.01, 0.1, 1, 5, 10, 20)) +
+        scale_y_continuous(trans=log_trans(), breaks=pretty_breaks()) +
         xlab(x_axis_label) +
         ylab(get_y_axis_label(col_name)) 
       
@@ -268,13 +272,24 @@ generate_signal_plot <- function(col_name) {
           legend.position='none'
           ) +
         xlim(0, max_x) +
+        # scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
+        #                             max(raw_df[raw_signal_col_name])),
+        #                    # trans=log_trans(), 
+        #                    # breaks=pretty_breaks(),
+        # # scale_y_continuous(limits=c(min(filtered_df[col_name]),
+        # #                             max(filtered_df[col_name])),
+        #                    # position='right',
+        #                    # labels=get_session_name(session_name))
+        #                    sec.axis=sec_axis(~.+1, name=get_session_name(session_name))) +
+        # coord_trans(y="log2") +
+        # scale_y_log10(breaks=c(0.01, 0.1, 1, 5, 10, 20)) +
+        
+        # coord_cartesian(ylim = c(min(raw_df[raw_signal_col_name]),
+        #                          max(raw_df[raw_signal_col_name]))) +
+        scale_y_continuous(trans=log_trans(),
+                           breaks=pretty_breaks()) +
         xlab(x_axis_label) +
-        ylab(get_y_axis_label(col_name)) +
-        scale_y_continuous(limits=c(min(filtered_df[col_name]),
-                                    max(filtered_df[col_name])),
-                           # position='right',
-                           # labels=get_session_name(session_name))
-                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+        ylab(get_y_axis_label(col_name))
 
       
       # print(filtered_data_plot)
@@ -284,13 +299,32 @@ generate_signal_plot <- function(col_name) {
     }
     
     # We now print the two plots side by side. 
-    print(ggarrange(raw_data_plot, filtered_data_plot, ncol = 2, nrow = 1)) 
+    # print(ggarrange(raw_data_plot, filtered_data_plot, ncol = 2, nrow = 1)) 
     
     # And print a little space between them. 
     # cat("  \n    \n    \n  ") 
 
 
 
+    # #----------------------------------------------------------------#
+    # #---- MAKING GRID GRAPH WITH ALL THE PLOTS FROM EACH SESSION ----#
+    # #----------------------------------------------------------------#
+    # 
+    # #---- THIS GRID PLOT CONTAINS ALL THE SINGLE PLOT----#
+    # grid_plot_title <- get_plot_title(col_name)
+    # 
+    # grid_plot <- do.call('grid.arrange', c(plot_list, ncol=2))
+    # grid_plot <- grid.arrange(grid_plot,
+    #                           top=textGrob(grid_plot_title, gp=gpar(fontsize=10, font=1)))
+    # 
+    # # print(grid_plot)
+    # 
+    # #---- SAVING GRID PLOT ----#
+    # # plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
+    # plot_path <- file.path(plots_dir, paste0(replace_dots(tolower(col_name)), '-time-series'))
+    # save_plot(plot_path, grid_plot)
+  }
+  
     #----------------------------------------------------------------#
     #---- MAKING GRID GRAPH WITH ALL THE PLOTS FROM EACH SESSION ----#
     #----------------------------------------------------------------#
@@ -308,14 +342,13 @@ generate_signal_plot <- function(col_name) {
     # plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
     plot_path <- file.path(plots_dir, paste0(replace_dots(tolower(col_name)), '-time-series'))
     save_plot(plot_path, grid_plot)
-  }
 }
 
 
 generate_filtered_plots <- function() {
   # signal_list <- c("HR", "BR", "N.EDA", "N.HR", "D.EDA", "D.HR")
-  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("N.HR")
+  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  signal_list <- c("N.EDA")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)
