@@ -522,6 +522,9 @@ draw_ets_plots <- function() {
     # ggplot(aes(x=Value, y=..scaled..)) +
     ggplot(aes(x=Value)) +
     facet_wrap(~PerformanceCriteria, ncol=2, scales='free') +
+    # geom_histogram(aes(y=..density.., fill=Session, color=Session), #Histogram with density instead of count on y-axis
+    #              show.legend=F,
+    #              alpha=.5) +
     geom_density(aes(fill=Session), alpha=.5) + 
     geom_vline(data=mean_df, 
                aes(xintercept=grp.mean, color=Session), 
