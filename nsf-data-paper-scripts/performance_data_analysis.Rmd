@@ -35,6 +35,7 @@ library(lubridate)
 library(gsubfn)
 library(stringi)
 library(GoodmanKruskal)
+library(scales)
 
 
 
@@ -64,11 +65,17 @@ biographic_file_name <- 'biographic_data.csv'
 
 good_subj_file_name <- 'subj_good_df.csv'
 
-ets_performance_col_names <- c('Criterion Score', 
-                               'Grammar Errors', 
-                               'Usage Errors', 
-                               'Mechanic Errors', 
-                               'Style Errors')
+common_col_names <- c('Subject', 
+                      'Condition', 
+                      'Session')
+ets_error_col_names <- c('GrammarErrors', 
+                         'UsageErrors', 
+                         'MechanicErrors', 
+                         'StyleErrors')
+ets_trait_col_names <- c('WordChoice', 
+                         'Conventions', 
+                         'Fluency')
+ets_performance_col_names <- c('CriterionScore', ets_error_col_names)
 
 
 default_height <- 10
@@ -370,7 +377,7 @@ draw_essay_email_stacked_bar_plots <- function() {
   stacked_plot <- writing_time_dt_df %>%
     ggplot(aes(fill=Writing, y=Time, x=reorder(Subject, -Time))) +
     facet_wrap(~Condition, ncol=1, scales='free') +
-    geom_bar(stat="identity") +
+    geom_bar(stat='identity') +
     ylab('Time [s]') +
     guides(fill = guide_legend(reverse=T)) +
     theme(text = element_text(size=20),
@@ -394,7 +401,7 @@ draw_essay_email_stacked_bar_plots <- function() {
   #     ggplot(aes(fill=Writing, x=reorder(Subject, -Time), y=Time)) +
   #     # facet_wrap(~Condition, ncol=1, scales='free') +
   #     # facet_grid(. ~ condition) +
-  #     geom_bar(stat="identity") +
+  #     geom_bar(stat='identity') +
   #     ylab('Time [s]') +
   #     guides(fill = guide_legend(reverse=T)) +
   #     theme(text = element_text(size=20),
@@ -463,19 +470,26 @@ extract_ets_score <- function() {
   ets_score_df <<- read_csv(file.path(performance_data_dir, ets_score_master_file_name))[, c(1:6)]
   colnames(ets_score_df) <<- c('Subject', ets_performance_col_names)
   ## GET THE FIRST NUMBER
-  ets_score_df[['Criterion Score']] <<- stri_extract_first_regex(ets_score_df[['Criterion Score']], '[0-9]+')
+  ets_score_df$CriterionScore <<- stri_extract_first_regex(ets_score_df$CriterionScore, '[0-9]+')
   
-  ## SEPARATE THE SUBJECT COLUMN INTO 3 COLUMN(BY UNDERSCORE)
   ets_score_df <<- ets_score_df %>%
-    separate(Subject, c('Subject', 'ConditionETS', 'Session')) %>% 
-    mutate(Session = recode(Session, 'WB' = 'Single Task', 'DT' = 'Dual Task')) 
-  # print_msg(str(new_ets_score_df))
+    separate(Subject, common_col_names) %>%  ##Seperate Subject col into 3 col
+    mutate(Session = fct_recode(Session, 'Single Task'='WB', 'Dual Task'='DT')) %>% 
+    right_join(nlp_score_df, by=c('Subject', 'Condition', 'Session'='Essay')) %>% 
+    # select(common_col_names, ets_performance_col_names, WordCount) %>%
+    select(common_col_names, CriterionScore, WordCount, ets_error_col_names) %>%
+    na.omit() %>%   ##T085 data missing
+    mutate(GrammarErrorsRelative=GrammarErrors/WordCount,
+           MechanicErrorsRelative=MechanicErrors/WordCount,
+           UsageErrorsRelative=UsageErrors/WordCount,
+           StyleErrorsRelative=StyleErrors/WordCount)
+
+  convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
     
   ets_score_long_df <- ets_score_df %>%
-    gather(PerformanceCriteria, Value, -Subject, -ConditionETS, -Session)
-  
-  # convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
-  # convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
+    select(-GrammarErrors, -MechanicErrors, -UsageErrors, -StyleErrors) %>% 
+    gather(PerformanceCriteria, Value, -Subject, -Condition, -Session)
+  convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
 }
 
 
@@ -484,15 +498,28 @@ draw_ets_plots <- function() {
   ets_score_long_df <- read_csv(file.path(performance_data_dir, ets_score_long_file_name))
   
   ets_plot <- ets_score_long_df %>%
+    mutate(PerformanceCriteria = recode_factor(PerformanceCriteria,
+                                               'CriterionScore'='Criterion Score',
+                                               'WordCount'='Word Count',
+                                               'GrammarErrorsRelative'='Grammar Errors',
+                                               'UsageErrorsRelative'='Usage Errors',
+                                               'MechanicErrorsRelative'='Mechanics Errors',
+                                               'StyleErrorsRelative'='Style Errors'
+                                               )) %>%
+    # ggplot(aes(x=Value, y=..scaled..)) +
     ggplot(aes(x=Value)) +
     facet_wrap(~PerformanceCriteria, ncol=2, scales='free') +
     geom_density(aes(fill=Session), alpha=.5) + 
     xlab('') +
-    ylab('Density') +
+    ylab('Probability Density Functions') +
+    # scale_y_continuous(labels = scientific) +
     guides(fill = guide_legend(reverse=T)) +
     theme(text = element_text(size=20),
-          legend.position='bottom',
-          legend.spacing.x = unit(0.2, 'cm'),
+          panel.spacing=unit(2, 'lines'),
+          legend.position='top',
+          # legend.key.size = unit(1, "cm"),
+          legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+          legend.text = element_text(margin=margin(r=25, unit="pt")), ## Distance between legends
           legend.title=element_blank())
 
   print(ets_plot)
@@ -535,9 +562,9 @@ draw_ets_regression_plot <- function() {
     print_msg(cor_test)
     
     subj_no <- temp_ets_bio_df %>% summarize(n = n())
-    annot_label <- paste0("n = ", subj_no, 
-                       ", p = ", specify_decimal(cor_test$p.value, 4), 
-                       ", R = ", specify_decimal(cor_test$estimate, 3))
+    annot_label <- paste0('n = ', subj_no, 
+                       ', p = ', specify_decimal(cor_test$p.value, 4), 
+                       ', R = ', specify_decimal(cor_test$estimate, 3))
     print_msg(annot_label)
     # print_msg(min(as.numeric(temp_ets_bio_df[['Writing_Proficiency']])))
     # print_msg(max(as.numeric(temp_ets_bio_df[['Criterion Score']])))
@@ -550,7 +577,7 @@ draw_ets_regression_plot <- function() {
       xlab('Writing Proficiency') +
       ylab('ETS Criterion Score') +
       scale_y_continuous(expand=c(0.2, 0, 0.2, 0)) +
-      annotate("text",
+      annotate('text',
         # x=min(as.numeric(temp_ets_bio_df[['Writing_Proficiency']])),
         # y=max(as.numeric(temp_ets_bio_df[['Criterion Score']])),
         # x=4,
@@ -574,17 +601,17 @@ draw_ets_regression_plot <- function() {
 
 
 draw_ets_score_plots <- function() {
-  # extract_ets_score()
-  # draw_ets_plots()
-  draw_ets_regression_plot()
+  extract_ets_score()
+  draw_ets_plots()
+  # draw_ets_regression_plot()
 }
 
 
 draw_plots <- function() {
   # draw_nlp_plots()
-  draw_writing_time_plots()
+  # draw_writing_time_plots()
   # draw_email_time_regression_plots()
-  # draw_ets_score_plots()
+  draw_ets_score_plots()
 }
 
 ``` 
