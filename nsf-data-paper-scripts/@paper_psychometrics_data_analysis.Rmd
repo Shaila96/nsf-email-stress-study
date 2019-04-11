@@ -1,0 +1,818 @@
+---
+title: 'Psychometrics Data Analysis'
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(directlabels)
+library(gsubfn)
+
+source('T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/@questionnaire_scoring.R')
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+project_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts'
+setwd(project_dir)
+
+data_dir <- 'data'
+survey_data_dir <- 'survey-data'
+performane_data_dir <- 'performane-data'
+plots_dir <- 'plots'
+
+data_file_name <- 'result_df.csv'
+
+pre_survey_file_name <- 'pre-survey.csv'
+post_survey_file_name <- 'post-survey.csv'
+good_subj_file_name <- 'subj_good_df.csv'
+
+good_subj_list <- tibble()
+pre_survey_df <- tibble()
+post_survey_df <- tibble()
+
+biographic_df <- tibble()
+nasa_tlx_freq_df <- tibble()
+pss_score_df <- tibble()
+erq_score_df <- tibble()
+bfi_score_df <- tibble()
+
+na_val <- 'NA'
+default_height <- 10
+default_width <- 15
+
+
+bio_plot_list <- list()
+
+
+bio_ques_list <- c('City', 'State', 'Postal', 
+                   'SubjectID', 'Age', 'Gender',
+                   'Nationality', 'Other_Nationality', 'Native_Language', 'Other_Native_Language',
+                   'Education', 'Occupation', 'Writing_Proficiency', 'Daily_Email_Frequency')
+
+erq_ques_list <- c('SubjectID',
+                   'ERQ_Q1', 'ERQ_Q2', 'ERQ_Q3', 'ERQ_Q4', 'ERQ_Q5',
+                   'ERQ_Q6', 'ERQ_Q7', 'ERQ_Q8', 'ERQ_Q9', 'ERQ_Q10')
+
+pss_ques_list <- c('SubjectID',
+                   'PSS_Q1', 'PSS_Q2', 'PSS_Q3', 'PSS_Q4', 'PSS_Q5',
+                   'PSS_Q6', 'PSS_Q7', 'PSS_Q8', 'PSS_Q9', 'PSS_Q10')
+
+bfi_ques_list <- c ('SubjectID',
+                    'BFI_Q1', 'BFI_Q2', 'BFI_Q3', 'BFI_Q4', 'BFI_Q5',
+                    'BFI_Q6', 'BFI_Q7', 'BFI_Q8', 'BFI_Q9', 'BFI_Q10',
+                    'BFI_Q11', 'BFI_Q12', 'BFI_Q13', 'BFI_Q14', 'BFI_Q15',
+                    'BFI_Q16', 'BFI_Q17', 'BFI_Q18', 'BFI_Q19', 'BFI_Q20',
+                    'BFI_Q21', 'BFI_Q22', 'BFI_Q23', 'BFI_Q24', 'BFI_Q25',
+                    'BFI_Q26', 'BFI_Q27', 'BFI_Q28', 'BFI_Q29', 'BFI_Q30',
+                    'BFI_Q31', 'BFI_Q32', 'BFI_Q33', 'BFI_Q34', 'BFI_Q35',
+                    'BFI_Q36', 'BFI_Q37', 'BFI_Q38', 'BFI_Q39', 'BFI_Q40',
+                    'BFI_Q41', 'BFI_Q42', 'BFI_Q43', 'BFI_Q44')
+
+age_order <- c(seq(20, 50, by=5))
+education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
+occupation_order <- c('Undergraduate student', 'Graduate student', 'Staff')
+writing_proficiency_order <- c('1=Not fluent at all', '2', '3', '4', '5', '6', '7=Very fluent')
+email_freq_order <- c('1=Never', '2', '3', '4', '5', '6', '7=Very often')
+nationality_order <- c('United States', 'Others')
+native_lang_order <- c('English', 'Others')
+
+
+# nasa_tlx_ques_list <- c('Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
+#                         'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
+nasa_tlx_ques_list <- c('Mental', 'Physical', 'Temporal',
+                        'Performance', 'Effort', 'Frustration') 
+nasa_tlx_and_stress_ques_list <- c('Stress_Question', paste0('Nasa_', nasa_tlx_ques_list))
+nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
+                       'Neither agree or disagree', 'Somewhat agree', 'Agree', 'Strongly agree')
+
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
+}
+
+remove_na <- function(df, col_list) {
+  return(df[complete.cases(df[, col_list]), ])
+}
+
+get_significance_sign <- function(p_value) { 
+  if (p_value > 0.05) { 
+    return(' ') 
+  } else if (p_value <= 0.001) { 
+    return('***') 
+  } else if (p_value <= 0.01) { 
+    return('**') 
+  } else if (p_value <= 0.05) { 
+    return('*') 
+  } 
+} 
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+print_significance <- function(prop_test, alternative_val) {
+  p_val <- prop_test$p.value
+  if (p_val < 0.05) {
+    print_msg(paste0(get_significance_sign(p_val), ' The proportion of agreement is significantly ', alternative_val))
+  } else {
+    print_msg(paste0('The proportion of agreement is NOT significantly ', alternative_val))
+  }
+  print_msg(paste0('than the proportion of disagreement, with a p-value = ', p_val))
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+} 
+
+replace_dot_space <- function(str) {
+  gsubfn('.', list('.' = '_', ' ' = '_', '-' = '_'), tolower(str))
+}
+
+replace_underscore <- function(str) {
+  gsubfn('.', list('_' = ' ', '-' = ' '), str)
+}
+
+save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
+  plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+  
+  plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
+}
+
+read_data <- function() {
+  pre_survey_df <<- read_csv(file.path(data_dir, survey_data_dir, pre_survey_file_name))
+  post_survey_df <<- read_csv(file.path(data_dir, survey_data_dir, post_survey_file_name))
+  good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
+}
+
+extract_nasa_tlx_score <- function() {
+  nasa_tlx_df <<- post_survey_df[, c(22, seq(23, 29))]
+  
+  # message(colnames(nasa_tlx_df)) ## DO NOT DELETE
+  colnames(nasa_tlx_df) <<- c('SubjectID', nasa_tlx_and_stress_ques_list)
+  # print_msg(colnames(nasa_tlx_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  nasa_tlx_df <<- nasa_tlx_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  ## convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
+}
+
+draw_group_bar_chart_nasa_tlx <- function() {
+  ## getting the answer frequency for each question
+  nasa_tlx_freq_df <<- nasa_tlx_df %>%
+    gather(Question, Answer, -SubjectID) %>% ## making the data wide to long for all signals
+    select(-SubjectID) %>%                   ## We do not need the subject id
+    group_by(Question, Answer) %>%
+    summarize(Frequency=n())
+  
+  nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_and_stress_ques_list)
+  # convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  
+  
+  
+  
+  
+  ###########################################################################################################################
+  # plot <- nasa_tlx_freq_df %>% 
+  #   filter(Question != 'Stress_Question') %>%     ## We do not need the seperated stress question for group bar chart
+  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
+  #   geom_bar(position='dodge', stat='identity') +
+  #   scale_x_discrete(limits = nasa_task_options) +
+  #   theme_bw() + 
+  #   theme(text = element_text(size = 16),
+  #         axis.title = element_text(size = 16, hjust = 0.5),
+  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
+  # 
+  # print(plot)
+  # 
+  # plot <- plot + 
+  #   theme(text = element_text(size = 20),
+  #         axis.title = element_text(size = 20),
+  #         axis.text.x = element_text(size = 16))
+  #         # axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
+  # 
+  # save_plot('nasa_frequency', plot, 18)
+  ###########################################################################################################################  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  title <- 'NASA TLX'
+  nasa_tlx_long_df <- nasa_tlx_df %>%
+    gather(Title, Value, -SubjectID) %>% ## making the data wide to long for all signals
+    filter(Title != 'Stress_Question') %>% 
+    mutate(Title = gsub('Nasa_', '', Title))
+  nasa_tlx_long_df$Title <- factor(nasa_tlx_long_df$Title, levels=nasa_tlx_ques_list)
+  
+  ###########################################################
+  subj_plot <- nasa_tlx_long_df %>%
+    ggplot(aes(x=SubjectID, y=Value)) +
+    geom_bar(stat='identity') +
+    facet_wrap(~Title, ncol=1)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
+  ###########################################################
+  
+  
+  ###########################################################
+  # draw_hist_plot(nasa_tlx_long_df, title)
+  ###########################################################
+  hist_plot <- nasa_tlx_long_df %>%
+    mutate(Value = recode(Value, '1' = 'Strongly disagree', '2' = 'Disagree', '3' = 'Somewhat disagree', '4' = 'Neither agree or disagree', '5' = 'Somewhat agree', '6' = 'Agree', '7' = 'Strongly agree')) %>%
+    ggplot(aes(x=factor(Value, levels=nasa_task_options))) +
+    # ggplot(aes(x=Value)) +
+    geom_bar() +
+    facet_wrap(~Title, ncol=1)
+  print_plot(hist_plot, paste(title, '- Histogram'), width=18, height=20)
+  ###########################################################
+}
+
+get_nasa_bar_plot_df <- function(df) {
+  df <- df %>%
+    gather(Options, Frequency, -Question)
+  return(df)
+}
+
+generate_nasa_bar_plot <- function(df, title) {
+  plot <- get_nasa_bar_plot_df(df) %>%
+    ggplot(aes(x=Options, y=Frequency)) +
+    geom_bar(stat='identity') +
+    # ggtitle(replace_underscore(title)) +
+    scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Neutral/Disagreement')) +
+    theme_bw() + 
+    theme(text = element_text(size = 16),
+          axis.title = element_text(size = 16, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          plot.title = element_text(size = 20, hjust = 0.5, face = 'bold')) 
+  
+  
+  prnt_plot <- plot + geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2)
+  print(prnt_plot)
+  
+  plot <- plot + 
+    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8) +
+    theme(text = element_text(size = 20),
+          axis.title = element_text(size = 20),
+          axis.text.x = element_text(size = 16))
+
+  save_plot(tolower(title), plot)
+}
+
+generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val) {
+  total_response <- nrow(nasa_tlx_df)
+  
+  agree_df <- df %>%
+    filter(Answer > comparison_option) %>% 
+    summarize(agree_freq = sum(Frequency))
+    
+  disagree_df <- df %>% 
+    filter(Answer <= comparison_option) %>% 
+    summarize(disagree_freq = sum(Frequency))
+  
+  freq_df <- merge(agree_df, disagree_df, by='Question')
+  # print_msg(str(freq_df))
+  
+  generate_nasa_bar_plot(freq_df, nasa_ques)
+    
+  print_msg(paste0(nasa_ques, ':'))
+  print_msg(paste0('Agree: ', freq_df$agree_freq))
+  print_msg(paste0('Disagree: ', freq_df$disagree_freq))
+  
+  prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
+            c(total_response, total_response),
+            p = NULL,
+            alternative = alternative_val,
+            correct = T)
+  print_msg(prop_test)
+  print_significance(prop_test, alternative_val)
+}
+
+
+get_proportion_test_nasa_tlx <- function() {
+  for (nasa_ques in nasa_tlx_and_stress_ques_list) {
+    temp_nasa_tlx_freq_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==nasa_ques, ]
+    
+    if (nasa_ques=='Nasa_Performance') {
+      print('-------------- BE AWARE ----------- Do not add the following in report!!!')
+      generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 3, 'less')
+    }
+    
+    generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 4, 'greater')
+  }
+}
+
+extract_biographic_info <- function() {
+  biographic_df <<- pre_survey_df[, c(19:32)]
+  
+  # print_msg(colnames(biographic_df)) ## DO NOT DELETE
+  colnames(biographic_df) <<- bio_ques_list
+  # print_msg(colnames(biographic_df)) ## DO NOT DELETE
+  
+  
+  ## Filter out the data for good subject list only 
+  biographic_df <<- biographic_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(biographic_df))
+  
+  # convert_to_csv(biographic_df, file.path(performane_data_dir, 'biographic_data.csv'))
+}
+
+get_bio_bar_plot_df <- function(col_name) {
+  df <- remove_na(biographic_df, col_name) 
+  if (col_name == 'Gender') {
+    df <- df %>% mutate(Gender = recode(Gender, 
+                                        '1' = 'Male', 
+                                        '2' = 'Female'))
+  } else if (col_name == 'Education') {
+    df <- df %>% mutate(Education = recode(Education, 
+                                        '1' = 'High school or below', 
+                                        '2' = 'Undergraduate',
+                                        '3' = 'Master or equivalent',
+                                        '4' = 'PhD, JD, or equivalent'))
+  } else if (col_name == 'Occupation') {
+    df <- df %>% mutate(Occupation = recode(Occupation, 
+                                        '1' = 'Undergraduate student', 
+                                        '2' = 'Graduate student',
+                                        '3' = 'Staff'))
+  } else if (col_name == 'Writing_Proficiency') {
+    df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency, 
+                                        '1' = '1=Not fluent at all', 
+                                        '2' = '2',
+                                        '3' = '3',
+                                        '4' = '4', 
+                                        '5' = '5',
+                                        '6' = '6',
+                                        '7' = '7=Very fluent'))
+  } else if (col_name == 'Daily_Email_Frequency') {
+    df <- df %>% mutate(Daily_Email_Frequency = recode(Daily_Email_Frequency, 
+                                        '1' = '1=Never', 
+                                        '2' = '2',
+                                        '3' = '3',
+                                        '4' = '4', 
+                                        '5' = '5',
+                                        '6' = '6',
+                                        '7' = '7=Very often'))
+  } else if (col_name == 'Nationality') {
+    df <- df %>% mutate(Nationality = recode(Nationality, 
+                                        '1' = 'United States', 
+                                        '2' = 'Others'))
+  } else if (col_name == 'Native_Language') {
+    df <- df %>% mutate(Native_Language = recode(Native_Language, 
+                                        '1' = 'English', 
+                                        '2' = 'Others'))
+  }
+  
+  return(df)
+}
+
+
+get_angle <- function(col_name) {
+  if (col_name %in% c('Education', 'Occupation')) {
+    return(25)
+  }
+  
+  return(0)
+}
+
+get_hjust <- function(col_name) {
+  if (col_name %in% c('Education', 'Occupation')) {
+    return(1)
+  }
+  
+  return(0.5)
+}
+
+get_order <- function(col_name) {
+  if (col_name == 'Age') {
+    return(age_order)
+  } else if (col_name == 'Education') {
+    return(education_order)
+  } else if (col_name == 'Occupation') {
+    return(occupation_order)
+  } else if (col_name == 'Writing_Proficiency') {
+    return(writing_proficiency_order)
+  } else if (col_name == 'Daily_Email_Frequency') {
+    return(email_freq_order)
+  } else if (col_name == 'Nationality') {
+    return(nationality_order)
+  } else if (col_name == 'Native_Language') {
+    return(native_lang_order)
+  }
+}
+
+get_x_lab <- function(col_name) {
+  if (col_name == 'Education') {
+    return(paste0(col_name, ' Levels'))
+  }
+  
+  return(col_name)
+}
+
+get_bio_ggplot <- function(df, col_name) {
+  if (col_name == 'Gender') {
+    return(ggplot(data=df, aes(x=df[[col_name]], fill=df[[col_name]])))
+  }
+  
+  return(ggplot(data=df, aes(x=df[[col_name]])))
+}
+  
+
+draw_biographic_distribution <- function(col_name) {
+  plot_df <- get_bio_bar_plot_df(col_name)
+  # print_msg(plot_df[plot_df$Age>45,])
+  
+  title <- paste0(replace_underscore(col_name), ' Distribution')
+  y_lab <- 'Frequency'
+  
+  plot <- get_bio_ggplot(plot_df, col_name) +
+    geom_bar() +
+    # ggtitle(title) +
+    xlab(get_x_lab(replace_underscore(col_name))) + 
+    ylab(y_lab) +
+    scale_x_discrete(limits=get_order(col_name)) +
+    theme_bw() +
+    theme(legend.position='none',
+          plot.title=element_text(hjust=0.5),
+          text=element_text(size=20),
+          axis.title=element_text(size=20),
+          axis.text.x=element_text(size=16, angle=get_angle(col_name), hjust=get_hjust(col_name)))
+  
+  bio_plot_list[[length(bio_plot_list) + 1]] <<- plot
+  # print(plot)
+  # save_plot(replace_dot_space(title), plot)
+}
+
+get_biographic_distribution <- function() {
+  draw_biographic_distribution('Age')
+  draw_biographic_distribution('Gender')
+  draw_biographic_distribution('Education')
+  # draw_biographic_distribution('Occupation')
+  draw_biographic_distribution('Writing_Proficiency')
+  draw_biographic_distribution('Daily_Email_Frequency')
+  
+  
+  #### draw_biographic_distribution('Nationality')
+  #### draw_biographic_distribution('Native_Language')
+  
+  
+  bio_grid_plot <- do.call("grid.arrange", c(bio_plot_list, ncol=2))
+  save_plot('biographic_plots', bio_grid_plot)
+}
+
+extract_erq_score_each_row <- function(current_subj_df) {
+  temp_erq_cog_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'Cognitive Reappraisal',
+                          'Value' = get_erq_cog_score(current_subj_df),
+                          'MinVal' = 6,
+                          'MaxVal' = 42)
+  
+  temp_erq_sup_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'Expressive Suppression',
+                          'Value' = get_erq_sup_score(current_subj_df),
+                          'MinVal' = 4,
+                          'MaxVal' = 28)
+  
+  temp_erq_score_df <- rbind(temp_erq_cog_df, temp_erq_sup_df)
+  
+  if (nrow(erq_score_df) == 0) {
+    erq_score_df <<- temp_erq_score_df
+  } else {
+    erq_score_df <<- rbind(erq_score_df, temp_erq_score_df)
+  }
+}
+
+extract_erq_score <- function() {
+  erq_df <- post_survey_df[, c(22, seq(30, 39))]
+  
+  # message(colnames(erq_df)) ## DO NOT DELETE
+  colnames(erq_df) <- erq_ques_list
+  # print_msg(colnames(erq_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  erq_df <- erq_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(erq_df))
+  
+  invisible(apply(erq_df, 1, function(each_row) extract_erq_score_each_row(each_row)))
+  # convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
+}
+
+extract_pss_score_each_row <- function(current_subj_df) {
+  temp_pss_score_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'Percieved Stress Scale',
+                          'Value' = get_pss_score(current_subj_df),
+                          'MinVal' = 0,
+                          'MaxVal' = 40)
+
+  if (nrow(pss_score_df) == 0) {
+    pss_score_df <<- temp_pss_score_df
+  } else {
+    pss_score_df <<- rbind(pss_score_df, temp_pss_score_df)
+  }
+}
+
+extract_pss_score <- function() {
+  pss_df <- pre_survey_df[, c(22, seq(33, 42))]
+  
+  # message(colnames(pss_df)) ## DO NOT DELETE
+  colnames(pss_df) <- pss_ques_list
+  # print_msg(colnames(pss_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  pss_df <- pss_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(pss_df))
+  
+  invisible(apply(pss_df, 1, function(each_row) extract_pss_score_each_row(each_row)))
+  # convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
+}
+
+get_bfi_tibble <- function(df, title, forward_ques_list, reverse_ques_list) {
+  total_length <- length(forward_ques_list) + length(reverse_ques_list)
+  return(tibble('Subject' = df['SubjectID'],
+                          'Title' = title,
+                          'Value' = get_bfi_score(df, forward_ques_list, reverse_ques_list),
+                          'MinVal' = total_length,
+                          'MaxVal' = 5*total_length))
+}
+
+extract_bfi_score_each_row <- function(current_subj_df) {
+  temp_bfi_score_df <- rbind(
+    get_bfi_tibble(current_subj_df, 'Extraversion', c(1, 11, 16, 26, 36), c(6, 21, 31)), 
+    get_bfi_tibble(current_subj_df, 'Agreeableness', c(7, 17, 22, 32, 42), c(2, 12, 27, 37)),
+    get_bfi_tibble(current_subj_df, 'Conscientiousness', c(3, 13, 28, 33, 38), c(8, 18, 23, 43)),
+    get_bfi_tibble(current_subj_df, 'Neuroticism', c(4, 14, 19, 29, 39), c(9, 24, 34)),
+    get_bfi_tibble(current_subj_df, 'Openness', c(5, 10, 15, 20, 25, 30, 40, 44 ), c(35, 41))
+    )
+
+  if (nrow(bfi_score_df) == 0) {
+    bfi_score_df <<- temp_bfi_score_df
+  } else {
+    bfi_score_df <<- rbind(bfi_score_df, temp_bfi_score_df)
+  }
+}
+
+extract_bfi_score <- function() {
+  bfi_df <- post_survey_df[, c(22, seq(31, 74))]
+  
+  # message(colnames(bfi_df)) ## DO NOT DELETE
+  colnames(bfi_df) <- bfi_ques_list
+  # print_msg(colnames(bfi_df)) ## DO NOT DELETE
+  
+  ## Filter out the data for good subject list only 
+  bfi_df <- bfi_df %>% 
+    filter(SubjectID %in% good_subj_list$Subject)
+  # print_msg(str(bfi_df))
+  
+  invisible(apply(bfi_df, 1, function(each_row) extract_bfi_score_each_row(each_row)))
+  convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
+}
+
+
+print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, angle=0, width=default_width, height=default_height) {
+  plot <- plot +
+    # ggtitle(title) +
+    xlab('Scale Range') +
+    ylab(y_lab) +
+    # scale_x_discrete(breaks=c(1:7)) +
+    theme_bw() +
+    theme(legend.position = 'none',
+          plot.title = element_text(hjust=0.5),
+          text = element_text(size=20),
+          axis.title = element_text(size=20),
+          axis.text.x = element_text(size=x_axis_text_size, angle=angle))
+  
+  if (is_match(title, 'NASA TLX')) {
+    plot <- plot + 
+      # scale_x_discrete(breaks=nasa_task_options, labels=c(1:7)) +
+      theme(strip.text = element_text(size=18),
+            panel.spacing = unit(1.5, 'lines'))
+  }
+  
+  print(plot)
+  save_plot(replace_dot_space(title), plot, width=width, height=height)
+}
+
+draw_pss_plot <- function() {
+  title <- 'Perceived Stress Scale'
+  
+  hist_plot <- ggplot(data=pss_score_df, aes(x=Value)) + 
+    geom_bar() +
+    coord_cartesian(xlim = c(0, 40))  ## min_val=0, max_val=40
+  
+  subj_plot <- ggplot(data=pss_score_df, aes(x=Subject, y=Value)) + 
+    geom_bar(stat='identity')
+    
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  print_plot(hist_plot, paste(title,'- Histogram'))
+}
+
+get_x_limit <- function(ques_type) {
+  if (ques_type=='Cognitive Reappraisal') {
+    return(c(6, 42))
+  } else if (ques_type=='Expressive Suppression') {
+    return(c(4, 28))
+  } else if (ques_type=='Agreeableness') {
+    return(c(8, 40))
+  } else if (ques_type=='Conscientiousness') {
+    return(c(9, 45))
+  } else if (ques_type=='Extraversion') {
+    return(c(9, 45))
+  } else if (ques_type=='Neuroticism') {
+    return(c(8, 40))
+  } else if (ques_type=='Openness') {
+    return(c(10, 50))
+  } else if (ques_type %in% nasa_tlx_ques_list) {
+    return(c(1, 7))
+  } 
+}
+
+get_y_limit <- function(title) {
+  if (title=='Emotion Regulation Questionnaire') {
+    return(c(0, 8))
+  } else if (title=='Big Five Inventory') {
+    return(c(0, 13))
+  } else if (title=='NASA TLX') {
+    return(c(0, 25))
+  }
+}
+
+get_break_no <- function(title) {
+  if (title %in% c('Emotion Regulation Questionnaire', 'Big Five Inventory')) {
+    return(4)
+  } else if (title=='NASA TLX') {
+    return(1)
+  } 
+}
+
+get_plot_height <- function(title) {
+  if (title %in% c('Big Five Inventory', 'NASA TLX')) {
+    return(20)
+  } 
+  
+  return(default_height)
+}
+
+draw_hist_plot <- function(df, title) {
+  ques_sub_type_levels <- levels(factor(df$Title))
+  plot_list <- list()
+  x_lab <- ''
+  
+  for (ques_sub_type in ques_sub_type_levels) {
+    if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
+    
+    temp_df <- df[df$Title==ques_sub_type, ]
+    temp_df$title <- ques_sub_type
+    hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
+      geom_bar() +
+      facet_grid(. ~ title) +
+      coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
+      xlab(x_lab) +
+      ylab('Frequency') +   ##'Frequency'
+      scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)), 
+                                    max(get_x_limit(ques_sub_type)), 
+                                    by=get_break_no(title))) +
+                                    # by=4)) +
+      theme_bw() +
+      theme(legend.position = 'none',
+            plot.title = element_text(hjust=0.5),
+            text = element_text(size=20),
+            axis.text.x = element_text(size=16),
+            strip.text.x = element_text(size=18))
+    
+    plot_list[[length(plot_list)+1]] <- hist_plot
+  }
+  
+  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
+  save_plot(replace_dot_space(paste(title, '- Histogram')), grid_plot, height=get_plot_height(title))
+}
+
+
+draw_erq_plot <- function() {
+  title <- 'Emotion Regulation Questionnaire'
+
+  ###########################################################
+  subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) +
+    geom_bar(stat='identity') +
+    facet_wrap(~Title, ncol=1)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
+  ###########################################################
+  
+  draw_hist_plot(erq_score_df, title)
+  ###########################################################
+  # hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
+  #   geom_bar() + 
+  #   ## facet_wrap(~Title, ncol=1, scales='free_x')
+  #   facet_wrap(~Title, ncol=1)
+  # print_plot(hist_plot, paste(title, '- Histogram'))
+  ###########################################################
+}
+
+draw_bfi_plot <- function() {
+  title <- 'Big Five Inventory'
+  
+  ###########################################################
+  subj_plot <- ggplot(data=bfi_score_df, aes(x=Subject, y=Value)) +
+    geom_bar(stat='identity') +
+    facet_wrap(~Title, ncol=1)
+  print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
+  ###########################################################
+  
+  
+  ###########################################################
+  draw_hist_plot(bfi_score_df, title)
+  ###########################################################
+  # hist_plot <- ggplot(data=bfi_score_df, aes(x=Value)) +
+  #   geom_bar() +
+  #   facet_wrap(~Title, ncol=1)
+  # print_plot(hist_plot, paste(title, '- Histogram'))
+  ###########################################################
+}
+
+``` 
+
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+
+<!-- BIOGRAPHIC DISTRIBUTION -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_biographic_info()
+get_biographic_distribution()
+```
+
+
+<!-- NASA TASK PLOTS -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
+```
+
+<!-- NASA TASK PROPORTION TEST -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# get_proportion_test_nasa_tlx()
+```
+
+
+<!-- Perceived Stress Scale Plots -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_pss_score()
+# draw_pss_plot()
+```
+
+
+<!-- Emotion Regulation Plots -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_erq_score()
+# draw_erq_plot()
+```
+
+
+<!-- Big Five Inventory-->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# extract_bfi_score()
+# draw_bfi_plot()
+```
