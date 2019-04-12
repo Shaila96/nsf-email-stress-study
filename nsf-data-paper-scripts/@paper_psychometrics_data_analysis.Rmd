@@ -199,42 +199,6 @@ draw_group_bar_chart_nasa_tlx <- function() {
   # convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
   
   
-  
-  
-  
-  ###########################################################################################################################
-  # plot <- nasa_tlx_freq_df %>% 
-  #   filter(Question != 'Stress_Question') %>%     ## We do not need the seperated stress question for group bar chart
-  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) + 
-  #   geom_bar(position='dodge', stat='identity') +
-  #   scale_x_discrete(limits = nasa_task_options) +
-  #   theme_bw() + 
-  #   theme(text = element_text(size = 16),
-  #         axis.title = element_text(size = 16, hjust = 0.5),
-  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold')) 
-  # 
-  # print(plot)
-  # 
-  # plot <- plot + 
-  #   theme(text = element_text(size = 20),
-  #         axis.title = element_text(size = 20),
-  #         axis.text.x = element_text(size = 16))
-  #         # axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
-  # 
-  # save_plot('nasa_frequency', plot, 18)
-  ###########################################################################################################################  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   title <- 'NASA TLX'
   nasa_tlx_long_df <- nasa_tlx_df %>%
     gather(Title, Value, -SubjectID) %>% ## making the data wide to long for all signals
@@ -242,25 +206,137 @@ draw_group_bar_chart_nasa_tlx <- function() {
     mutate(Title = gsub('Nasa_', '', Title))
   nasa_tlx_long_df$Title <- factor(nasa_tlx_long_df$Title, levels=nasa_tlx_ques_list)
   
-  ###########################################################
-  # subj_plot <- nasa_tlx_long_df %>%
-  #   ggplot(aes(x=SubjectID, y=Value)) +
-  #   geom_bar(stat='identity') +
-  #   facet_wrap(~Title, ncol=1)
-  # print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
-  ###########################################################
   
   
   ###########################################################
   # draw_hist_plot(nasa_tlx_long_df, title)
   ###########################################################
-  hist_plot <- nasa_tlx_long_df %>%
-    mutate(Value = recode(Value, '1' = 'Strongly disagree', '2' = 'Disagree', '3' = 'Somewhat disagree', '4' = 'Neither agree or disagree', '5' = 'Somewhat agree', '6' = 'Agree', '7' = 'Strongly agree')) %>%
-    ggplot(aes(x=factor(Value, levels=nasa_task_options))) +
-    # ggplot(aes(x=Value)) +
-    geom_bar() +
-    facet_wrap(~Title, ncol=1)
-  print_plot(hist_plot, paste(title, '- Histogram'), width=18, height=20)
+  ques_sub_type_levels <- levels(factor(nasa_tlx_long_df$Title))
+  plot_list <- list()
+  x_lab <- ''
+  
+  for (ques_sub_type in ques_sub_type_levels) {
+    if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
+    
+    temp_df <- nasa_tlx_long_df[nasa_tlx_long_df$Title==ques_sub_type, ]
+    temp_df$title <- ques_sub_type
+    hist_plot <- temp_df %>% 
+      ggplot(aes(x=Value)) + 
+      geom_bar() +
+      facet_grid(. ~ title) +
+      coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
+      xlab(x_lab) +
+      ylab('Frequency') +   ##'Frequency'
+      scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)),
+                                  max(get_x_limit(ques_sub_type)),
+                                  by=get_break_no(title)),
+                         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+                         labels=c('1' = 'Strongly disagree',
+                                  '2' = 'Disagree',
+                                  '3' = 'Somewhat disagree',
+                                  '4' = 'Neither agree or disagree',
+                                  '5' = 'Somewhat agree',
+                                  '6' = 'Agree',
+                                  '7' = 'Strongly agree'),
+                         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+                         expand=expand_scale(mult=c(0.1, 0.1), add=c(0, 0))) +
+      theme_bw() +
+      theme(text = element_text(size=20),
+            #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+            axis.text.x = element_text(size=14),
+            strip.text.x = element_text(size=18),
+            #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+            legend.position = 'none')
+    
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+    if (length(plot_list)+1 != length(ques_sub_type_levels)) {
+      hist_plot <- hist_plot +
+        theme(axis.ticks.x=element_blank(),
+              axis.text.x=element_blank())
+    }
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+    
+    plot_list[[length(plot_list)+1]] <- hist_plot
+  }
+  
+  # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
+  grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
+  save_plot(replace_dot_space(paste(title, '_histogram_test')), grid_plot, height=get_plot_height(title))
+  
+  
+  
+  
+  
+  
+  ##########################################################################################################
+  ############################       nasa grouped bar plot       ###########################################
+  ##########################################################################################################
+  # plot <- nasa_tlx_freq_df %>%
+  #   filter(Question != 'Stress_Question') %>%     ## We do not need the seperated stress question for group bar chart
+  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) +
+  #   geom_bar(position='dodge', stat='identity') +
+  #   scale_x_discrete(limits = nasa_task_options) +
+  #   theme_bw() +
+  #   theme(text = element_text(size = 16),
+  #         axis.title = element_text(size = 16, hjust = 0.5),
+  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold'))
+  # 
+  # print(plot)
+  # 
+  # plot <- plot +
+  #   theme(text = element_text(size = 20),
+  #         axis.title = element_text(size = 20),
+  #         axis.text.x = element_text(size = 16))
+  #         # axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
+  # 
+  # save_plot('nasa_frequency_grouped_bar', plot, 18)
+  ##########################################################################################################
+  
+  
+  
+  ##################################################################################
+  #####################  nasa subject plot  ########################################
+  ##################################################################################
+  # subj_plot <- nasa_tlx_long_df %>%
+  #   ggplot(aes(x=SubjectID, y=Value)) +
+  #   geom_bar(stat='identity') +
+  #   facet_wrap(~Title, ncol=1)
+  # print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
+  ##################################################################################
+  
+  
+  
+  ###########################################################
+  #############     nasa facet plot    ######################
+  ###########################################################
+  # hist_plot <- nasa_tlx_long_df %>%
+  #   mutate(Value = recode(Value, 
+  #                         '1' = 'Strongly disagree', 
+  #                         '2' = 'Disagree', 
+  #                         '3' = 'Somewhat disagree', 
+  #                         '4' = 'Neither agree or disagree', 
+  #                         '5' = 'Somewhat agree', 
+  #                         '6' = 'Agree', 
+  #                         '7' = 'Strongly agree')) %>%
+  #   ggplot(aes(x=factor(Value, levels=nasa_task_options))) +
+  #   # ggtitle(paste(title, '- Histogram')) +
+  #   geom_bar() +
+  #   facet_wrap(~Title, ncol=1) +
+  #   xlab('Scale Range') +
+  #   ylab('Frequency') +
+  #   # scale_x_discrete(breaks=c(1:7)) +
+  #   theme_bw() +
+  #   theme(legend.position = 'none',
+  #         plot.title = element_text(hjust=0.5),
+  #         text = element_text(size=20),
+  #         strip.text = element_text(size=18),
+  #         panel.spacing = unit(1.5, 'lines'),
+  #         axis.title = element_text(size=20),
+  #         axis.text.x = element_text(size=16))
+  # 
+  # print(hist_plot)
+  # save_plot(replace_dot_space('nasa_tlx_histogram'), hist_plot, width=18, height=20)
   ###########################################################
 }
 
@@ -449,9 +525,9 @@ get_x_lab <- function(col_name) {
 }
 
 get_bio_ggplot <- function(df, col_name) {
-  if (col_name == 'Gender') {
-    return(ggplot(data=df, aes(x=df[[col_name]], fill=df[[col_name]])))
-  }
+  # if (col_name == 'Gender') {
+  #   return(ggplot(data=df, aes(x=df[[col_name]], fill=df[[col_name]])))
+  # }
   
   return(ggplot(data=df, aes(x=df[[col_name]])))
 }
@@ -475,18 +551,18 @@ draw_biographic_distribution <- function(col_name) {
   plot_df$title <- paste0(replace_underscore(col_name), ' Distribution')
   plot <- get_bio_ggplot(plot_df, col_name) +
     geom_bar() +
-    # facet_grid(. ~ title) +
+    facet_grid(. ~ title) +
     # ggtitle(title) +
     xlab(get_x_lab(replace_underscore(col_name))) + 
     ylab(y_lab) +
     scale_x_discrete(limits=get_order(col_name)) +
     theme_bw() +
     theme(legend.position='none',
-          # plot.title=element_text(hjust=0.5),
-          text=element_text(size=20),
+          plot.title=element_text(hjust=0.5),
+          text=element_text(size=14),
           # axis.title=element_text(size=20),
-          # strip.text.x = element_text(size = 16), 
-          axis.text.x=element_text(size=20, angle=get_angle(col_name), hjust=get_hjust(col_name)))
+          strip.text.x = element_text(size = 16), 
+          axis.text.x=element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)))
   
   bio_plot_list[[length(bio_plot_list) + 1]] <<- plot
   # print(plot)
@@ -496,18 +572,18 @@ draw_biographic_distribution <- function(col_name) {
 get_biographic_distribution <- function() {
   draw_biographic_distribution('Age')
   draw_biographic_distribution('Gender')
-  draw_biographic_distribution('Education')
-  # draw_biographic_distribution('Occupation')
   draw_biographic_distribution('Writing_Proficiency')
   draw_biographic_distribution('Daily_Email_Frequency')
-
+  draw_biographic_distribution('Education')
+  # draw_biographic_distribution('Occupation')
+  
   
   #### draw_biographic_distribution('Nationality')
   #### draw_biographic_distribution('Native_Language')
   
   
   bio_grid_plot <- do.call("grid.arrange", c(bio_plot_list, ncol=2))
-  save_plot('biographic_plots', bio_grid_plot)
+  # save_plot('biographic_plots', bio_grid_plot)
 }
 
 extract_erq_score_each_row <- function(current_subj_df) {
@@ -643,7 +719,7 @@ print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, ang
   }
   
   print(plot)
-  # save_plot(replace_dot_space(title), plot, width=width, height=height)
+  save_plot(replace_dot_space(title), plot, width=width, height=height)
 }
 
 draw_pss_plot <- function() {
@@ -737,7 +813,7 @@ draw_hist_plot <- function(df, title) {
   
   # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
   grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
-  # save_plot(replace_dot_space(paste(title, '- Histogram')), grid_plot, height=get_plot_height(title))
+  save_plot(replace_dot_space(paste(title, '- Histogram - TEST')), grid_plot, height=get_plot_height(title))
   
   if (title=='Emotion Regulation Questionnaire') {
     personality_plot_list[[length(personality_plot_list)+1]] <<- grid_plot
@@ -806,8 +882,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
-get_biographic_distribution()
+# extract_biographic_info()
+# get_biographic_distribution()
 ```
 
 
@@ -829,9 +905,9 @@ get_biographic_distribution()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
-# get_proportion_test_nasa_tlx()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
+get_proportion_test_nasa_tlx()
 ```
 
 <!-- Big Five Inventory-->
