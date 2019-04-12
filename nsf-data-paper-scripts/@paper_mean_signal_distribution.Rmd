@@ -1,0 +1,182 @@
+---
+title: 'Mean Signal Distribution'
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+# library(XLConnect)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(cowplot)
+
+library(grid)
+library(gridExtra)
+library(ggpubr)
+
+# library(directlabels)
+# require(xlsx)
+# library(readxl)
+# library(lubridate)
+# library(gsubfn)
+# library(stringi)
+# library(GoodmanKruskal)
+# library(scales)
+
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+# setwd(root_dir)
+
+raw_data_dir <- 'nsf-stress-study'
+super_session_pattern <- '^SuperSession$' 
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+
+mean_file_name <- 'result_df_second_phase.csv'
+
+common_col_names <- c('Subject', 'Condition', 'Session')
+signal_col_names <- c('PP', 'HR', 'BR', 'N.EDA', 'N.HR')
+col_names <- c(common_col_names, signal_col_names)
+
+session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+
+default_height <- 10
+default_width <- 15
+
+
+nlp_score_df <- tibble()
+
+plot_list <- list()
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+specify_decimal <- function(x, k) {
+  trimws(format(round(x, k), nsmall=k))
+}
+
+remove_na <- function(df, col_list) {
+  return(df[complete.cases(df[, col_list]), ])
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+} 
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+replace_to_underscore <- function(str) {
+  gsubfn('.', list('.' = '_', ' ' = '_', '-' = '_'), tolower(str))
+}
+
+replace_to_space <- function(str) {
+  gsubfn('.', list('_' = ' ', '-' = ' '), str)
+}
+
+
+is_matched_string <- function(pattern, str) { 
+  return(grepl(pattern, str, perl=TRUE)) 
+} 
+
+split_camel_case <- function(str) {
+  return(gsub('([A-Z])', ' \\1', str))
+}
+
+save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+  
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
+}
+
+#---- Add one space if it finds any CamelCase ----#
+get_session_name <- function(session_name) {
+  if (session_name == 'BaselineWriting') {
+    return('Single Task')
+  }
+  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+}
+
+
+read_data <- function() {
+  mean_df <<- read_csv(file.path(data_dir, mean_file_name))[, col_names]
+}
+
+get_x_label <- function(signal) {
+  if (is_match(signal, 'PP')) { 
+    return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
+  } else if (is_match(signal, 'HR')) {
+    return('Heart Rate [BPM]')
+  } else if (is_match(signal, 'BR')) { 
+    return('Breathing Rate [BPM]')
+  } else if (is_match(signal, 'EDA')) {
+    return(expression('EDA'~' ['~mu~'S]'))
+  } 
+  return('Unknown axis.')
+}
+
+draw_plots <- function() {
+  for (signal in signal_col_names) {
+    density_plot <- mean_df %>% 
+      select(Session, signal) %>% 
+      ggplot(aes(x=mean_df[[signal]], fill=Session)) + 
+      geom_density(alpha=0.25) +
+      ggtitle(paste0(signal, ' Distribution')) +
+      scale_color_brewer(palette="Dark2") +
+      xlab(get_x_label(signal)) +
+      ylab('Probability Density Function') +
+      theme(legend.position="bottom")
+    
+    print(density_plot)
+    plot_list[[length(plot_list)+1]] <<- density_plot
+  }
+  
+  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=2)))
+  # grid_plot <- plot_grid(plotlist=plot_list, cols=2)
+  print(grid_plot)
+  save_plot('mean_signal_distribution', grid_plot)
+}
+``` 
+
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+
+<!-- DRAW PLOTS -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+draw_plots()
+```

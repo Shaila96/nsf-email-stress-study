@@ -332,7 +332,7 @@ draw_group_bar_chart_nasa_tlx <- function() {
   
   #### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
   grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
-  save_plot(replace_dot_space(paste(title, '_histogram_test')), grid_plot, height=get_plot_height(title))
+  save_plot(replace_dot_space(paste(title, '_histogram_prop_test')), grid_plot, height=get_plot_height(title))
   
   
   
@@ -654,7 +654,7 @@ get_biographic_distribution <- function() {
   
   
   bio_grid_plot <- do.call("grid.arrange", c(bio_plot_list, ncol=2))
-  # save_plot('biographic_plots', bio_grid_plot)
+  save_plot('biographic_plots', bio_grid_plot)
 }
 
 extract_erq_score_each_row <- function(current_subj_df) {
@@ -978,7 +978,7 @@ read_data()
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_nasa_tlx_score()
 draw_group_bar_chart_nasa_tlx()
-get_proportion_test_nasa_tlx()
+# get_proportion_test_nasa_tlx()
 ```
 
 <!-- Big Five Inventory-->
