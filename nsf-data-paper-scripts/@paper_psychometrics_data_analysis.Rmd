@@ -213,20 +213,25 @@ draw_group_bar_chart_nasa_tlx <- function() {
   ###########################################################
   ques_sub_type_levels <- levels(factor(nasa_tlx_long_df$Title))
   plot_list <- list()
-  x_lab <- ''
+  x_lab_hist <- ''
+  x_lab_bar <- ''
   
   for (ques_sub_type in ques_sub_type_levels) {
-    if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
     
-    temp_df <- nasa_tlx_long_df[nasa_tlx_long_df$Title==ques_sub_type, ]
-    temp_df$title <- ques_sub_type
-    hist_plot <- temp_df %>% 
+    if (length(plot_list)+1 == length(ques_sub_type_levels)) {
+      x_lab_hist <- 'Scale Range'
+      # x_lab_bar <- 'Options'
+    }
+    temp_nasa_long_df <- nasa_tlx_long_df[nasa_tlx_long_df$Title==ques_sub_type, ]
+    temp_nasa_long_df$title <- ques_sub_type
+    
+    nasa_hist_plot <- temp_nasa_long_df %>% 
       ggplot(aes(x=Value)) + 
       geom_bar() +
       facet_grid(. ~ title) +
       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
-      xlab(x_lab) +
-      ylab('Frequency') +   ##'Frequency'
+      xlab(x_lab_hist) +
+      ylab('Frequency') +  
       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)),
                                   max(get_x_limit(ques_sub_type)),
                                   by=get_break_no(title)),
@@ -243,23 +248,89 @@ draw_group_bar_chart_nasa_tlx <- function() {
       theme_bw() +
       theme(text = element_text(size=20),
             #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
-            axis.text.x = element_text(size=14),
+            axis.text.x = element_text(size=10),
             strip.text.x = element_text(size=18),
             #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
             legend.position = 'none')
     
     #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
     if (length(plot_list)+1 != length(ques_sub_type_levels)) {
-      hist_plot <- hist_plot +
+      nasa_hist_plot <- nasa_hist_plot +
         theme(axis.ticks.x=element_blank(),
               axis.text.x=element_blank())
     }
     #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
     
-    plot_list[[length(plot_list)+1]] <- hist_plot
+    
+    
+    
+    
+    
+    
+    temp_nasa_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==paste0('Nasa_', ques_sub_type), ]
+    # print_msg(str(temp_nasa_df))
+    print_msg(temp_nasa_df$Question)
+    print_msg(ques_sub_type)
+    
+    agree_df <- temp_nasa_df %>%
+      filter(Answer > 4) %>%
+      summarize(agree_freq = sum(Frequency))
+
+    disagree_df <- temp_nasa_df %>%
+      filter(Answer <= 4) %>%
+      summarize(disagree_freq = sum(Frequency))
+
+    freq_df <- merge(agree_df, disagree_df, by='Question')
+    
+    nasa_bar_plot <- get_nasa_bar_plot_df(freq_df) %>%
+      ggplot(aes(x=Options, y=Frequency)) +
+      geom_bar(stat='identity') +
+      # ggtitle(replace_underscore(ques_sub_type)) +
+      #@@@@@@@@@@@@@@@@@@@#
+      xlab(x_lab_bar) +
+      #@@@@@@@@@@@@@@@@@@@#
+      # ylim(0, 50) +
+      scale_y_continuous(breaks=seq(0, 50, by=10),
+                         expand=expand_scale(mult=c(0, 0.1), add=c(0, 0))) +
+      scale_x_discrete(labels=c('agree_freq' = 'Agreement', 
+                                'disagree_freq' = 'Neutral/Disagreement')) +
+      geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6) +
+      theme_bw() +
+      theme(axis.title.y=element_blank(),
+            axis.text.x = element_text(size=10),
+            # axis.text.x = element_text(angle=20, hjust=1),
+            text = element_text(size=20))
+    
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+    if (length(plot_list)+1 != length(ques_sub_type_levels)) {
+      nasa_bar_plot <- nasa_bar_plot +
+        theme(axis.ticks.x=element_blank(),
+              axis.text.x=element_blank())
+    }
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#
+
+    # save_plot(tolower(ques_sub_type), nasa_bar_plot)
+
+    
+    
+    grid_plot <- plot_grid(nasa_hist_plot,
+                           NULL,
+                           nasa_bar_plot, 
+                           align='h', 
+                           rel_widths=c(4, 0.005, 1),
+                           cols=3)
+                           # rel_widths=c(4, 1),
+                           # cols=2)
+    # save_plot(tolower(paste0(ques_sub_type, '_hist_bar')), grid_plot)
+    
+    
+    
+    
+    
+    plot_list[[length(plot_list)+1]] <- grid_plot
   }
   
-  # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
+  #### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
   grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
   save_plot(replace_dot_space(paste(title, '_histogram_test')), grid_plot, height=get_plot_height(title))
   
@@ -350,7 +421,7 @@ generate_nasa_bar_plot <- function(df, title) {
   plot <- get_nasa_bar_plot_df(df) %>%
     ggplot(aes(x=Options, y=Frequency)) +
     geom_bar(stat='identity') +
-    # ggtitle(replace_underscore(title)) +
+    ggtitle(replace_underscore(title)) +
     scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Neutral/Disagreement')) +
     theme_bw() + 
     theme(text = element_text(size = 16),

@@ -766,22 +766,22 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
-get_biographic_distribution()
+# extract_biographic_info()
+# get_biographic_distribution()
 ```
 
 
 <!-- NASA TASK PLOTS -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
 ```
 
 <!-- NASA TASK PROPORTION TEST -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# get_proportion_test_nasa_tlx()
+get_proportion_test_nasa_tlx()
 ```
 
 
