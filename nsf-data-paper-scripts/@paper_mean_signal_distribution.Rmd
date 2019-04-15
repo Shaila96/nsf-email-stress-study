@@ -30,16 +30,6 @@ library(grid)
 library(gridExtra)
 library(ggpubr)
 
-# library(directlabels)
-# require(xlsx)
-# library(readxl)
-# library(lubridate)
-# library(gsubfn)
-# library(stringi)
-# library(GoodmanKruskal)
-# library(scales)
-
-
 
 #-------------------------#
 #-----GLOBAL VARIABLES----#
@@ -58,7 +48,7 @@ plots_dir <- file.path(data_paper_dir, 'plots')
 mean_file_name <- 'result_df_second_phase.csv'
 
 common_col_names <- c('Subject', 'Condition', 'Session')
-signal_col_names <- c('PP', 'HR', 'BR', 'N.EDA', 'N.HR')
+signal_col_names <- c('PP', 'N.EDA', 'HR', 'N.HR', 'BR')
 col_names <- c(common_col_names, signal_col_names)
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
@@ -95,15 +85,6 @@ print_msg <- function(msg) {
   message(msg)
 }
 
-replace_to_underscore <- function(str) {
-  gsubfn('.', list('.' = '_', ' ' = '_', '-' = '_'), tolower(str))
-}
-
-replace_to_space <- function(str) {
-  gsubfn('.', list('_' = ' ', '-' = ' '), str)
-}
-
-
 is_matched_string <- function(pattern, str) { 
   return(grepl(pattern, str, perl=TRUE)) 
 } 
@@ -129,8 +110,21 @@ get_session_name <- function(session_name) {
 }
 
 
+# "RestingBaseline" = "Resting Baseline", 
+# "BaselineWriting" = "Single Task", 
+# "StressCondition" = "Stress Condition", 
+# "DualTask" = "Dual Task", 
+# "Presentation" = "Presentation"
+
 read_data <- function() {
   mean_df <<- read_csv(file.path(data_dir, mean_file_name))[, col_names]
+  mean_df <<- mean_df %>% mutate(Session=recode_factor(Session,
+                                                "RestingBaseline" = "Resting Baseline",
+                                                "BaselineWriting" = "Single Task",
+                                                "StressCondition" = "Stress Condition",
+                                                "DualTask" = "Dual Task",
+                                                "Presentation" = "Presentation"
+                                                ))
 }
 
 get_x_label <- function(signal) {
@@ -146,25 +140,59 @@ get_x_label <- function(signal) {
   return('Unknown axis.')
 }
 
-draw_plots <- function() {
-  for (signal in signal_col_names) {
-    density_plot <- mean_df %>% 
-      select(Session, signal) %>% 
-      ggplot(aes(x=mean_df[[signal]], fill=Session)) + 
-      geom_density(alpha=0.25) +
-      ggtitle(paste0(signal, ' Distribution')) +
-      scale_color_brewer(palette="Dark2") +
-      xlab(get_x_label(signal)) +
-      ylab('Probability Density Function') +
-      theme(legend.position="bottom")
-    
-    print(density_plot)
-    plot_list[[length(plot_list)+1]] <<- density_plot
-  }
+draw_plot <- function(signal) {
+  density_plot <-
+    mean_df %>%
+    ggplot(aes(x=mean_df[[signal]], 
+               # color=Session, 
+               fill=Session)) +
+    geom_density(alpha=0.5) +
+    ggtitle(paste0(signal, ' Distribution')) +
+    scale_color_brewer(palette="Accent") +
+    # scale_color_manual(values=c("#F0FFFF", "#87CEFA", "#FFFF00", "#3CB371", "#DC143C")) +
+    xlab(get_x_label(signal)) +
+    ylab('Probability Density Function') +
+    theme(legend.position="bottom",
+          # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+          legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+          legend.title=element_blank())
   
-  grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=2)))
-  # grid_plot <- plot_grid(plotlist=plot_list, cols=2)
-  print(grid_plot)
+  print(density_plot)
+  save
+  plot_list[[length(plot_list)+1]] <<- density_plot
+}
+
+draw_plots <- function() {
+  # for (signal in signal_col_names) {
+  #   density_plot <-
+  #     mean_df %>%
+  #     ggplot(aes(x=mean_df[[signal]], 
+  #                # color=Session, 
+  #                fill=Session)) +
+  #     geom_density(alpha=0.5) +
+  #     ggtitle(paste0(signal, ' Distribution')) +
+  #     scale_color_brewer(palette="Accent") +
+  #     # scale_color_manual(values=c("#F0FFFF", "#87CEFA", "#FFFF00", "#3CB371", "#DC143C")) +
+  #     xlab(get_x_label(signal)) +
+  #     ylab('Probability Density Function') +
+  #     theme(legend.position="bottom",
+  #           # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+  #           legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+  #           legend.title=element_blank())
+  #   
+  #   print(density_plot)
+  #   # plot_list[[length(plot_list)+1]] <<- density_plot
+  # }
+  
+  ### Can not check lenght of signal_col_names, have to pass another arg
+  ### Printing garbage values
+  ### Not printing plots
+  ### Hassle to return multiple variables or have to take as global
+  sapply(signal_col_names, draw_plot)
+
+  # ### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=2)))
+  grid_plot <- plot_grid(plotlist=plot_list, cols=2)
+  # ### print(grid_plot)
   save_plot('mean_signal_distribution', grid_plot)
 }
 ``` 
@@ -177,6 +205,7 @@ read_data()
 
 
 <!-- DRAW PLOTS -->
+\newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 draw_plots()
 ```
