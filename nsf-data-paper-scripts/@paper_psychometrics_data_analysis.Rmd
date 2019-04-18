@@ -594,6 +594,16 @@ get_bio_bar_plot_df <- function(col_name) {
   return(df)
 }
 
+get_title <- function(col_name) {
+  if (col_name == 'Age') {
+    return(paste0(col_name, ' [yr]'))
+  } else if (col_name == 'Education') {
+    return(paste0(col_name, ' Level'))
+  }
+  
+  return(replace_underscore(col_name))
+}
+
 
 get_angle <- function(col_name) {
   if (col_name %in% c('Education', 'Occupation')) {
@@ -662,20 +672,25 @@ draw_biographic_distribution <- function(col_name) {
   y_lab <- 'Frequency'
   
   plot_df$title <- paste0(replace_underscore(col_name), ' Distribution')
+  plot_df$title <- get_title(col_name)
   plot <- get_bio_ggplot(plot_df, col_name) +
     geom_bar() +
     facet_grid(. ~ title) +
     # ggtitle(title) +
-    xlab(get_x_lab(replace_underscore(col_name))) + 
+    # xlab(get_x_lab(replace_underscore(col_name))) + 
     ylab(y_lab) +
     scale_x_discrete(limits=get_order(col_name)) +
     theme_bw() +
-    theme(legend.position='none',
-          plot.title=element_text(hjust=0.5),
-          text=element_text(size=14),
-          # axis.title=element_text(size=20),
-          strip.text.x = element_text(size = 16), 
-          axis.text.x=element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)))
+    theme(
+      plot.title=element_text(hjust=0.5),
+      text=element_text(size=14),
+      # axis.title=element_text(size=20),
+      strip.text.x = element_text(size = 16), 
+      axis.title.x=element_blank(),
+      # axis.text.x=element_blank(),
+      axis.text.x=element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
+      legend.position='none'
+      )
   
   bio_plot_list[[length(bio_plot_list) + 1]] <<- plot
   # print(plot)
@@ -1123,8 +1138,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_biographic_info()
-# get_biographic_distribution()
+extract_biographic_info()
+get_biographic_distribution()
 ```
 
 
@@ -1132,9 +1147,20 @@ read_data()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
+# extract_nasa_tlx_score()
 # draw_group_bar_chart_nasa_tlx()
 #### get_proportion_test_nasa_tlx()
+```
+
+
+
+
+
+<!-- Big Five Inventory-->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_bfi_score()
+draw_bfi_plot()
 ```
 
 
@@ -1155,18 +1181,10 @@ draw_pss_plot()
 
 
 <!-- Stress Question Prop Test -->
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-get_proportion_test_stress_ques()
-```
-
-
-<!-- Big Five Inventory-->
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
-```
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- get_proportion_test_stress_ques() -->
+<!-- ``` -->
 
 
 <!-- Combine PLots -->

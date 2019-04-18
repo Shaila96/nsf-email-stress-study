@@ -32,6 +32,8 @@ library(scales)
 project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
 setwd(project_dir)
 
+source(file.path(dirname(project_dir), "@common_functions.R"))
+
 data_dir <- 'data'
 plots_dir <- 'plots'
 
@@ -46,8 +48,11 @@ plot_list <- list()
 
 
 
+session_color_code <- c('', '', '#229954', '', '', '')
+
 session_atr <- 'all-session'
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
+# session_list <- c('RestingBaseline', 'StressCondition')
 
 # session_atr <- 'non-dual-session'
 # session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation')
@@ -82,6 +87,11 @@ read_data <- function() {
   # print(compare_including_na(full_df[['PP']], filtered_df[['PP']]))
 }
 
+print_msg <- function(df) {
+  print(df)
+  message(df)
+}
+
 isMatch <- function(str, pattern) { 
   return(grepl(pattern, str)) 
 } 
@@ -92,23 +102,46 @@ get_y_axis_label <- function(col_name) {
   } else if (isMatch(col_name, 'BR')) { 
     return('Breathing Rate [BPM]') 
   } else if (isMatch(col_name, 'N.EDA')) { 
-    return(expression(paste('EDA [', mu, 'S]'))) 
+    return(expression(paste('log'[10], '(EDA [', mu, 'S])'))) 
   } 
   return('Unknown axis') 
 } 
 
+# get_plot_title <- function(col_name) {
+#   if (col_name == 'HR') { 
+#     return('HR_c : Heart Rate via Chest Sensor')
+#   } else if (isMatch(col_name, 'BR')) { 
+#     return('BR_c : Breathing Rate via Chest Sensor')
+#   } else if (isMatch(col_name, 'N.EDA')) { 
+#     return('EDA : Electrodermal Activity via Wrist Sensor') 
+#   } else if (isMatch(col_name, 'N.HR')) { 
+#     return('HR_w : Heart Rate via Wrist Sensor') 
+#   } 
+#   return('')
+# }
+
+
 get_plot_title <- function(col_name) {
   if (col_name == 'HR') { 
-    return('HR_w : Heart Rate via Wrist Sensor')
+    return('Chest HR')
   } else if (isMatch(col_name, 'BR')) { 
-    return('BR_c : Breathing Rate via Chest Sensor')
+    return('Breathing Rate')
   } else if (isMatch(col_name, 'N.EDA')) { 
-    return('EDA : Electrodermal Cctivity via Wrist Sensor') 
+    return('Electrodermal Activity') 
   } else if (isMatch(col_name, 'N.HR')) { 
-    return('HR_w : Heart Rate via Wrist Sensor') 
+    return('Wrist HR') 
   } 
   return('')
 }
+
+get_filter_no <- function(col_name) {
+  if (is_match(col_name, 'HR')) {
+    return(' QC2')
+  }
+  
+  return(' QC1')
+}
+
 
 #---- Removing NA values and extracting data for only the valid sessions ----#
 extract_session_data <- function(df) {
@@ -120,6 +153,8 @@ extract_session_data <- function(df) {
 get_session_name <- function(session_name) {
   if (session_name == 'BaselineWriting') {
     return('Single Task')
+  } else if (session_name == 'StressCondition') {
+    return('Priming')
   }
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
@@ -146,8 +181,8 @@ save_plot <- function(plot_name, plot) {
 }
 
 generate_signal_plot <- function(col_name) {
-  grid_plot_left_title <- paste(get_y_axis_label(col_name), 'raw signal sets')
-  grid_plot_right_title <- paste(get_y_axis_label(col_name), 'valid signal sets')
+  grid_plot_left_title <- paste0(get_plot_title(col_name), ' raw signal sets')
+  grid_plot_right_title <- paste0(get_plot_title(col_name), ' valid signal sets')
 
   raw_signal_col_name <- paste0(col_name, '.non.filtered')
   
@@ -172,14 +207,21 @@ generate_signal_plot <- function(col_name) {
   #---- We do not want to calculate the max of x for all sessions again & again ----#
   non_dual_raw_df <- raw_df %>% filter(Session != 'DualTask')
   max_x <- max(non_dual_raw_df$TimeElapsed)
+  y_axis_threshold <- 0.001
 
   
   
   for(sess_idx in 1 : length(session_list)) {
     session_name <- session_list[sess_idx]
 
-    session_raw_df <- raw_df %>% filter(Session == session_name)
-    session_filtered_df <- filtered_df %>% filter(Session == session_name)
+    session_raw_df <- raw_df %>% 
+      filter(Session == session_name) %>% 
+      mutate(StressCondition=case_when(is_match(Condition, 'H') ~ 'High',
+                                       is_match(Condition, 'L') ~ 'Low'))
+    session_filtered_df <- filtered_df %>% 
+      filter(Session == session_name) %>% 
+      mutate(StressCondition=case_when(is_match(Condition, 'H') ~ 'High',
+                                       is_match(Condition, 'L') ~ 'Low'))
     
     # message(session_name)
     # message(get_total_subj_no(session_raw_df))
@@ -204,16 +246,25 @@ generate_signal_plot <- function(col_name) {
       x_axis_label <- 'Time [s]'
     }
     
-    # print(nrow(session_raw_df))
-    
     if (nrow(session_raw_df) != 0) {
-      raw_data_plot <- 
-        session_raw_df %>%
-        ggplot(aes_string('TimeElapsed', raw_signal_col_name, group='Subject')) +
+      if (session_name == 'StressCondition') {
+        raw_data_plot <- ggplot(data=session_raw_df, 
+                                aes_string('TimeElapsed', 
+                                           raw_signal_col_name, 
+                                           group='Subject', 
+                                           colour='StressCondition')) +
+          scale_color_manual(values=c("High"="black", "Low"=session_color_code[3]))
+      } else {
+        raw_data_plot <- ggplot(data=session_raw_df, 
+                                aes_string('TimeElapsed', 
+                                           raw_signal_col_name, 
+                                           group='Subject'))
+      }
+      
+      
+      raw_data_plot <- raw_data_plot +
         geom_line(alpha = 0.7) +
         annotate("text",
-                 # x=max_x, 
-                 # y=max(session_raw_df[raw_signal_col_name]),
                  x=Inf,
                  y=Inf,
                  hjust=1.5,
@@ -222,24 +273,45 @@ generate_signal_plot <- function(col_name) {
                  fontface = 'italic')
       
       if (session_name != 'DualTask') {
-        raw_data_plot <- raw_data_plot + theme_bw()
+        raw_data_plot <- raw_data_plot + 
+          theme_bw() +
+          theme(axis.line = element_line(colour = "black"))
       }
       
       raw_data_plot <- raw_data_plot + 
-        theme(
-          axis.text.y.right=element_blank(),
-          axis.ticks.y.right=element_blank(),
-          legend.position='none'
-          ) +
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.text.y.right=element_blank(),
+              axis.ticks.y.right=element_blank(),
+              plot.title = element_text(hjust = 0.5),
+              legend.position='none'
+              ) +
+        # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
         xlim(0, max_x) +
-        ylim(min(raw_df[raw_signal_col_name]), max(raw_df[raw_signal_col_name])) +
-        # coord_trans(y="log2") +
-        # scale_y_log10(breaks=c(0.01, 0.1, 1, 5, 10, 20)) +
-        scale_y_continuous(trans=log_trans(), breaks=pretty_breaks()) +
         xlab(x_axis_label) +
-        ylab(get_y_axis_label(col_name)) 
+        ylab(get_y_axis_label(col_name))
       
-      # print(raw_data_plot)
+      
+      if (col_name=='N.EDA') {
+        raw_data_plot <- raw_data_plot + 
+          scale_y_continuous(trans='log10',
+                             limits=c(
+                               min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
+                               max(raw_df[raw_signal_col_name])
+                               ),
+                             breaks=c(0.01, 1, 5, 20),
+                             sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+      } else {
+        raw_data_plot <- raw_data_plot + 
+          scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
+                                      max(raw_df[raw_signal_col_name])))
+          
+      }
+      
+      if (sess_idx==1) {
+        raw_data_plot <- raw_data_plot + 
+          ggtitle(paste0(get_plot_title(col_name), ': raw signal sets'))
+      }
    
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
       plot_list[[length(plot_list)+1]] <- raw_data_plot
@@ -247,13 +319,24 @@ generate_signal_plot <- function(col_name) {
     
     
     if (nrow(session_filtered_df) != 0) {
-      filtered_data_plot <-
-        session_filtered_df %>%
-        ggplot(aes_string('TimeElapsed', col_name, group='Subject')) +
+      if (session_name == 'StressCondition') {
+        filtered_data_plot <- ggplot(data=session_filtered_df, 
+                                aes_string('TimeElapsed', 
+                                           col_name, 
+                                           group='Subject', 
+                                           colour='StressCondition')) +
+          scale_color_manual(values = c("High"="black", "Low"=session_color_code[3]))
+      } else {
+        filtered_data_plot <- ggplot(data=session_filtered_df, 
+                                aes_string('TimeElapsed', 
+                                           col_name, 
+                                           group='Subject'))
+      }
+      
+      filtered_data_plot <- filtered_data_plot +
+        # ggplot(aes_string('TimeElapsed', col_name, group='Subject')) +
         geom_line(alpha = 0.7) +
         annotate("text", 
-                 # x=max_x, 
-                 # y=max(session_filtered_df[col_name]),
                  x=Inf,
                  y=Inf,
                  hjust=1.5,
@@ -262,67 +345,53 @@ generate_signal_plot <- function(col_name) {
                  fontface = 'italic')
       
       if (session_name != 'DualTask') {
-        filtered_data_plot <- filtered_data_plot + theme_bw()
+        filtered_data_plot <- filtered_data_plot + 
+          theme_bw() +
+          theme(axis.line = element_line(colour = "black"))
       }
        
       filtered_data_plot <- filtered_data_plot + 
-        theme(
-          axis.text.y.right=element_blank(),
-          axis.ticks.y.right=element_blank(),
-          legend.position='none'
-          ) +
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.text.y.right=element_blank(),
+              axis.ticks.y.right=element_blank(),
+              plot.title = element_text(hjust = 0.5),
+              legend.position='none'
+              ) +
+        # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
         xlim(0, max_x) +
-        # scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
-        #                             max(raw_df[raw_signal_col_name])),
-        #                    # trans=log_trans(), 
-        #                    # breaks=pretty_breaks(),
-        # # scale_y_continuous(limits=c(min(filtered_df[col_name]),
-        # #                             max(filtered_df[col_name])),
-        #                    # position='right',
-        #                    # labels=get_session_name(session_name))
-        #                    sec.axis=sec_axis(~.+1, name=get_session_name(session_name))) +
-        # coord_trans(y="log2") +
-        # scale_y_log10(breaks=c(0.01, 0.1, 1, 5, 10, 20)) +
-        
-        # coord_cartesian(ylim = c(min(raw_df[raw_signal_col_name]),
-        #                          max(raw_df[raw_signal_col_name]))) +
-        scale_y_continuous(trans=log_trans(),
-                           breaks=pretty_breaks()) +
         xlab(x_axis_label) +
         ylab(get_y_axis_label(col_name))
-
       
-      # print(filtered_data_plot)
+      if (col_name=='N.EDA') {
+        filtered_data_plot <- filtered_data_plot + 
+          scale_y_continuous(trans='log10',
+                             limits=c(
+                               min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
+                               max(raw_df[raw_signal_col_name])
+                               ),
+                             breaks=c(0.01, 1, 5, 20),
+                             sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+      } else {
+        filtered_data_plot <- filtered_data_plot + 
+          scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),  ## filtered_df[col_name]
+                                      max(raw_df[raw_signal_col_name])),  ## filtered_df[col_name]
+                           # position='right',
+                           # labels=get_session_name(session_name))
+                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+      }
+      
+      if (sess_idx==1) {
+        filtered_data_plot <- filtered_data_plot + 
+          ggtitle(paste0(get_plot_title(col_name), ': ',  get_filter_no(col_name), ' signal sets'))
+      }
+      
+      # print_msg(min(raw_df[raw_signal_col_name]))
+      # print_msg(max(raw_df[raw_signal_col_name]))
 
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
       plot_list[[length(plot_list)+1]] <- filtered_data_plot
     }
-    
-    # We now print the two plots side by side. 
-    # print(ggarrange(raw_data_plot, filtered_data_plot, ncol = 2, nrow = 1)) 
-    
-    # And print a little space between them. 
-    # cat("  \n    \n    \n  ") 
-
-
-
-    # #----------------------------------------------------------------#
-    # #---- MAKING GRID GRAPH WITH ALL THE PLOTS FROM EACH SESSION ----#
-    # #----------------------------------------------------------------#
-    # 
-    # #---- THIS GRID PLOT CONTAINS ALL THE SINGLE PLOT----#
-    # grid_plot_title <- get_plot_title(col_name)
-    # 
-    # grid_plot <- do.call('grid.arrange', c(plot_list, ncol=2))
-    # grid_plot <- grid.arrange(grid_plot,
-    #                           top=textGrob(grid_plot_title, gp=gpar(fontsize=10, font=1)))
-    # 
-    # # print(grid_plot)
-    # 
-    # #---- SAVING GRID PLOT ----#
-    # # plot_path <- file.path(plots_dir, paste0(tolower(col_name), '-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-    # plot_path <- file.path(plots_dir, paste0(replace_dots(tolower(col_name)), '-time-series'))
-    # save_plot(plot_path, grid_plot)
   }
   
     #----------------------------------------------------------------#
@@ -330,11 +399,12 @@ generate_signal_plot <- function(col_name) {
     #----------------------------------------------------------------#
 
     #---- THIS GRID PLOT CONTAINS ALL THE SINGLE PLOT----#
-    grid_plot_title <- get_plot_title(col_name)
+    # grid_plot_title <- get_plot_title(col_name)
 
     grid_plot <- do.call('grid.arrange', c(plot_list, ncol=2))
-    grid_plot <- grid.arrange(grid_plot,
-                              top=textGrob(grid_plot_title, gp=gpar(fontsize=10, font=1)))
+    grid_plot <- grid.arrange(grid_plot)
+    # grid_plot <- grid.arrange(grid_plot,
+    #                           top=textGrob(grid_plot_title, gp=gpar(fontsize=10, font=1)))
 
     # print(grid_plot)
     
@@ -346,9 +416,8 @@ generate_signal_plot <- function(col_name) {
 
 
 generate_filtered_plots <- function() {
-  # signal_list <- c("HR", "BR", "N.EDA", "N.HR", "D.EDA", "D.HR")
-  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  signal_list <- c("N.EDA")
+  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  # signal_list <- c("N.EDA")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)
@@ -359,8 +428,6 @@ generate_filtered_plots <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE} 
-# We are done with all functions
-# Now we just call the functions we made, sit back, and relax! 
 read_data()
 generate_filtered_plots()
 ``` 

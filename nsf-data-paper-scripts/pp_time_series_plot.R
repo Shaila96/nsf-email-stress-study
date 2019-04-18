@@ -7,6 +7,7 @@ library(ggplot2)
 library(grid)
 library(gridExtra)
 library(directlabels)
+library(scales)
 
 
 
@@ -17,22 +18,26 @@ library(directlabels)
 current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(current_dir)
 
+source(file.path(dirname(current_dir), "@common_functions.R"))
+
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-data_file_name <- 'full_df_filtered.csv'
-grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,'] valid signal sets'))
-y_axis_label <- bquote(paste('PP [',''^'o','C',''^2,']'))
+data_file_name <- 'full_df_second_phase_filtered.csv'
+# grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC'[0], ' signal sets'))
+grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
+y_axis_label <- bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))
 
 plot_list <- list()
 
 
 
-
+session_color_code <- c('', '', '#229954', '', '', '')
 
 
 session_atr <- 'all-session'
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
+# session_list <- c('StressCondition')
 
 # session_atr <- 'non-dual-session'
 # session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation')
@@ -49,6 +54,11 @@ session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Pres
 #-------------------------#
 #---FUNCTION DEFINITION---#
 #-------------------------#
+print_msg <- function(df) {
+  print(df)
+  message(df)
+}
+
 save_plot <- function(plot_name, plot) {
   plot_path <- file.path(current_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=10, height=10)
@@ -61,6 +71,8 @@ save_plot <- function(plot_name, plot) {
 get_session_name <- function(session_name) {
   if (session_name == 'BaselineWriting') {
     return('Single Task')
+  } else if (session_name == 'StressCondition') {
+    return('Priming')
   }
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
@@ -82,10 +94,16 @@ generate_pp_plot <- function() {
   
   # subj_no_annot_x_pos = max_x-max_x/40
   # subj_no_annot_y_pos = max_y-max_y/8
+  # print(min(pp_all_df$PP))
+  # print(max(pp_all_df$PP))
 
   for(sess_idx in 1 : length(session_list)) {
     session_name <- session_list[sess_idx]
-    session_df <- pp_all_df %>% filter(Session == session_name)
+    session_df <- pp_all_df %>% 
+      filter(Session==session_name) %>% 
+      mutate(StressCondition=case_when(is_match(Condition, 'H') ~ 'High',
+                                       is_match(Condition, 'L') ~ 'Low'
+                                       ))
     # print(str(session_df))
     
     if (session_name == 'DualTask') {
@@ -105,10 +123,15 @@ generate_pp_plot <- function() {
     }
     
     if (nrow(session_df) != 0) {
-      session_plot <- 
-        session_df %>%
-        ggplot(aes(TimeElapsed, PP, group=Subject)) +
-        geom_line(alpha = 0.7) +
+      
+      if (session_name == 'StressCondition') {
+        session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject, colour=StressCondition))
+      } else {
+        session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject))
+      }
+      
+      session_plot <- session_plot +
+        geom_line(alpha=0.7) +
         annotate("text", 
                  x=max_x, 
                  y=max_y, 
@@ -118,20 +141,27 @@ generate_pp_plot <- function() {
                  fontface = 'italic')
       
       if (session_name != 'DualTask') {
-        session_plot <- session_plot + theme_bw()
+        session_plot <- session_plot + 
+          theme_bw() +
+          theme(axis.line = element_line(colour = "black"))
       }
       
       session_plot <- session_plot +
-        theme(
-          axis.text.y.right = element_blank(),
-          axis.ticks.y.right = element_blank(),
-          legend.position='none'
-          ) +
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.text.y.right = element_blank(),
+              axis.ticks.y.right = element_blank(),
+              legend.position='none'
+              ) +
+        scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
+        scale_y_continuous(trans='log10', 
+                           breaks=pretty_breaks(),
+                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name))) +
+        # scale_y_continuous(limits=c(0, max_y), 
+        #                    sec.axis=sec_axis(~.+1, name=get_session_name(session_name)) +
         xlim(0, max_x) +
         xlab(x_axis_label) +
-        ylab(y_axis_label) +
-        scale_y_continuous(limits=c(0, max_y), 
-                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+        ylab(y_axis_label)
         
       
 
