@@ -299,8 +299,7 @@ generate_signal_plot <- function(col_name) {
                                min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
                                max(raw_df[raw_signal_col_name])
                                ),
-                             breaks=c(0.01, 1, 5, 20),
-                             sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+                             breaks=c(0.01, 1, 5, 20))
       } else {
         raw_data_plot <- raw_data_plot + 
           scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
@@ -416,8 +415,8 @@ generate_signal_plot <- function(col_name) {
 
 
 generate_filtered_plots <- function() {
-  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("N.EDA")
+  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  signal_list <- c("N.EDA", "N.HR")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)
