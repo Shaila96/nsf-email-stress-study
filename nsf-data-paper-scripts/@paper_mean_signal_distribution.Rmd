@@ -1,5 +1,5 @@
 ---
-title: 'Mean Signal Distribution'
+title: 'Mean Signal Density Function Plots'
 # output: pdf_document 
 # fontsize: 44pt
 header-includes:
@@ -83,8 +83,10 @@ default_width <- 15
 
 nlp_score_df <- tibble()
 
-plot_list <- list()
-plot_legend <- NULL
+probability_plot_list <- list()
+cumulative_plot_list <- list()
+probability_plot_legend <- NULL
+cumulative_plot_legend <- NULL
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -206,11 +208,29 @@ get_x_label <- function(signal) {
 #   }
 # }
 
+add_bottom_legend <- function() {
+  theme(legend.position="bottom",
+              # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+              legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+              legend.direction = "horizontal",
+              legend.justification="center",
+              legend.title = element_blank())
+      ## +
+      ##   guides(col = guide_legend(nrow = 1))
+}
+
+remove_legend <- function() {
+  theme(legend.position="none",
+    # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+    # legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+    # legend.title = element_blank(),
+    axis.title.y = element_text(size=13))
+}
+
 draw_plot <- function(signal, total_signal) {
-  density_plot <-
+  probability_density_plot <-
     mean_df %>%
-    ggplot(aes(x=mean_df[[signal]], 
-               # color=Session, 
+    ggplot(aes(x=mean_df[[signal]],
                fill=Session)) +
     geom_density(alpha=0.8) +
     geom_vline(data=mean_per_session_df,
@@ -222,31 +242,39 @@ draw_plot <- function(signal, total_signal) {
                       breaks=legend_order) +
     xlab(get_x_label(signal)) +
     ylab('Probability Density Function')
+
+
   
-    if (length(plot_list)+1 == total_signal) {
-      temp_plot <- density_plot +
-        theme(legend.position="bottom",
-              # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
-              legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
-              legend.direction = "horizontal",
-              legend.justification="center",
-              legend.title = element_blank()) 
-      # +
-      #   guides(col = guide_legend(nrow = 1))
-      plot_legend <<- get_legend(temp_plot)
-      print(plot_legend)
+  
+  cumulative_density_plot <- 
+    mean_df %>%
+    ggplot(aes(mean_df[[signal]], 
+               colour = Session)) + 
+    stat_ecdf(size=1,
+              alpha=0.7,
+              pad = F) +
+    xlab(get_x_label(signal)) +
+    ylab('Cumulative Density Function') +
+    scale_color_manual(values=session_color_code,
+                      breaks=legend_order)
+  
+  
+  
+  
+    if (length(probability_plot_list)+1 == total_signal) {
+      probability_plot_legend <<- get_legend(probability_density_plot + add_bottom_legend())
+      cumulative_plot_legend <<- get_legend(cumulative_density_plot + add_bottom_legend())
     }
-  
-  
-  density_plot <- density_plot +
-    theme(legend.position="none",
-          # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
-          legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
-          legend.title = element_blank(),
-          axis.title.y = element_text(size=13))
-  
-  print(density_plot)
-  plot_list[[length(plot_list)+1]] <<- density_plot
+
+
+  probability_density_plot <- probability_density_plot + remove_legend()
+  cumulative_density_plot <- cumulative_density_plot + remove_legend()
+    
+  # print(probability_density_plot)
+  # print(cumulative_density_plot)
+    
+  probability_plot_list[[length(probability_plot_list)+1]] <<- probability_density_plot
+  cumulative_plot_list[[length(cumulative_plot_list)+1]] <<- cumulative_density_plot
 }
 
 draw_plots <- function() {
@@ -268,7 +296,7 @@ draw_plots <- function() {
   #           legend.title=element_blank())
   #   
   #   print(density_plot)
-  #   # plot_list[[length(plot_list)+1]] <<- density_plot
+  #   # probability_plot_list[[length(probability_plot_list)+1]] <<- density_plot
   # }
   
   ### Can not check lenght of signal_col_names, have to pass another arg
@@ -276,15 +304,26 @@ draw_plots <- function() {
   ### Hassle to return multiple variables or have to take as global
   sapply(signal_col_names, draw_plot, total_signal=length(signal_col_names))
 
-  # ### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=2)))
-  grid_plot <- plot_grid(plotlist=plot_list, cols=2)
-  grid_plot <- plot_grid(grid_plot, 
-                         plot_legend,
+  # ### grid_plot <- grid.arrange(do.call('grid.arrange', c(probability_plot_list, ncol=2)))
+  grid_plot <- plot_grid(plotlist=probability_plot_list, cols=2)
+  grid_plot <- plot_grid(grid_plot,
+                         probability_plot_legend,
                          rel_heights = c(10, 1),
                          align='v',
                          cols=1)
   # ### print(grid_plot)
-  save_plot('mean_signal_distribution', grid_plot)
+  save_plot('mean_signal_distribution_pdf', grid_plot)
+  
+  
+  
+  grid_plot <- plot_grid(plotlist=cumulative_plot_list, cols=2)
+  grid_plot <- plot_grid(grid_plot,
+                         cumulative_plot_legend,
+                         rel_heights = c(10, 1),
+                         align='v',
+                         cols=1)
+  # ### print(grid_plot)
+  save_plot('mean_signal_distribution_cdf', grid_plot)
 }
 ``` 
 
