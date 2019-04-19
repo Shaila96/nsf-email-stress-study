@@ -51,7 +51,31 @@ common_col_names <- c('Subject', 'Condition', 'Session')
 signal_col_names <- c('PP', 'N.EDA', 'HR', 'N.HR', 'BR')
 col_names <- c(common_col_names, signal_col_names)
 
+
+
+
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+
+
+
+# session_color_code <- c("#fceabb", "#f89c70", "#70a919", "#494b4c", "#46aee6", "#DC143C") ## RB to PR
+session_color_code <- c("#DC143C",     ## PR
+                        "#46aee6",     ## DT
+                        # "#494b4c",   ## STR 
+                        # "#70a919",   ## RV 
+                        "#f89c70",     ## ST
+                        "#fceabb"      ## RB
+                        )  
+
+legend_order <- c("Resting Baseline",
+                  "Single Task",
+                  # "Relaxing Video",
+                  # "Stroop",
+                  "Dual Task",
+                  "Presentation")
+
+
+
 
 default_height <- 10
 default_width <- 15
@@ -60,6 +84,7 @@ default_width <- 15
 nlp_score_df <- tibble()
 
 plot_list <- list()
+plot_legend <- NULL
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -118,47 +143,109 @@ get_session_name <- function(session_name) {
 
 read_data <- function() {
   mean_df <<- read_csv(file.path(data_dir, mean_file_name))[, col_names]
-  mean_df <<- mean_df %>% mutate(Session=recode_factor(Session,
-                                                "RestingBaseline" = "Resting Baseline",
-                                                "BaselineWriting" = "Single Task",
-                                                "StressCondition" = "Stress Condition",
-                                                "DualTask" = "Dual Task",
-                                                "Presentation" = "Presentation"
-                                                ))
+  mean_df <<- mean_df %>% 
+    filter(Session!='StressCondition') %>% 
+    # mutate(Session=case_when(
+    #   (Session=="StressCondition" & is_match(Condition, 'L')) ~ 'Relaxing Video',
+    #   (Session=="StressCondition" & is_match(Condition, 'H')) ~ 'Stroop',
+    #   TRUE ~ Session )) %>% ## Default Condition 
+    mutate(Session=recode_factor(Session,
+                                 "Presentation" = "Presentation",
+                                 "DualTask" = "Dual Task",
+                                 # "Stroop" = "Stroop",
+                                 # "Relaxing Video" = "Relaxing Video",
+                                 "BaselineWriting" = "Single Task",
+                                 "RestingBaseline" = "Resting Baseline"
+                                 ))
+    # mutate(Session=recode_factor(Session,
+    #                              "RestingBaseline" = "Resting Baseline",
+    #                              "BaselineWriting" = "Single Task",
+    #                              # "StressCondition" = "Stress Condition",
+    #                              "Relaxing Video" = "Relaxing Video",
+    #                              "Stroop" = "Stroop",
+    #                              "DualTask" = "Dual Task",
+    #                              "Presentation" = "Presentation"
+    #                              ))
+  
+  
+  mean_per_session_df <<- mean_df %>%
+    select(-Subject, -Condition) %>% 
+    group_by(Session) %>%
+    summarise(mean_PP=mean(PP, na.rm=T),
+              mean_N.EDA=mean(N.EDA, na.rm=T),
+              mean_HR=mean(HR, na.rm=T),
+              mean_N.HR=mean(N.HR, na.rm=T),
+              mean_BR=mean(BR, na.rm=T))
+  # print_msg(str(mean_per_session_df))
 }
 
 get_x_label <- function(signal) {
   if (is_match(signal, 'PP')) { 
     return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
-  } else if (is_match(signal, 'HR')) {
-    return('Heart Rate [BPM]')
+  } else if (signal=='HR') {
+    return('Chest Heart Rate [BPM]')
+  } else if (signal=='N.HR') {
+    return('Wrist Heart Rate [BPM]')
   } else if (is_match(signal, 'BR')) { 
     return('Breathing Rate [BPM]')
   } else if (is_match(signal, 'EDA')) {
-    return(expression('EDA'~' ['~mu~'S]'))
+    return(expression(paste('EDA [', mu, 'S]')))
   } 
   return('Unknown axis.')
 }
 
-draw_plot <- function(signal) {
+# get_color <- function(signal) {
+#   if(signal=="Resting Baseline") {
+#     return("#DC143C")
+#   } else if (signal=="Single Task") {
+#     return("#46aee6")
+#   } else if (signal=="Dual Task") {
+#     return("#f89c70")
+#   } else if (signal=="Presentation") {
+#     return("#fceabb")
+#   }
+# }
+
+draw_plot <- function(signal, total_signal) {
   density_plot <-
     mean_df %>%
     ggplot(aes(x=mean_df[[signal]], 
                # color=Session, 
                fill=Session)) +
-    geom_density(alpha=0.5) +
-    ggtitle(paste0(signal, ' Distribution')) +
-    scale_color_brewer(palette="Accent") +
-    # scale_color_manual(values=c("#F0FFFF", "#87CEFA", "#FFFF00", "#3CB371", "#DC143C")) +
+    geom_density(alpha=0.8) +
+    geom_vline(data=mean_per_session_df,
+               mapping=aes(xintercept=mean_per_session_df[[paste0('mean_', signal), color=]]),
+               colour=session_color_code,
+               linetype='dashed',
+               size=1) +
+    scale_fill_manual(values=session_color_code,
+                      breaks=legend_order) +
     xlab(get_x_label(signal)) +
-    ylab('Probability Density Function') +
-    theme(legend.position="bottom",
+    ylab('Probability Density Function')
+  
+    if (length(plot_list)+1 == total_signal) {
+      temp_plot <- density_plot +
+        theme(legend.position="bottom",
+              # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+              legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+              legend.direction = "horizontal",
+              legend.justification="center",
+              legend.title = element_blank()) 
+      # +
+      #   guides(col = guide_legend(nrow = 1))
+      plot_legend <<- get_legend(temp_plot)
+      print(plot_legend)
+    }
+  
+  
+  density_plot <- density_plot +
+    theme(legend.position="none",
           # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
           legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
-          legend.title=element_blank())
+          legend.title = element_blank(),
+          axis.title.y = element_text(size=13))
   
   print(density_plot)
-  save
   plot_list[[length(plot_list)+1]] <<- density_plot
 }
 
@@ -186,12 +273,16 @@ draw_plots <- function() {
   
   ### Can not check lenght of signal_col_names, have to pass another arg
   ### Printing garbage values
-  ### Not printing plots
   ### Hassle to return multiple variables or have to take as global
-  sapply(signal_col_names, draw_plot)
+  sapply(signal_col_names, draw_plot, total_signal=length(signal_col_names))
 
   # ### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=2)))
   grid_plot <- plot_grid(plotlist=plot_list, cols=2)
+  grid_plot <- plot_grid(grid_plot, 
+                         plot_legend,
+                         rel_heights = c(10, 1),
+                         align='v',
+                         cols=1)
   # ### print(grid_plot)
   save_plot('mean_signal_distribution', grid_plot)
 }

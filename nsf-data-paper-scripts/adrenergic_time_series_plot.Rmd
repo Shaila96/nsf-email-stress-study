@@ -159,6 +159,21 @@ get_session_name <- function(session_name) {
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
 
+get_abbr_session_name <- function(session_name) {
+  if (session_name=='RestingBaseline') {
+    return('RB')
+  } else if (session_name=='BaselineWriting') {
+    return('ST')
+  } else if (session_name == 'StressCondition') {
+    return('PM')
+  } else if (session_name == 'DualTask') {
+    return('DT')
+  } else if (session_name == 'Presentation') {
+    return('PR')
+  }
+  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+}
+
 get_total_subj_no <- function(df) {
   return(length(levels(factor(df$Subject))))
 }
@@ -247,22 +262,28 @@ generate_signal_plot <- function(col_name) {
     }
     
     if (nrow(session_raw_df) != 0) {
-      if (session_name == 'StressCondition') {
-        raw_data_plot <- ggplot(data=session_raw_df, 
-                                aes_string('TimeElapsed', 
-                                           raw_signal_col_name, 
-                                           group='Subject', 
-                                           colour='StressCondition')) +
-          scale_color_manual(values=c("High"="black", "Low"=session_color_code[3]))
-      } else {
-        raw_data_plot <- ggplot(data=session_raw_df, 
-                                aes_string('TimeElapsed', 
-                                           raw_signal_col_name, 
-                                           group='Subject'))
-      }
+      ###########################################################################
+      ## With SC Color
+      ###########################################################################
+      # if (session_name == 'StressCondition') {
+      #   raw_data_plot <- ggplot(data=session_raw_df, 
+      #                           aes_string('TimeElapsed', 
+      #                                      raw_signal_col_name, 
+      #                                      group='Subject', 
+      #                                      colour='StressCondition')) +
+      #     scale_color_manual(values=c("High"="black", "Low"=session_color_code[3]))
+      # } else {
+      #   raw_data_plot <- ggplot(data=session_raw_df, 
+      #                           aes_string('TimeElapsed', 
+      #                                      raw_signal_col_name, 
+      #                                      group='Subject'))
+      # }
+      ###########################################################################
       
       
-      raw_data_plot <- raw_data_plot +
+      # raw_data_plot <- raw_data_plot +                    ## With SC Color
+      raw_data_plot <- ggplot(data=session_raw_df,          ## Without SC Color
+                                aes_string('TimeElapsed', raw_signal_col_name, group='Subject')) +
         geom_line(alpha = 0.7) +
         annotate("text",
                  x=Inf,
@@ -318,22 +339,28 @@ generate_signal_plot <- function(col_name) {
     
     
     if (nrow(session_filtered_df) != 0) {
-      if (session_name == 'StressCondition') {
-        filtered_data_plot <- ggplot(data=session_filtered_df, 
-                                aes_string('TimeElapsed', 
-                                           col_name, 
-                                           group='Subject', 
-                                           colour='StressCondition')) +
-          scale_color_manual(values = c("High"="black", "Low"=session_color_code[3]))
-      } else {
-        filtered_data_plot <- ggplot(data=session_filtered_df, 
-                                aes_string('TimeElapsed', 
-                                           col_name, 
-                                           group='Subject'))
-      }
+      ###########################################################################
+      ## With SC Color
+      ###########################################################################
+      # if (session_name == 'StressCondition') {
+      #   filtered_data_plot <- ggplot(data=session_filtered_df, 
+      #                           aes_string('TimeElapsed', 
+      #                                      col_name, 
+      #                                      group='Subject', 
+      #                                      colour='StressCondition')) +
+      #     scale_color_manual(values = c("High"="black", "Low"=session_color_code[3]))
+      # } else {
+      #   filtered_data_plot <- ggplot(data=session_filtered_df, 
+      #                           aes_string('TimeElapsed', 
+      #                                      col_name, 
+      #                                      group='Subject'))
+      # }
+      ###########################################################################
       
-      filtered_data_plot <- filtered_data_plot +
-        # ggplot(aes_string('TimeElapsed', col_name, group='Subject')) +
+      
+      # filtered_data_plot <- filtered_data_plot +                  ## With SC Color
+      filtered_data_plot <- ggplot(data=session_filtered_df,        ## Without SC Color
+                                   aes_string('TimeElapsed', col_name, group='Subject')) +
         geom_line(alpha = 0.7) +
         annotate("text", 
                  x=Inf,
@@ -354,13 +381,15 @@ generate_signal_plot <- function(col_name) {
               panel.grid.minor = element_blank(),
               axis.text.y.right=element_blank(),
               axis.ticks.y.right=element_blank(),
-              plot.title = element_text(hjust = 0.5),
+              axis.title.y.right = element_text(angle=0, vjust=0.5),
+              plot.title = element_text(hjust=0.5),
               legend.position='none'
               ) +
         # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
         xlim(0, max_x) +
         xlab(x_axis_label) +
-        ylab(get_y_axis_label(col_name))
+        ylab('')
+        # ylab(get_y_axis_label(col_name))
       
       if (col_name=='N.EDA') {
         filtered_data_plot <- filtered_data_plot + 
@@ -370,14 +399,14 @@ generate_signal_plot <- function(col_name) {
                                max(raw_df[raw_signal_col_name])
                                ),
                              breaks=c(0.01, 1, 5, 20),
-                             sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+                             sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name)))
       } else {
         filtered_data_plot <- filtered_data_plot + 
           scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),  ## filtered_df[col_name]
                                       max(raw_df[raw_signal_col_name])),  ## filtered_df[col_name]
                            # position='right',
                            # labels=get_session_name(session_name))
-                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name)))
+                           sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name)))
       }
       
       if (sess_idx==1) {
@@ -415,8 +444,8 @@ generate_signal_plot <- function(col_name) {
 
 
 generate_filtered_plots <- function() {
-  # signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  signal_list <- c("N.EDA", "N.HR")
+  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
+  # signal_list <- c("N.EDA", "N.HR")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)

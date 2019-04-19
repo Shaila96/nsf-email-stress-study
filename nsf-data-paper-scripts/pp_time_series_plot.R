@@ -77,6 +77,21 @@ get_session_name <- function(session_name) {
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
 
+get_abbr_session_name <- function(session_name) {
+  if (session_name=='RestingBaseline') {
+    return('RB')
+  } else if (session_name=='BaselineWriting') {
+    return('ST')
+  } else if (session_name == 'StressCondition') {
+    return('PM')
+  } else if (session_name == 'DualTask') {
+    return('DT')
+  } else if (session_name == 'Presentation') {
+    return('PR')
+  }
+  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+}
+
 generate_pp_plot <- function() {
   pp_all_df <- read_csv(file.path(data_dir, data_file_name))
   pp_all_df <- pp_all_df[, c(seq(1, 6))]
@@ -124,13 +139,19 @@ generate_pp_plot <- function() {
     
     if (nrow(session_df) != 0) {
       
-      if (session_name == 'StressCondition') {
-        session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject, colour=StressCondition))
-      } else {
-        session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject))
-      }
       
-      session_plot <- session_plot +
+      ###########################################################################
+      ## With SC Color
+      ###########################################################################
+      # if (session_name == 'StressCondition') {
+      #   session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject, colour=StressCondition))
+      # } else {
+      #   session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject))
+      # }
+      ###########################################################################
+      
+      # session_plot <- session_plot +                                                ## With SC Color
+      session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject)) +  ## Without SC Color
         geom_line(alpha=0.7) +
         annotate("text", 
                  x=max_x, 
@@ -151,12 +172,13 @@ generate_pp_plot <- function() {
               panel.grid.minor = element_blank(),
               axis.text.y.right = element_blank(),
               axis.ticks.y.right = element_blank(),
+              axis.title.y.right = element_text(angle=0, vjust=0.5),
               legend.position='none'
               ) +
         scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
         scale_y_continuous(trans='log10', 
                            breaks=pretty_breaks(),
-                           sec.axis=sec_axis(~.+1, name=get_session_name(session_name))) +
+                           sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name))) +
         # scale_y_continuous(limits=c(0, max_y), 
         #                    sec.axis=sec_axis(~.+1, name=get_session_name(session_name)) +
         xlim(0, max_x) +
