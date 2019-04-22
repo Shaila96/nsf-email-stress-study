@@ -135,7 +135,7 @@ get_plot_title <- function(col_name) {
 }
 
 get_filter_no <- function(col_name) {
-  if (is_match(col_name, 'HR')) {
+  if (is_match(col_name, 'HR') | is_match(col_name, 'EDA')) {
     return(' QC2')
   }
   

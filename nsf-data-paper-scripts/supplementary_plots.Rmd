@@ -184,11 +184,11 @@ condition_of_subject <- function(subj, session) {
 }
 
 draw_plots <- function() {
-  subj_list <- levels(factor(filtered_df$Subject))
+  # subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T005', 'T051', 'T145')
   # subj_list <- c('T063', 'T068')
-  # subj_list <- c('T132')
+  subj_list <- c('T011')
   
   for(subj in subj_list) {
     

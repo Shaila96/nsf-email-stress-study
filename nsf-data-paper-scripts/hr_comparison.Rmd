@@ -40,14 +40,14 @@ plots_dir <- 'plots'
 
 
 ### CHANGE THIS
-# filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
-# data_file_name <- 'result_df_first_phase.csv'
-# quality_control_version <- 'qc1'
+filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+data_file_name <- 'result_df_first_phase.csv'
+quality_control_version <- 'qc1'
 
 ### CHANGE THIS
-filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
-data_file_name <- 'result_df_second_phase.csv'
-quality_control_version <- 'qc2'
+# filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+# data_file_name <- 'result_df_second_phase.csv'
+# quality_control_version <- 'qc2'
 
 
 
@@ -320,7 +320,10 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
     theme(text = element_text(size=42),
           # axis.title = element_text(size = 24),
           # plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),
-          axis.text = element_text(size = 32)) 
+          axis.text = element_text(size = 32),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black")) 
   print(plot)
   
   plot_path <- file.path(plots_dir, paste0('regression_', file_name, '_', quality_control_version))
@@ -494,8 +497,8 @@ generate_hr_plot <- function() {
   get_scatter_plot(mean_df,
                    'HR',
                    'N.HR',
-                   'HR_w: Heart Rate [BPM]',
-                   'HR_c: Heart Rate [BPM]',
+                   'Wrist Heart Rate [BPM]',
+                   'Chest Heart Rate [BPM]',
                    'Chest HR vs Wrist HR',
                    'c_hr_vs_w_hr')
   

@@ -192,7 +192,10 @@ box_plot_hr_comparison <- function(df, session_name=NA, plot_title) {
     annotate("text", x=2, y=Inf, label= get_significance_sign(t_test_second_filtered$p.value), vjust = 1.2, size = 10) +
     theme(text = element_text(size=16),
           axis.title = element_text(size = 16),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+          plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black")) 
   print(plot)
   plot_list[[length(plot_list) + 1]] <<- plot
 }

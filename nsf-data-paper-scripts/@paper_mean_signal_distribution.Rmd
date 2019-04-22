@@ -67,12 +67,19 @@ session_color_code <- c("#DC143C",     ## PR
                         "#fceabb"      ## RB
                         )  
 
-legend_order <- c("Resting Baseline",
-                  "Single Task",
+
+legend_order <- c("RB",
+                  "ST",
                   # "Relaxing Video",
                   # "Stroop",
-                  "Dual Task",
-                  "Presentation")
+                  "DT",
+                  "PR")
+# legend_order <- c("Resting Baseline",
+#                   "Single Task",
+#                   # "Relaxing Video",
+#                   # "Stroop",
+#                   "Dual Task",
+#                   "Presentation")
 
 
 
@@ -129,12 +136,12 @@ save_plot <- function(plot_name, plot, width=default_width, height=default_heigh
 }
 
 #---- Add one space if it finds any CamelCase ----#
-get_session_name <- function(session_name) {
-  if (session_name == 'BaselineWriting') {
-    return('Single Task')
-  }
-  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
-}
+# get_session_name <- function(session_name) {
+#   if (session_name == 'BaselineWriting') {
+#     return('Single Task')
+#   }
+#   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+# }
 
 
 # "RestingBaseline" = "Resting Baseline", 
@@ -152,13 +159,21 @@ read_data <- function() {
     #   (Session=="StressCondition" & is_match(Condition, 'H')) ~ 'Stroop',
     #   TRUE ~ Session )) %>% ## Default Condition 
     mutate(Session=recode_factor(Session,
-                                 "Presentation" = "Presentation",
-                                 "DualTask" = "Dual Task",
+                                 "Presentation" = "PR",
+                                 "DualTask" = "DT",
                                  # "Stroop" = "Stroop",
                                  # "Relaxing Video" = "Relaxing Video",
-                                 "BaselineWriting" = "Single Task",
-                                 "RestingBaseline" = "Resting Baseline"
+                                 "BaselineWriting" = "ST",
+                                 "RestingBaseline" = "RB"
                                  ))
+    # mutate(Session=recode_factor(Session,
+    #                              "Presentation" = "Presentation",
+    #                              "DualTask" = "Dual Task",
+    #                              # "Stroop" = "Stroop",
+    #                              # "Relaxing Video" = "Relaxing Video",
+    #                              "BaselineWriting" = "Single Task",
+    #                              "RestingBaseline" = "Resting Baseline"
+    #                              ))
     # mutate(Session=recode_factor(Session,
     #                              "RestingBaseline" = "Resting Baseline",
     #                              "BaselineWriting" = "Single Task",
@@ -241,40 +256,44 @@ draw_plot <- function(signal, total_signal) {
     scale_fill_manual(values=session_color_code,
                       breaks=legend_order) +
     xlab(get_x_label(signal)) +
-    ylab('Probability Density Function')
+    ylab('Probability Density Function') + 
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          plot.margin = unit(c(2, 0.5, 2, 0.5), "lines"))  ##top, right, bottom, left
 
 
   
   
-  cumulative_density_plot <- 
-    mean_df %>%
-    ggplot(aes(mean_df[[signal]], 
-               colour = Session)) + 
-    stat_ecdf(size=1,
-              alpha=0.7,
-              pad = F) +
-    xlab(get_x_label(signal)) +
-    ylab('Cumulative Density Function') +
-    scale_color_manual(values=session_color_code,
-                      breaks=legend_order)
+  # cumulative_density_plot <- 
+  #   mean_df %>%
+  #   ggplot(aes(mean_df[[signal]], 
+  #              colour = Session)) + 
+  #   stat_ecdf(size=1,
+  #             alpha=0.7,
+  #             pad = F) +
+  #   xlab(get_x_label(signal)) +
+  #   ylab('Cumulative Density Function') +
+  #   scale_color_manual(values=session_color_code,
+  #                     breaks=legend_order)
   
   
   
   
     if (length(probability_plot_list)+1 == total_signal) {
       probability_plot_legend <<- get_legend(probability_density_plot + add_bottom_legend())
-      cumulative_plot_legend <<- get_legend(cumulative_density_plot + add_bottom_legend())
+      # cumulative_plot_legend <<- get_legend(cumulative_density_plot + add_bottom_legend())
     }
 
 
   probability_density_plot <- probability_density_plot + remove_legend()
-  cumulative_density_plot <- cumulative_density_plot + remove_legend()
+  # cumulative_density_plot <- cumulative_density_plot + remove_legend()
     
   # print(probability_density_plot)
   # print(cumulative_density_plot)
     
   probability_plot_list[[length(probability_plot_list)+1]] <<- probability_density_plot
-  cumulative_plot_list[[length(cumulative_plot_list)+1]] <<- cumulative_density_plot
+  # cumulative_plot_list[[length(cumulative_plot_list)+1]] <<- cumulative_density_plot
 }
 
 draw_plots <- function() {
@@ -316,14 +335,14 @@ draw_plots <- function() {
   
   
   
-  grid_plot <- plot_grid(plotlist=cumulative_plot_list, cols=2)
-  grid_plot <- plot_grid(grid_plot,
-                         cumulative_plot_legend,
-                         rel_heights = c(10, 1),
-                         align='v',
-                         cols=1)
-  # ### print(grid_plot)
-  save_plot('mean_signal_distribution_cdf', grid_plot)
+  # grid_plot <- plot_grid(plotlist=cumulative_plot_list, cols=2)
+  # grid_plot <- plot_grid(grid_plot,
+  #                        cumulative_plot_legend,
+  #                        rel_heights = c(10, 1),
+  #                        align='v',
+  #                        cols=1)
+  # # ### print(grid_plot)
+  # save_plot('mean_signal_distribution_cdf', grid_plot)
 }
 ``` 
 

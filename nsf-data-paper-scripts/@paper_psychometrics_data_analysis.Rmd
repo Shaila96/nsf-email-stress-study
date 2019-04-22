@@ -62,7 +62,8 @@ na_val <- 'NA'
 default_height <- 10
 default_width <- 15
 
-nasa_color_code <- c('salmon', 'mediumseagreen')
+nasa_color_code <- c('mediumseagreen', 'salmon')
+nasa_custom_color_list <- c()
 
 bio_plot_list <- list()
 personality_plot_list <- list()
@@ -195,7 +196,17 @@ extract_nasa_tlx_score <- function() {
     summarize(Frequency=n())
   
   nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_and_stress_ques_list)
-  # convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+}
+
+add_color <- function(value, value_list) {
+  if(value %in% value_list) {
+      if(value<5) {
+        nasa_custom_color_list <<- c(nasa_custom_color_list, nasa_color_code[1])
+      } 
+    
+    nasa_custom_color_list <<- c(nasa_custom_color_list, nasa_color_code[2])
+  }
 }
 
 draw_group_bar_chart_nasa_tlx <- function() {
@@ -226,7 +237,11 @@ draw_group_bar_chart_nasa_tlx <- function() {
     temp_nasa_long_df$title <- ques_sub_type
     
     print_msg(str(temp_nasa_long_df))
-
+    
+    # sapply(seq(1, 4), function(x) add_color(nasa_color_code[1]))
+    # sapply(seq(5, 7), function(x) add_color(nasa_color_code[2]))
+    sapply(seq(1, 7), function(value) add_color(value, temp_nasa_long_df$Value))
+    
     nasa_hist_plot <- temp_nasa_long_df %>%
       ggplot(aes(x=Value, fill=factor(Value))) +
       geom_bar() +
@@ -234,7 +249,8 @@ draw_group_bar_chart_nasa_tlx <- function() {
       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
       xlab(x_lab_hist) +
       ylab('Frequency') +
-      scale_fill_manual(values=c(rep(nasa_color_code[1], 4), rep(nasa_color_code[2], 3))) +
+      # scale_fill_manual(values=c(rep(nasa_color_code[1], 4), rep(nasa_color_code[2], 3))) +
+      scale_fill_manual(values=nasa_custom_color_list) +
       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)),
                                   max(get_x_limit(ques_sub_type)),
                                   by=get_break_no(title)),
@@ -1113,9 +1129,11 @@ combine_psychometric_plots <- function() {
   # save_plot('personality_plots', right_side_plot)
   # final_plot <- plot_grid(right_side_plot, bfi_grid_plot, labels = c('A', ''), ncol = 2, rel_width = c(1, 1))
   final_plot <- plot_grid(bfi_grid_plot, 
+                          NULL,
                           right_side_plots, 
-                          labels=c('A', ''), 
-                          ncol=2)
+                          rel_widths =c(1, 0.05, 1),
+                          labels=c('A', '', ''), 
+                          ncol=3)
   save_plot('personality_plot_combined', final_plot)
 }
 
