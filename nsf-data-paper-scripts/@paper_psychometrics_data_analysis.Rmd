@@ -94,12 +94,15 @@ bfi_ques_list <- c ('SubjectID',
                     'BFI_Q41', 'BFI_Q42', 'BFI_Q43', 'BFI_Q44')
 
 age_order <- c(seq(20, 50, by=5))
-education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
-occupation_order <- c('Undergraduate student', 'Graduate student', 'Staff')
-writing_proficiency_order <- c('1=Not fluent at all', '2', '3', '4', '5', '6', '7=Very fluent')
-email_freq_order <- c('1=Never', '2', '3', '4', '5', '6', '7=Very often')
-nationality_order <- c('United States', 'Others')
-native_lang_order <- c('English', 'Others')
+education_order <- c('High School', 'Undergraduate', 'Masters', 'Ph.D.')
+writing_proficiency_order <- c('1', '2', '3', '4', '5', '6', '7')
+email_freq_order <- c('1', '2', '3', '4', '5', '6', '7')
+# education_order <- c('High school or below', 'Undergraduate', 'Master or equivalent', 'PhD, JD, or equivalent')
+# occupation_order <- c('Undergraduate student', 'Graduate student', 'Staff')
+# writing_proficiency_order <- c('1=Not fluent at all', '2', '3', '4', '5', '6', '7=Very fluent')
+# email_freq_order <- c('1=Never', '2', '3', '4', '5', '6', '7=Very often')
+# nationality_order <- c('United States', 'Others')
+# native_lang_order <- c('English', 'Others')
 
 
 # nasa_tlx_ques_list <- c('Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
@@ -253,13 +256,13 @@ draw_group_bar_chart_nasa_tlx <- function() {
       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)),
                                   max(get_x_limit(ques_sub_type)),
                                   by=get_break_no(title)),
-                         labels=c('1' = '1 = Strongly disagree',
-                                  '2' = '2',
-                                  '3' = '3',
-                                  '4' = '4',
-                                  '5' = '5',
-                                  '6' = '6',
-                                  '7' = '7 = Strongly agree'),
+                         # labels=c('1' = '1',
+                         #          '2' = '2',
+                         #          '3' = '3',
+                         #          '4' = '4',
+                         #          '5' = '5',
+                         #          '6' = '6',
+                         #          '7' = '7'),
                          # labels=c('1' = 'Strongly disagree',
                          #          '2' = 'Disagree',
                          #          '3' = 'Somewhat disagree',
@@ -271,8 +274,8 @@ draw_group_bar_chart_nasa_tlx <- function() {
       # scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#999999", "#E69F00", "#56B4E9", "#56B4E9")) +
       theme_bw() +
       theme(text = element_text(size=20),
-            axis.text.x = element_text(size=16),
-            strip.text.x = element_text(size=18),
+            axis.text.x = element_text(size=22),
+            strip.text.x = element_text(size=20),
             legend.position = 'none',
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
@@ -315,7 +318,7 @@ draw_group_bar_chart_nasa_tlx <- function() {
       # annotate(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') +
       theme_bw() +
       theme(axis.title.y = element_blank(),
-            axis.text.x = element_text(size=16),
+            axis.text.x = element_text(size=20),
             text = element_text(size=20),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
@@ -657,43 +660,44 @@ get_bio_bar_plot_df <- function(col_name) {
                                         '1' = 'Male', 
                                         '2' = 'Female'))
   } else if (col_name == 'Education') {
-    df <- df %>% mutate(Education = recode(Education, 
-                                        '1' = 'High school or below', 
-                                        '2' = 'Undergraduate',
-                                        '3' = 'Master or equivalent',
-                                        '4' = 'PhD, JD, or equivalent'))
-  } else if (col_name == 'Occupation') {
-    df <- df %>% mutate(Occupation = recode(Occupation, 
-                                        '1' = 'Undergraduate student', 
-                                        '2' = 'Graduate student',
-                                        '3' = 'Staff'))
+    df <- df %>% mutate(Education = recode(Education,
+                                        '1' = education_order[1],
+                                        '2' = education_order[2],
+                                        '3' = education_order[3],
+                                        '4' = education_order[4]))
   } else if (col_name == 'Writing_Proficiency') {
-    df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency, 
-                                        '1' = '1=Not fluent at all', 
-                                        '2' = '2',
-                                        '3' = '3',
-                                        '4' = '4', 
-                                        '5' = '5',
-                                        '6' = '6',
-                                        '7' = '7=Very fluent'))
+    df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency,
+                                        '1' = writing_proficiency_order[1],
+                                        '2' = writing_proficiency_order[2],
+                                        '3' = writing_proficiency_order[3],
+                                        '4' = writing_proficiency_order[4],
+                                        '5' = writing_proficiency_order[5],
+                                        '6' = writing_proficiency_order[6],
+                                        '7' = writing_proficiency_order[7]))
   } else if (col_name == 'Daily_Email_Frequency') {
-    df <- df %>% mutate(Daily_Email_Frequency = recode(Daily_Email_Frequency, 
-                                        '1' = '1=Never', 
-                                        '2' = '2',
-                                        '3' = '3',
-                                        '4' = '4', 
-                                        '5' = '5',
-                                        '6' = '6',
-                                        '7' = '7=Very often'))
-  } else if (col_name == 'Nationality') {
-    df <- df %>% mutate(Nationality = recode(Nationality, 
-                                        '1' = 'United States', 
-                                        '2' = 'Others'))
-  } else if (col_name == 'Native_Language') {
-    df <- df %>% mutate(Native_Language = recode(Native_Language, 
-                                        '1' = 'English', 
-                                        '2' = 'Others'))
+    df <- df %>% mutate(Daily_Email_Frequency = recode(Daily_Email_Frequency,
+                                        '1' = email_freq_order[1],
+                                        '2' = email_freq_order[2],
+                                        '3' = email_freq_order[3],
+                                        '4' = email_freq_order[4],
+                                        '5' = email_freq_order[5],
+                                        '6' = email_freq_order[6],
+                                        '7' = email_freq_order[7]))
   }
+  # else if (col_name == 'Occupation') {
+  #   df <- df %>% mutate(Occupation = recode(Occupation, 
+  #                                       '1' = 'Undergraduate student', 
+  #                                       '2' = 'Graduate student',
+  #                                       '3' = 'Staff'))
+  # } else if (col_name == 'Nationality') {
+  #   df <- df %>% mutate(Nationality = recode(Nationality, 
+  #                                       '1' = 'United States', 
+  #                                       '2' = 'Others'))
+  # } else if (col_name == 'Native_Language') {
+  #   df <- df %>% mutate(Native_Language = recode(Native_Language, 
+  #                                       '1' = 'English', 
+  #                                       '2' = 'Others'))
+  # }
   
   return(df)
 }
@@ -730,17 +734,24 @@ get_order <- function(col_name) {
     return(age_order)
   } else if (col_name == 'Education') {
     return(education_order)
-  } else if (col_name == 'Occupation') {
-    return(occupation_order)
-  } else if (col_name == 'Writing_Proficiency') {
+  } 
+  
+  # else if (col_name == 'Occupation') {
+  #   return(occupation_order)
+  # } 
+  
+  else if (col_name == 'Writing_Proficiency') {
     return(writing_proficiency_order)
-  } else if (col_name == 'Daily_Email_Frequency') {
+  } 
+  
+  else if (col_name == 'Daily_Email_Frequency') {
     return(email_freq_order)
-  } else if (col_name == 'Nationality') {
-    return(nationality_order)
-  } else if (col_name == 'Native_Language') {
-    return(native_lang_order)
   }
+  # else if (col_name == 'Nationality') {
+  #   return(nationality_order)
+  # } else if (col_name == 'Native_Language') {
+  #   return(native_lang_order)
+  # }
 }
 
 get_x_lab <- function(col_name) {
@@ -764,16 +775,24 @@ get_x_text_size <- function(col_name) {
   #   return(12)
   # }
   
-  return(12)
+  return(18)
+}
+
+get_biographic_y_lab <- function(col_name) {
+  if (col_name %in% c('Age', 'Education', 'Writing_Proficiency')) {
+    return('Frequency')
+  }
+  
+  return('')
 }
   
 
-draw_biographic_distribution <- function(col_name) {
+draw_biographic_distribution <- function(col_name, plot_label) {
   plot_df <- get_bio_bar_plot_df(col_name)
   # print_msg(plot_df[plot_df$Age>45,])
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
-  y_lab <- 'Frequency'
+  y_lab <- get_biographic_y_lab(col_name)
   
   plot_df$title <- paste0(replace_underscore(col_name), ' Distribution')
   plot_df$title <- get_title(col_name)
@@ -787,15 +806,17 @@ draw_biographic_distribution <- function(col_name) {
     theme_bw() +
     theme(
       plot.title=element_text(hjust=0.5),
-      text=element_text(size=14),
+      text=element_text(size=18),
       # axis.title=element_text(size=20),
-      strip.text.x = element_text(size = 16), 
+      strip.text.x = element_text(size = 20), 
       axis.title.x = element_blank(),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       axis.line = element_line(colour = "black"),
       # axis.text.x=element_blank(),
+      plot.margin = unit(c(1, 0.5, 0.5, 0.5), "lines"),  ##top, right, bottom, left
       axis.text.x = element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
+      # axis.text.y = element_text(size=18),
       legend.position = 'none'
       )
   
@@ -807,20 +828,29 @@ draw_biographic_distribution <- function(col_name) {
                  linetype='dashed', 
                  size=1)
   }
+  
+  plot <- arrangeGrob(plot, top = textGrob(toupper(plot_label),
+                                        x = unit(0, "npc"),
+                                        y = unit(1, "npc"),
+                                        vjust = 2, 
+                                        hjust = -1.5,
+                                        just = c("left","top"),
+                                        gp = gpar(col="black", fontsize=22, fontface="bold")
+                                       ))
+  
   bio_plot_list[[length(bio_plot_list) + 1]] <<- plot
   # print(plot)
   # save_plot(replace_dot_space(title), plot)
 }
 
 get_biographic_distribution <- function() {
-  draw_biographic_distribution('Age')
-  draw_biographic_distribution('Gender')
-  draw_biographic_distribution('Writing_Proficiency')
-  draw_biographic_distribution('Daily_Email_Frequency')
-  draw_biographic_distribution('Education')
-  # draw_biographic_distribution('Occupation')
+  draw_biographic_distribution('Age', 'A')
+  draw_biographic_distribution('Gender', 'B')
+  draw_biographic_distribution('Writing_Proficiency', 'C')
+  draw_biographic_distribution('Daily_Email_Frequency', 'D')
+  draw_biographic_distribution('Education', 'E')
   
-  
+  #### draw_biographic_distribution('Occupation')
   #### draw_biographic_distribution('Nationality')
   #### draw_biographic_distribution('Native_Language')
   
@@ -974,7 +1004,7 @@ draw_pss_plot <- function() {
     coord_cartesian(xlim = c(0, 40)) +  ## min_val=0, max_val=40
     # xlab('Scale Range') +
     xlab('') +
-    ylab('Frequency') +
+    ylab('') +
     # scale_x_discrete(breaks=c(1:7)) +
     geom_vline(data=pss_score_df, 
                  mapping=aes(xintercept=mean(Value)),
@@ -1128,7 +1158,7 @@ draw_erq_plot <- function() {
       facet_grid(.~title) +
       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
       xlab(x_lab) +
-      ylab('Frequency') +   ##'Frequency'
+      ylab('') +   ##'Frequency'
       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)), 
                                     max(get_x_limit(ques_sub_type)), 
                                     by=get_break_no(title))) +
@@ -1279,8 +1309,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_biographic_info()
-# get_biographic_distribution()
+extract_biographic_info()
+get_biographic_distribution()
 ```
 
 
@@ -1301,28 +1331,28 @@ read_data()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-combine_psychometric_plots()
+# combine_psychometric_plots()
 ```
 
 

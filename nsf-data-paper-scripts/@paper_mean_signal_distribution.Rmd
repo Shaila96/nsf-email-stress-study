@@ -211,6 +211,14 @@ get_x_label <- function(signal) {
   return('Unknown axis.')
 }
 
+get_y_label <- function(signal) {
+  if (is_match(signal, 'PP') | signal=='HR' | signal=='BR') { 
+    return('PDF')
+  } else if (is_match(signal, 'N.HR') | is_match(signal, 'EDA')) { 
+    return('')
+  }
+}
+
 # get_color <- function(signal) {
 #   if(signal=="Resting Baseline") {
 #     return("#DC143C")
@@ -225,7 +233,7 @@ get_x_label <- function(signal) {
 
 add_bottom_legend <- function() {
   theme(legend.position="bottom",
-              # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+              legend.spacing.x = unit(0.2, 'cm'), ## Distance between legend key and legend text
               legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
               legend.direction = "horizontal",
               legend.justification="center",
@@ -256,7 +264,8 @@ draw_plot <- function(signal, total_signal) {
     scale_fill_manual(values=session_color_code,
                       breaks=legend_order) +
     xlab(get_x_label(signal)) +
-    ylab('Probability Density Function') + 
+    ylab(get_y_label(signal)) + 
+    # ylab('Probability Density Function') + 
     theme(panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
