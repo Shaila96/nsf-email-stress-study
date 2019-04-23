@@ -535,13 +535,17 @@ draw_ets_plots <- function() {
     ylab('Probability Density Functions') +
     # scale_y_continuous(labels = scientific) +
     guides(fill = guide_legend(reverse=T)) +
+    theme_bw() +
     theme(text = element_text(size=20),
           panel.spacing=unit(2, 'lines'),
           legend.position='top',
           # legend.key.size = unit(1, "cm"),
           legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
           legend.text = element_text(margin=margin(r=25, unit="pt")), ## Distance between legends
-          legend.title=element_blank())
+          legend.title=element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"))
 
   print(ets_plot)
   save_plot('ets_score', ets_plot)

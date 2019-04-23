@@ -201,11 +201,12 @@ extract_nasa_tlx_score <- function() {
 
 add_color <- function(value, value_list) {
   if(value %in% value_list) {
+      # print_msg(value)
       if(value<5) {
         nasa_custom_color_list <<- c(nasa_custom_color_list, nasa_color_code[1])
-      } 
-    
-    nasa_custom_color_list <<- c(nasa_custom_color_list, nasa_color_code[2])
+      } else {
+        nasa_custom_color_list <<- c(nasa_custom_color_list, nasa_color_code[2])
+      }
   }
 }
 
@@ -236,10 +237,9 @@ draw_group_bar_chart_nasa_tlx <- function() {
     temp_nasa_long_df <- nasa_tlx_long_df[nasa_tlx_long_df$Title==ques_sub_type, ]
     temp_nasa_long_df$title <- ques_sub_type
     
-    print_msg(str(temp_nasa_long_df))
-    
-    # sapply(seq(1, 4), function(x) add_color(nasa_color_code[1]))
-    # sapply(seq(5, 7), function(x) add_color(nasa_color_code[2]))
+    # print_msg(str(temp_nasa_long_df))
+
+    nasa_custom_color_list <<- c() ## re-initialization before assigining values
     sapply(seq(1, 7), function(value) add_color(value, temp_nasa_long_df$Value))
     
     nasa_hist_plot <- temp_nasa_long_df %>%
@@ -247,27 +247,36 @@ draw_group_bar_chart_nasa_tlx <- function() {
       geom_bar() +
       facet_grid(. ~ title) +
       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
-      xlab(x_lab_hist) +
+      xlab('') + ##x_lab_hist
       ylab('Frequency') +
-      # scale_fill_manual(values=c(rep(nasa_color_code[1], 4), rep(nasa_color_code[2], 3))) +
       scale_fill_manual(values=nasa_custom_color_list) +
       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)),
                                   max(get_x_limit(ques_sub_type)),
                                   by=get_break_no(title)),
-                         labels=c('1' = 'Strongly disagree',
-                                  '2' = 'Disagree',
-                                  '3' = 'Somewhat disagree',
-                                  '4' = 'Neither agree or disagree',
-                                  '5' = 'Somewhat agree',
-                                  '6' = 'Agree',
-                                  '7' = 'Strongly agree'),
+                         labels=c('1' = '1 = Strongly disagree',
+                                  '2' = '2',
+                                  '3' = '3',
+                                  '4' = '4',
+                                  '5' = '5',
+                                  '6' = '6',
+                                  '7' = '7 = Strongly agree'),
+                         # labels=c('1' = 'Strongly disagree',
+                         #          '2' = 'Disagree',
+                         #          '3' = 'Somewhat disagree',
+                         #          '4' = 'Neither agree or disagree',
+                         #          '5' = 'Somewhat agree',
+                         #          '6' = 'Agree',
+                         #          '7' = 'Strongly agree'),
                          expand=expand_scale(mult=c(0.1, 0.1), add=c(0, 0))) +
       # scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#999999", "#E69F00", "#56B4E9", "#56B4E9")) +
       theme_bw() +
       theme(text = element_text(size=20),
-            axis.text.x = element_text(size=10),
+            axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
-            legend.position = 'none')
+            legend.position = 'none',
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"))
 
     if (length(plot_list)+1 != length(ques_sub_type_levels)) {
       nasa_hist_plot <- nasa_hist_plot +
@@ -298,13 +307,19 @@ draw_group_bar_chart_nasa_tlx <- function() {
       scale_fill_manual(values=c(nasa_color_code[1], nasa_color_code[2])) +
       scale_y_continuous(breaks=seq(0, 50, by=10),
                          expand=expand_scale(mult=c(0, 0.1), add=c(0, 0))) +
-      scale_x_discrete(labels=c('disagree_freq' = 'Neutral/Disagreement',
-                                'agree_freq' = 'Agreement')) +
-      geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6) +
+      scale_x_discrete(labels=c('disagree_freq' = '1-4',
+                                'agree_freq' = '5-7')) +
+      # scale_x_discrete(labels=c('disagree_freq' = 'Neutral/Disagreement',
+      #                           'agree_freq' = 'Agreement')) +
+      geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
+      # annotate(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') +
       theme_bw() +
       theme(axis.title.y = element_blank(),
-            axis.text.x = element_text(size=10),
+            axis.text.x = element_text(size=16),
             text = element_text(size=20),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
             legend.position = 'none')
 
     if (length(plot_list)+1 != length(ques_sub_type_levels)) {
@@ -402,6 +417,87 @@ draw_group_bar_chart_nasa_tlx <- function() {
   ###########################################################
 }
 
+draw_stress_ques_bar_plot <- function() {
+  # title <- 'NASA TLX'
+  ques_sub_type <- 'Stress_Question'
+  stress_ques_long_df <- nasa_tlx_df %>%
+    gather(Title, Value, -SubjectID) %>% ## making the data wide to long for all signals
+    filter(Title == ques_sub_type) %>% 
+    mutate(Title='Stress Question')
+
+  plot_list <- list()
+  x_lab_bar <- ''
+  
+  nasa_custom_color_list <<- c() ## re-initialization before assigining values
+  sapply(seq(1, 7), function(value) add_color(value, stress_ques_long_df$Value))
+  
+  nasa_hist_plot <- stress_ques_long_df %>%
+    ggplot(aes(x=Value, fill=factor(Value))) +
+    geom_bar() +
+    facet_grid(. ~ Title) +
+    coord_cartesian(xlim=c(1, 7)) +
+    xlab('') + ##x_lab_hist
+    ylab('Frequency') +
+    scale_fill_manual(values=nasa_custom_color_list) +
+    scale_x_continuous(breaks=seq(1, 7),
+                       labels=c('1' = '1 = Strongly disagree',
+                                '2' = '2',
+                                '3' = '3',
+                                '4' = '4',
+                                '5' = '5',
+                                '6' = '6',
+                                '7' = '7 = Strongly agree'),
+                       expand=expand_scale(mult=c(0.1, 0.1), add=c(0, 0))) +
+    theme_bw() +
+    theme(text = element_text(size=20),
+          axis.text.x = element_text(size=16),
+          strip.text.x = element_text(size=18),
+          legend.position = 'none',
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"))
+
+  
+  temp_stress_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question=='Stress_Question', ]
+  
+  agree_df <- temp_stress_df %>%
+    filter(Answer > 4) %>%
+    summarize(agree_freq = sum(Frequency))
+  
+  disagree_df <- temp_stress_df %>%
+    filter(Answer <= 4) %>%
+    summarize(disagree_freq = sum(Frequency))
+  
+  freq_df <- merge(agree_df, disagree_df, by='Question')
+  
+  nasa_bar_plot <- get_nasa_bar_plot_df(freq_df) %>%
+    mutate(Options=factor(Options, c('disagree_freq', 'agree_freq'))) %>%
+    ggplot(aes(x=Options, y=Frequency, fill=Options)) +
+    geom_bar(stat='identity') +
+    xlab(x_lab_bar) +
+    scale_fill_manual(values=c(nasa_color_code[1], nasa_color_code[2])) +
+    scale_y_continuous(breaks=seq(0, 50, by=10),
+                       expand=expand_scale(mult=c(0, 0.1), add=c(0, 0))) +
+    scale_x_discrete(labels=c('disagree_freq' = '1-4',
+                              'agree_freq' = '5-7')) +
+    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
+    theme_bw() +
+    theme(axis.title.y = element_blank(),
+          axis.text.x = element_text(size=16),
+          text = element_text(size=20),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.position = 'none')
+  
+    grid_plot <- plot_grid(nasa_hist_plot,
+                           NULL,
+                           nasa_bar_plot,
+                           align='h',
+                           rel_widths=c(4, 0.005, 1),
+                           cols=3)
+  save_plot('stress_ques_histogram_prop_test', grid_plot, height=5)
+}
 
 
 # generate_nasa_bar_plot <- function(df, title) {
@@ -694,12 +790,23 @@ draw_biographic_distribution <- function(col_name) {
       text=element_text(size=14),
       # axis.title=element_text(size=20),
       strip.text.x = element_text(size = 16), 
-      axis.title.x=element_blank(),
+      axis.title.x = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(colour = "black"),
       # axis.text.x=element_blank(),
-      axis.text.x=element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
-      legend.position='none'
+      axis.text.x = element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
+      legend.position = 'none'
       )
   
+  if (col_name == 'Age') {
+    plot <- plot + 
+      geom_vline(data=plot_df, 
+                 mapping=aes(xintercept=mean(plot_df[[col_name]])),
+                 color='red', 
+                 linetype='dashed', 
+                 size=1)
+  }
   bio_plot_list[[length(bio_plot_list) + 1]] <<- plot
   # print(plot)
   # save_plot(replace_dot_space(title), plot)
@@ -869,11 +976,19 @@ draw_pss_plot <- function() {
     xlab('') +
     ylab('Frequency') +
     # scale_x_discrete(breaks=c(1:7)) +
+    geom_vline(data=pss_score_df, 
+                 mapping=aes(xintercept=mean(Value)),
+                 color='red', 
+                 linetype='dashed', 
+                 size=1) +
     theme_bw() +
     theme(plot.title = element_text(hjust=0.5),
           text=element_text(size=16),
           # axis.title = element_text(size=20),
           # axis.text.x = element_text(size=16),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
           legend.position = 'none')
   
   personality_plot_list[[length(personality_plot_list)+1]] <<- hist_plot
@@ -1018,12 +1133,20 @@ draw_erq_plot <- function() {
                                     max(get_x_limit(ques_sub_type)), 
                                     by=get_break_no(title))) +
                                     # by=4)) +
+      geom_vline(data=temp_df, 
+                 mapping=aes(xintercept=mean(Value)),
+                 color='red', 
+                 linetype='dashed', 
+                 size=1) +
       theme_bw() +
       theme(legend.position = 'none',
             plot.title = element_text(hjust=0.5),
             text = element_text(size=16),
             # axis.text.x = element_text(size=16),
-            strip.text.x = element_text(size=18))
+            strip.text.x = element_text(size=18),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"))
     
     if (length(plot_list) == 0) {
       hist_plot <- hist_plot + ggtitle(title)
@@ -1080,12 +1203,20 @@ draw_bfi_plot <- function() {
                                     max(get_x_limit(ques_sub_type)), 
                                     by=get_break_no(title))) +
                                     # by=4)) +
+      geom_vline(data=temp_df, 
+                 mapping=aes(xintercept=mean(Value)),
+                 color='red', 
+                 linetype='dashed', 
+                 size=1) +
       theme_bw() +
       theme(legend.position = 'none',
             plot.title = element_text(hjust=0.5),
             text = element_text(size=16),
             # axis.text.x = element_text(size=16),
-            strip.text.x = element_text(size=18))
+            strip.text.x = element_text(size=18),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"))
     
     if (length(plot_list) == 0) {
       hist_plot <- hist_plot + ggtitle(title)
@@ -1154,14 +1285,12 @@ read_data()
 
 
 
-
-
-
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
+# draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
 ```
 
@@ -1172,28 +1301,28 @@ draw_group_bar_chart_nasa_tlx()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_bfi_score()
-# draw_bfi_plot()
+extract_bfi_score()
+draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_erq_score()
-# draw_erq_plot()
+extract_erq_score()
+draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_pss_score()
-# draw_pss_plot()
+extract_pss_score()
+draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# combine_psychometric_plots()
+combine_psychometric_plots()
 ```
 
 
