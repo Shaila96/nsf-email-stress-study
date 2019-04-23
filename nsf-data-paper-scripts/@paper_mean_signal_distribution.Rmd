@@ -233,21 +233,21 @@ get_y_label <- function(signal) {
 
 add_bottom_legend <- function() {
   theme(legend.position="bottom",
-              legend.spacing.x = unit(0.2, 'cm'), ## Distance between legend key and legend text
-              legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
-              legend.direction = "horizontal",
-              legend.justification="center",
-              legend.title = element_blank())
+        legend.spacing.x = unit(0.2, 'cm'), ## Distance between legend key and legend text
+        legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+        legend.direction = "horizontal",
+        legend.justification="center",
+        legend.title = element_blank())
       ## +
       ##   guides(col = guide_legend(nrow = 1))
 }
 
 remove_legend <- function() {
-  theme(legend.position="none",
+  theme(legend.position="none")
     # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
     # legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
     # legend.title = element_blank(),
-    axis.title.y = element_text(size=13))
+    # axis.title.y = element_text(size=13))
 }
 
 draw_plot <- function(signal, total_signal) {
@@ -266,7 +266,10 @@ draw_plot <- function(signal, total_signal) {
     xlab(get_x_label(signal)) +
     ylab(get_y_label(signal)) + 
     # ylab('Probability Density Function') + 
-    theme(panel.grid.major = element_blank(),
+    theme(text=element_text(size=18),
+          axis.text = element_text(size=16),
+          # axis.title.y=element_text(size=18),
+          panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           plot.margin = unit(c(2, 0.5, 0.5, 0.5), "lines"))  ##top, right, bottom, left

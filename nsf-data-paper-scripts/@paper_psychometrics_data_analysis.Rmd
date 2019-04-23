@@ -815,6 +815,7 @@ draw_biographic_distribution <- function(col_name, plot_label) {
       axis.line = element_line(colour = "black"),
       # axis.text.x=element_blank(),
       plot.margin = unit(c(1, 0.5, 0.5, 0.5), "lines"),  ##top, right, bottom, left
+      axis.title.y = element_text(margin = margin(0, 8, 0, 0)),  ##top, right, bottom, left
       axis.text.x = element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
       # axis.text.y = element_text(size=18),
       legend.position = 'none'

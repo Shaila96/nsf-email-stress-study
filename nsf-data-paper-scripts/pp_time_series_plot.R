@@ -25,7 +25,8 @@ plots_dir <- 'plots'
 
 data_file_name <- 'full_df_second_phase_filtered.csv'
 # grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC'[0], ' signal sets'))
-grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
+# grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
+grid_plot_title <- bquote(paste('QC0', ' signal sets'))
 y_axis_label <- bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))
 
 plot_list <- list()
@@ -158,6 +159,7 @@ generate_pp_plot <- function() {
                  y=max_y, 
                  hjust=1, 
                  vjust=1, 
+                 size=5,
                  label=subj_no_annot,
                  fontface = 'italic')
       
@@ -172,7 +174,12 @@ generate_pp_plot <- function() {
               panel.grid.minor = element_blank(),
               axis.text.y.right = element_blank(),
               axis.ticks.y.right = element_blank(),
-              axis.title.y.right = element_text(angle=0, vjust=0.5),
+              axis.title.y.right = element_text(angle=0, vjust=0.5, face='bold'),
+              text=element_text(size=14),
+              axis.text.x=element_text(size=16),
+              axis.text.y=element_text(size=12),
+              # axis.title=element_text(size=20),
+              # strip.text.x = element_text(size = 20), 
               legend.position='none'
               ) +
         scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
@@ -203,7 +210,7 @@ generate_pp_plot <- function() {
   #---- THIS GRID PLOT CONTAINS ALL THE SINGLE PLOT----#
   grid_plot <- do.call('grid.arrange', c(plot_list, ncol=1))
   grid_plot <- grid.arrange(grid_plot, 
-                            top=textGrob(grid_plot_title, gp=gpar(fontsize=10, font=1)))
+                            top=textGrob(grid_plot_title, gp=gpar(fontsize=16, font=1)))
   
   print(grid_plot)
   

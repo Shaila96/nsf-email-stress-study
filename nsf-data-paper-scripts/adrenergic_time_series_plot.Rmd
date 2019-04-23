@@ -97,15 +97,28 @@ isMatch <- function(str, pattern) {
 } 
 
 get_y_axis_label <- function(col_name) { 
-  if (isMatch(col_name, 'HR')) { 
-    return('Heart Rate [BPM]') 
+  if (col_name=='HR') { 
+    return('Chest HR [BPM]') 
+  } else if (col_name=='N.HR') { 
+    return('Wrist HR [BPM]') 
   } else if (isMatch(col_name, 'BR')) { 
-    return('Breathing Rate [BPM]') 
+    return('BR [BPM]') 
   } else if (isMatch(col_name, 'N.EDA')) { 
     return(expression(paste('log'[10], '(EDA [', mu, 'S])'))) 
   } 
   return('Unknown axis') 
 } 
+
+# get_y_axis_label <- function(col_name) { 
+#   if (isMatch(col_name, 'HR')) { 
+#     return('Heart Rate [BPM]') 
+#   } else if (isMatch(col_name, 'BR')) { 
+#     return('Breathing Rate [BPM]') 
+#   } else if (isMatch(col_name, 'N.EDA')) { 
+#     return(expression(paste('log'[10], '(EDA [', mu, 'S])'))) 
+#   } 
+#   return('Unknown axis') 
+# } 
 
 # get_plot_title <- function(col_name) {
 #   if (col_name == 'HR') { 
@@ -127,7 +140,7 @@ get_plot_title <- function(col_name) {
   } else if (isMatch(col_name, 'BR')) { 
     return('Breathing Rate')
   } else if (isMatch(col_name, 'N.EDA')) { 
-    return('Electrodermal Activity') 
+    return('EDA') 
   } else if (isMatch(col_name, 'N.HR')) { 
     return('Wrist HR') 
   } 
@@ -288,8 +301,9 @@ generate_signal_plot <- function(col_name) {
         annotate("text",
                  x=Inf,
                  y=Inf,
-                 hjust=1.5,
-                 vjust=2,
+                 hjust=1.2,
+                 vjust=1.5,
+                 size=4.5,
                  label=get_subj_no_label(get_total_subj_no(session_raw_df)),
                  fontface = 'italic')
       
@@ -305,6 +319,9 @@ generate_signal_plot <- function(col_name) {
               axis.text.y.right=element_blank(),
               axis.ticks.y.right=element_blank(),
               plot.title = element_text(hjust = 0.5),
+              text=element_text(size=14),
+              axis.text.x=element_text(size=16),
+              axis.text.y=element_text(size=12),
               legend.position='none'
               ) +
         # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
@@ -330,7 +347,8 @@ generate_signal_plot <- function(col_name) {
       
       if (sess_idx==1) {
         raw_data_plot <- raw_data_plot + 
-          ggtitle(paste0(get_plot_title(col_name), ': raw signal sets'))
+          ggtitle('Raw signal sets')
+          # ggtitle(paste0(get_plot_title(col_name), ': raw signal sets'))
       }
    
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
@@ -365,8 +383,9 @@ generate_signal_plot <- function(col_name) {
         annotate("text", 
                  x=Inf,
                  y=Inf,
-                 hjust=1.5,
-                 vjust=2,
+                 hjust=1.2,
+                 vjust=1.5,
+                 size=4.5,
                  label=get_subj_no_label(get_total_subj_no(session_filtered_df)),
                  fontface = 'italic')
       
@@ -381,8 +400,11 @@ generate_signal_plot <- function(col_name) {
               panel.grid.minor = element_blank(),
               axis.text.y.right=element_blank(),
               axis.ticks.y.right=element_blank(),
-              axis.title.y.right = element_text(angle=0, vjust=0.5),
+              axis.title.y.right = element_text(angle=0, vjust=0.5, face='bold'),
               plot.title = element_text(hjust=0.5),
+              text=element_text(size=14),
+              axis.text.x=element_text(size=16),
+              axis.text.y=element_text(size=12),
               legend.position='none'
               ) +
         # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
@@ -411,7 +433,8 @@ generate_signal_plot <- function(col_name) {
       
       if (sess_idx==1) {
         filtered_data_plot <- filtered_data_plot + 
-          ggtitle(paste0(get_plot_title(col_name), ': ',  get_filter_no(col_name), ' signal sets'))
+          # ggtitle(paste0(get_plot_title(col_name), ': ',  get_filter_no(col_name), ' signal sets'))
+          ggtitle(paste0(get_filter_no(col_name), ' signal sets'))
       }
       
       # print_msg(min(raw_df[raw_signal_col_name]))
@@ -445,7 +468,7 @@ generate_signal_plot <- function(col_name) {
 
 generate_filtered_plots <- function() {
   signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("N.EDA", "N.HR")
+  # signal_list <- c("BR", "N.EDA")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)

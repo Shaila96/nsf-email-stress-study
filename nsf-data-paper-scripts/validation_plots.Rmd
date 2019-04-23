@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "HR"
+signal_name <- "N.EDA"
 
 
 ## CHANGE THIS!!!!
