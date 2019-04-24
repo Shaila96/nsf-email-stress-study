@@ -659,6 +659,12 @@ get_bio_bar_plot_df <- function(col_name) {
     df <- df %>% mutate(Gender = recode(Gender, 
                                         '1' = 'Male', 
                                         '2' = 'Female'))
+    
+    # print_msg('Gender')
+    # print_msg(str(df))
+    # print_msg(nrow(df[df$Gender=='Male',]))
+    # print_msg(nrow(df[df$Gender=='Female',]))
+    
   } else if (col_name == 'Education') {
     df <- df %>% mutate(Education = recode(Education,
                                         '1' = education_order[1],
@@ -683,6 +689,13 @@ get_bio_bar_plot_df <- function(col_name) {
                                         '5' = email_freq_order[5],
                                         '6' = email_freq_order[6],
                                         '7' = email_freq_order[7]))
+  } else if (col_name == 'Age') {
+    # print_msg('Age')
+    # print_msg(str(df))
+    # print_msg(paste0('Min: ', min(df$Age)))
+    # print_msg(paste0('Max: ', max(df$Age)))
+    # print_msg(paste0('Mean: ', mean(df$Age)))
+    # print_msg(paste0('Standard Deviation: ', sd(df$Age)))
   }
   # else if (col_name == 'Occupation') {
   #   df <- df %>% mutate(Occupation = recode(Occupation, 
@@ -789,7 +802,6 @@ get_biographic_y_lab <- function(col_name) {
 
 draw_biographic_distribution <- function(col_name, plot_label) {
   plot_df <- get_bio_bar_plot_df(col_name)
-  # print_msg(plot_df[plot_df$Age>45,])
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
   y_lab <- get_biographic_y_lab(col_name)

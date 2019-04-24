@@ -28,6 +28,7 @@ data_file_name <- 'full_df_second_phase_filtered.csv'
 # grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
 grid_plot_title <- bquote(paste('QC0', ' signal sets'))
 y_axis_label <- bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))
+# y_axis_label <- bquote(paste('log'[10], bgroup('(', 'PP [',''^'o','C',''^2,']', ')')))
 
 plot_list <- list()
 
