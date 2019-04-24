@@ -62,7 +62,8 @@ na_val <- 'NA'
 default_height <- 10
 default_width <- 15
 
-nasa_color_code <- c('mediumseagreen', 'salmon')
+# nasa_color_code <- c('mediumseagreen', 'salmon')
+nasa_color_code <- c('#53c653', '#ff8080')
 nasa_custom_color_list <- c()
 
 bio_plot_list <- list()
@@ -275,9 +276,10 @@ draw_group_bar_chart_nasa_tlx <- function() {
                          expand=expand_scale(mult=c(0.1, 0.1), add=c(0, 0))) +
       # scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#999999", "#E69F00", "#56B4E9", "#56B4E9")) +
       theme_bw() +
-      theme(text = element_text(size=20),
-            axis.text.x = element_text(size=22),
-            strip.text.x = element_text(size=20),
+      theme(text = element_text(size=28),
+            axis.text.x = element_text(size=24),
+            axis.text.y = element_text(size=20),
+            strip.text.x = element_text(size=24),
             legend.position = 'none',
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
@@ -288,7 +290,6 @@ draw_group_bar_chart_nasa_tlx <- function() {
         theme(axis.ticks.x=element_blank(),
               axis.text.x=element_blank())
     }
-
 
     temp_nasa_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==paste0('Nasa_', ques_sub_type), ]
 
@@ -301,6 +302,13 @@ draw_group_bar_chart_nasa_tlx <- function() {
       summarize(disagree_freq = sum(Frequency))
 
     freq_df <- merge(agree_df, disagree_df, by='Question')
+    
+    total_response <- nrow(nasa_tlx_df)
+    prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
+            c(total_response, total_response),
+            p = NULL,
+            alternative = 'greater',
+            correct = T)
 
     nasa_bar_plot <- get_nasa_bar_plot_df(freq_df) %>%
       mutate(Options=factor(Options, c('disagree_freq', 'agree_freq'))) %>% 
@@ -309,17 +317,18 @@ draw_group_bar_chart_nasa_tlx <- function() {
       xlab(x_lab_bar) +
       scale_fill_manual(values=c(nasa_color_code[1], nasa_color_code[2])) +
       scale_y_continuous(breaks=seq(0, 50, by=10),
-                         expand=expand_scale(mult=c(0, 0.1), add=c(0, 0))) +
+                         expand=expand_scale(mult=c(0, 0.2), add=c(0, 4))) +
       scale_x_discrete(labels=c('disagree_freq' = '1-4',
                                 'agree_freq' = '5-7')) +
       # scale_x_discrete(labels=c('disagree_freq' = 'Neutral/Disagreement',
       #                           'agree_freq' = 'Agreement')) +
-      geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
-      # annotate(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') +
+      geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
+      annotate("text", x=1.5, y=Inf, label= get_significance_sign(prop_test$p.value), vjust = 1.2, size = 12) +
       theme_bw() +
-      theme(axis.title.y = element_blank(),
-            axis.text.x = element_text(size=20),
-            text = element_text(size=20),
+      theme(text = element_text(size=20),
+            axis.text.x = element_text(size=24),
+            axis.text.y = element_text(size=20),
+            axis.title.y = element_blank(),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             axis.line = element_line(colour = "black"),
@@ -399,6 +408,13 @@ draw_stress_ques_bar_plot <- function() {
   
   freq_df <- merge(agree_df, disagree_df, by='Question')
   
+  total_response <- nrow(nasa_tlx_df)
+  prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
+          c(total_response, total_response),
+          p = NULL,
+          alternative = 'greater',
+          correct = T)
+  
   nasa_bar_plot <- get_nasa_bar_plot_df(freq_df) %>%
     mutate(Options=factor(Options, c('disagree_freq', 'agree_freq'))) %>%
     ggplot(aes(x=Options, y=Frequency, fill=Options)) +
@@ -406,10 +422,13 @@ draw_stress_ques_bar_plot <- function() {
     xlab(x_lab_bar) +
     scale_fill_manual(values=c(nasa_color_code[1], nasa_color_code[2])) +
     scale_y_continuous(breaks=seq(0, 50, by=10),
-                       expand=expand_scale(mult=c(0, 0.1), add=c(0, 0))) +
+                       expand=expand_scale(mult=c(0, 0.2), add=c(0, 4))) +
     scale_x_discrete(labels=c('disagree_freq' = '1-4',
                               'agree_freq' = '5-7')) +
-    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=6, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
+    # scale_x_discrete(labels=c('disagree_freq' = 'Neutral/Disagreement',
+    #                           'agree_freq' = 'Agreement')) +
+    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8, fontface ='italic') + ## USE BQUOTE TO MAKE ITALIC
+    annotate("text", x=1.5, y=Inf, label= get_significance_sign(prop_test$p.value), vjust = 1.2, size = 12) +
     theme_bw() +
     theme(axis.title.y = element_blank(),
           axis.text.x = element_text(size=16),
@@ -990,9 +1009,9 @@ read_data()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
-# draw_stress_ques_bar_plot()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
+draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
 ```
 
@@ -1003,28 +1022,28 @@ read_data()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-combine_psychometric_plots()
+# combine_psychometric_plots()
 ```
 
 
