@@ -67,6 +67,8 @@ nasa_custom_color_list <- c()
 
 bio_plot_list <- list()
 personality_plot_list <- list()
+erq_grid_plot <- NA
+pss_plot <- NA
 bfi_grid_plot <- NA
 
 bio_ques_list <- c('City', 'State', 'Postal', 
@@ -289,8 +291,6 @@ draw_group_bar_chart_nasa_tlx <- function() {
 
 
     temp_nasa_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==paste0('Nasa_', ques_sub_type), ]
-    # print_msg(temp_nasa_df$Question)
-    # print_msg(ques_sub_type)
 
     agree_df <- temp_nasa_df %>%
       filter(Answer > 4) %>%
@@ -344,80 +344,6 @@ draw_group_bar_chart_nasa_tlx <- function() {
   #### grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
   grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
   save_plot(replace_dot_space(paste(title, '_histogram_prop_test')), grid_plot, height=get_plot_height(title))
-
-
-
-  
-  ##########################################################################################################
-  ############################       nasa grouped bar plot       ###########################################
-  ##########################################################################################################
-  # plot <- nasa_tlx_freq_df %>%
-  #   filter(Question != 'Stress_Question') %>%     ## We do not need the seperated stress question for group bar chart
-  #   ggplot(aes(x=Answer, y=Frequency, fill=Question)) +
-  #   geom_bar(position='dodge', stat='identity') +
-  #   scale_x_discrete(limits = nasa_task_options) +
-  #   theme_bw() +
-  #   theme(text = element_text(size = 16),
-  #         axis.title = element_text(size = 16, hjust = 0.5),
-  #         axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-  #         plot.title = element_text(hjust = 0.5, size = 20, face = 'bold'))
-  #
-  # print(plot)
-  #
-  # plot <- plot +
-  #   theme(text = element_text(size = 20),
-  #         axis.title = element_text(size = 20),
-  #         axis.text.x = element_text(size = 16))
-  #         # axis.text.x = element_text(size = 16, angle = 45, hjust = 1))
-  #
-  # save_plot('nasa_frequency_grouped_bar', plot, 18)
-  ##########################################################################################################
-
-
-
-  ##################################################################################
-  #####################  nasa subject plot  ########################################
-  ##################################################################################
-  # subj_plot <- nasa_tlx_long_df %>%
-  #   ggplot(aes(x=SubjectID, y=Value)) +
-  #   geom_bar(stat='identity') +
-  #   facet_wrap(~Title, ncol=1)
-  # print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
-  ##################################################################################
-
-
-
-  ###########################################################
-  #############     nasa facet plot    ######################
-  ###########################################################
-  # hist_plot <- nasa_tlx_long_df %>%
-  #   mutate(Value = recode(Value,
-  #                         '1' = 'Strongly disagree',
-  #                         '2' = 'Disagree',
-  #                         '3' = 'Somewhat disagree',
-  #                         '4' = 'Neither agree or disagree',
-  #                         '5' = 'Somewhat agree',
-  #                         '6' = 'Agree',
-  #                         '7' = 'Strongly agree')) %>%
-  #   ggplot(aes(x=factor(Value, levels=nasa_task_options))) +
-  #   # ggtitle(paste(title, '- Histogram')) +
-  #   geom_bar() +
-  #   facet_wrap(~Title, ncol=1) +
-  #   xlab('Scale Range') +
-  #   ylab('Frequency') +
-  #   # scale_x_discrete(breaks=c(1:7)) +
-  #   theme_bw() +
-  #   theme(legend.position = 'none',
-  #         plot.title = element_text(hjust=0.5),
-  #         text = element_text(size=20),
-  #         strip.text = element_text(size=18),
-  #         panel.spacing = unit(1.5, 'lines'),
-  #         axis.title = element_text(size=20),
-  #         axis.text.x = element_text(size=16))
-  #
-  # print(hist_plot)
-  # save_plot(replace_dot_space('nasa_tlx_histogram'), hist_plot, width=18, height=20)
-  ###########################################################
 }
 
 draw_stress_ques_bar_plot <- function() {
@@ -502,139 +428,10 @@ draw_stress_ques_bar_plot <- function() {
   save_plot('stress_ques_histogram_prop_test', grid_plot, height=5)
 }
 
-
-# generate_nasa_bar_plot <- function(df, title) {
-#   plot <- get_nasa_bar_plot_df(df) %>%
-#     ggplot(aes(x=Options, y=Frequency)) +
-#     geom_bar(stat='identity') +
-#     ggtitle(replace_underscore(title)) +
-#     scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Neutral/Disagreement')) +
-#     theme_bw() + 
-#     theme(text = element_text(size = 16),
-#           axis.title = element_text(size = 16, hjust = 0.5),
-#           axis.text.x = element_text(size = 12),
-#           plot.title = element_text(size = 20, hjust = 0.5, face = 'bold')) 
-#   
-#   
-#   prnt_plot <- plot + geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2)
-#   print(prnt_plot)
-#   
-#   plot <- plot + 
-#     geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8) +
-#     theme(text = element_text(size = 20),
-#           axis.title = element_text(size = 20),
-#           axis.text.x = element_text(size = 16))
-# 
-#   # save_plot(tolower(title), plot)
-#   # if (title=='Stress_Question') {
-#   #   personality_plot_list[[length(personality_plot_list)+1]] <<- plot
-#   # }
-# }
-# 
-# generate_prop_test <- function(df, nasa_ques, comparison_option, alternative_val) {
-#   total_response <- nrow(nasa_tlx_df)
-#   
-#   agree_df <- df %>%
-#     filter(Answer > comparison_option) %>% 
-#     summarize(agree_freq = sum(Frequency))
-#     
-#   disagree_df <- df %>% 
-#     filter(Answer <= comparison_option) %>% 
-#     summarize(disagree_freq = sum(Frequency))
-#   
-#   freq_df <- merge(agree_df, disagree_df, by='Question')
-#   # print_msg(str(freq_df))
-#   
-#   generate_nasa_bar_plot(freq_df, nasa_ques)
-#     
-#   print_msg(paste0(nasa_ques, ':'))
-#   print_msg(paste0('Agree: ', freq_df$agree_freq))
-#   print_msg(paste0('Disagree: ', freq_df$disagree_freq))
-#   
-#   prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
-#             c(total_response, total_response),
-#             p = NULL,
-#             alternative = alternative_val,
-#             correct = T)
-#   print_msg(prop_test)
-#   print_significance(prop_test, alternative_val)
-# }
-
-
-# get_proportion_test_nasa_tlx <- function() {
-#   for (nasa_ques in nasa_tlx_and_stress_ques_list) {
-#     temp_nasa_tlx_freq_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question==nasa_ques, ]
-#     
-#     # if (nasa_ques=='Nasa_Performance') {
-#     #   print('-------------- BE AWARE ----------- Do not add the following in report!!!')
-#     #   generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 3, 'less')
-#     # }
-#     
-#     generate_prop_test(temp_nasa_tlx_freq_df, nasa_ques, 4, 'greater')
-#   }
-# }
-
 get_nasa_bar_plot_df <- function(df) {
   df <- df %>%
     gather(Options, Frequency, -Question)
   return(df)
-}
-
-get_proportion_test_stress_ques <- function() {
-  stress_ques_df <- nasa_tlx_freq_df[nasa_tlx_freq_df$Question=='Stress_Question', ]
-  comparison_option <- 4
-  alternative_val <- 'greater'
-    
-  
-  total_response <- nrow(stress_ques_df)
-  agree_df <- stress_ques_df %>%
-    filter(Answer > comparison_option) %>% 
-    summarize(agree_freq = sum(Frequency))
-  disagree_df <- stress_ques_df %>% 
-    filter(Answer <= comparison_option) %>% 
-    summarize(disagree_freq = sum(Frequency))
-  
-  freq_df <- merge(agree_df, disagree_df, by='Question')
-  # print_msg(str(freq_df))
-  
-  # generate_nasa_bar_plot(freq_df, nasa_ques)
-  plot <- get_nasa_bar_plot_df(freq_df) %>%
-    ggplot(aes(x=Options, y=Frequency)) +
-    geom_bar(stat='identity') +
-    ggtitle(replace_underscore('Stress_Question Prop Test')) +
-    scale_x_discrete(labels=c('agree_freq' = 'Agreement', 'disagree_freq' = 'Neutral/Disagreement')) +
-    scale_y_discrete(expand=expand_scale(mult=c(0, 0.1), add=c(0, 1))) +
-    geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=4) +
-    theme_bw() + 
-    theme(text=element_text(size=16),
-          plot.title = element_text(hjust = 0.5))
-  
-  
-  # prnt_plot <- plot + geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2)
-  # print(prnt_plot)
-  # 
-  # plot <- plot + 
-  #   geom_text(aes(label=paste0('n = ', Frequency)), vjust=-0.2, size=8) +
-  #   theme(text = element_text(size = 20),
-  #         axis.title = element_text(size = 20),
-  #         axis.text.x = element_text(size = 16))
-  
-  personality_plot_list[[length(personality_plot_list)+1]] <<- plot
-  
-    
-  # print_msg(paste0(nasa_ques, ':'))
-  # print_msg(paste0('Agree: ', freq_df$agree_freq))
-  # print_msg(paste0('Disagree: ', freq_df$disagree_freq))
-  # 
-  # prop_test <- prop.test(c(freq_df$agree_freq, freq_df$disagree_freq),
-  #           c(total_response, total_response),
-  #           p = NULL,
-  #           alternative = alternative_val,
-  #           correct = T)
-  # print_msg(prop_test)
-  # print_significance(prop_test, alternative_val)
-  
-
 }
 
 extract_biographic_info <- function() {
@@ -811,25 +608,20 @@ draw_biographic_distribution <- function(col_name, plot_label) {
   plot <- get_bio_ggplot(plot_df, col_name) +
     geom_bar() +
     facet_grid(. ~ title) +
-    # ggtitle(title) +
-    # xlab(get_x_lab(replace_underscore(col_name))) + 
     ylab(y_lab) +
     scale_x_discrete(limits=get_order(col_name)) +
     theme_bw() +
     theme(
       plot.title=element_text(hjust=0.5),
       text=element_text(size=18),
-      # axis.title=element_text(size=20),
       strip.text.x = element_text(size = 20), 
       axis.title.x = element_blank(),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       axis.line = element_line(colour = "black"),
-      # axis.text.x=element_blank(),
       plot.margin = unit(c(1, 0.5, 0.5, 0.5), "lines"),  ##top, right, bottom, left
       axis.title.y = element_text(margin = margin(0, 8, 0, 0)),  ##top, right, bottom, left
       axis.text.x = element_text(size=get_x_text_size(col_name), angle=get_angle(col_name), hjust=get_hjust(col_name)),
-      # axis.text.y = element_text(size=18),
       legend.position = 'none'
       )
   
@@ -981,44 +773,17 @@ extract_bfi_score <- function() {
   convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
 }
 
-
-# print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, angle=0, width=default_width, height=default_height) {
-#   plot <- plot +
-#     # ggtitle(title) +
-#     xlab('Scale Range') +
-#     ylab(y_lab) +
-#     # scale_x_discrete(breaks=c(1:7)) +
-#     theme_bw() +
-#     theme(legend.position = 'none',
-#           plot.title = element_text(hjust=0.5),
-#           text = element_text(size=20),
-#           axis.title = element_text(size=20),
-#           axis.text.x = element_text(size=x_axis_text_size, angle=angle))
-#   
-#   if (is_match(title, 'NASA TLX')) {
-#     plot <- plot + 
-#       # scale_x_discrete(breaks=nasa_task_options, labels=c(1:7)) +
-#       theme(strip.text = element_text(size=18),
-#             panel.spacing = unit(1.5, 'lines'))
-#   } else {
-#     personality_plot_list[[length(personality_plot_list)+1]] <<- plot
-#   }
-#   
-#   print(plot)
-#   # save_plot(replace_dot_space(title), plot, width=width, height=height)
-# }
-
 draw_pss_plot <- function() {
   title <- 'Perceived Stress Scale'
+  pss_score_df$title <- 'Perception of Stress'
   
-  hist_plot <- ggplot(data=pss_score_df, aes(x=Value)) + 
+  pss_plot <<- ggplot(data=pss_score_df, aes(x=Value)) + 
     geom_bar() +
     ggtitle(title) +
+    facet_grid(.~title) +
     coord_cartesian(xlim = c(0, 40)) +  ## min_val=0, max_val=40
-    # xlab('Scale Range') +
     xlab('') +
     ylab('') +
-    # scale_x_discrete(breaks=c(1:7)) +
     geom_vline(data=pss_score_df, 
                  mapping=aes(xintercept=mean(Value)),
                  color='red', 
@@ -1027,32 +792,13 @@ draw_pss_plot <- function() {
     theme_bw() +
     theme(plot.title = element_text(hjust=0.5),
           text=element_text(size=16),
-          # axis.title = element_text(size=20),
-          # axis.text.x = element_text(size=16),
+          strip.text.x = element_text(size=18),
+          axis.text.x=element_text(size=16),
+          axis.text.y=element_text(size=14),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           legend.position = 'none')
-  
-  personality_plot_list[[length(personality_plot_list)+1]] <<- hist_plot
-
-  
-  # print(hist_plot)
-  # save_plot(replace_dot_space(title), hist_plot, width=width, height=height)
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  #######################################################################
-  # subj_plot <- ggplot(data=pss_score_df, aes(x=Subject, y=Value)) + 
-  #   geom_bar(stat='identity')
-  # print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
-  #######################################################################
 }
 
 get_x_limit <- function(ques_type) {
@@ -1101,59 +847,8 @@ get_plot_height <- function(title) {
   return(default_height)
 }
 
-# draw_hist_plot <- function(df, title) {
-#   ques_sub_type_levels <- levels(factor(df$Title))
-#   plot_list <- list()
-#   x_lab <- ''
-#   
-#   for (ques_sub_type in ques_sub_type_levels) {
-#     if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
-#     
-#     temp_df <- df[df$Title==ques_sub_type, ]
-#     temp_df$title <- ques_sub_type
-#     hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
-#       geom_bar() +
-#       facet_grid(. ~ title) +
-#       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
-#       xlab(x_lab) +
-#       ylab('Frequency') +   ##'Frequency'
-#       scale_x_continuous(breaks=seq(min(get_x_limit(ques_sub_type)), 
-#                                     max(get_x_limit(ques_sub_type)), 
-#                                     by=get_break_no(title))) +
-#                                     # by=4)) +
-#       theme_bw() +
-#       theme(legend.position = 'none',
-#             plot.title = element_text(hjust=0.5),
-#             text = element_text(size=20),
-#             axis.text.x = element_text(size=16),
-#             strip.text.x = element_text(size=18))
-#     
-#     plot_list[[length(plot_list)+1]] <- hist_plot
-#   }
-#   
-#   # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
-#   grid_plot <- plot_grid(plotlist=plot_list, align='v', cols=1)
-#   # save_plot(replace_dot_space(paste(title, '- Histogram - TEST')), grid_plot, height=get_plot_height(title))
-#   
-#   if (title=='Emotion Regulation Questionnaire') {
-#     personality_plot_list[[length(personality_plot_list)+1]] <<- grid_plot
-#   } else if (title=='Big Five Inventory') {
-#     right_side_plot <- plot_grid(plotlist=personality_plot_list,
-#                                  labels=c('B', 'C', 'D'),
-#                                  cols=1,
-#                                  align='v',
-#                                  rel_heights=c(2, 1, 1))
-#     save_plot('personality_plots_v1', right_side_plot)
-#     # final_plot <- plot_grid(right_side_plot, grid_plot, labels = c('A', ''), ncol = 2, rel_width = c(1, 1))
-#     # save_plot('personality_plots_TEST', final_plot)
-#   }
-# }
-
-
 draw_erq_plot <- function() {
   title <- 'Emotion Regulation Questionnaire'
-  
-  # draw_hist_plot(erq_score_df, title)
   
   ques_sub_type_levels <- levels(factor(erq_score_df$Title))
   plot_list <- list()
@@ -1166,8 +861,6 @@ draw_erq_plot <- function() {
     temp_df$title <- ques_sub_type
     hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
       geom_bar() +
-      # labs(title=title) +
-      # ggtitle(title) +
       facet_grid(.~title) +
       coord_cartesian(xlim=get_x_limit(ques_sub_type), ylim=get_y_limit(title)) +
       xlab(x_lab) +
@@ -1185,8 +878,9 @@ draw_erq_plot <- function() {
       theme(legend.position = 'none',
             plot.title = element_text(hjust=0.5),
             text = element_text(size=16),
-            # axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
+            axis.text.x=element_text(size=16),
+            axis.text.y=element_text(size=14),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             axis.line = element_line(colour = "black"))
@@ -1198,30 +892,10 @@ draw_erq_plot <- function() {
     plot_list[[length(plot_list)+1]] <- hist_plot
   }
   
-  # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
-  grid_plot <- plot_grid(plotlist=plot_list, 
+  erq_grid_plot <<- plot_grid(plotlist=plot_list, 
                          align='v', 
                          cols=1,
                          rel_heights=c(1.15, 1))
-  # save_plot(replace_dot_space(paste(title, '- Histogram - TEST')), grid_plot, height=get_plot_height(title))
-  
-  personality_plot_list[[length(personality_plot_list)+1]] <<- grid_plot
-
-  
-  
-  
-  
-  
-  
-  
-  
-  ###########################################################
-  # hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
-  #   geom_bar() + 
-  #   ## facet_wrap(~Title, ncol=1, scales='free_x')
-  #   facet_wrap(~Title, ncol=1)
-  # print_plot(hist_plot, paste(title, '- Histogram'))
-  ###########################################################
 }
 
 draw_bfi_plot <- function() {
@@ -1255,8 +929,9 @@ draw_bfi_plot <- function() {
       theme(legend.position = 'none',
             plot.title = element_text(hjust=0.5),
             text = element_text(size=16),
-            # axis.text.x = element_text(size=16),
             strip.text.x = element_text(size=18),
+            axis.text.x=element_text(size=16),
+            axis.text.y=element_text(size=14),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             axis.line = element_line(colour = "black"))
@@ -1265,48 +940,32 @@ draw_bfi_plot <- function() {
       hist_plot <- hist_plot + ggtitle(title)
     }
     
-    # gg <- arrangeGrob(hist_plot, top = textGrob(toupper('A'),
-    #                                     x = unit(0, "npc"),
-    #                                     y = unit(1, "npc"),
-    #                                     vjust = 2, 
-    #                                     hjust = -3,
-    #                                     just = c("left","top"),
-    #                                     gp = gpar(col="black", fontsize=22, fontface="bold")
-    #                                    ))
-    
     plot_list[[length(plot_list)+1]] <- hist_plot
   }
   
-  # grid_plot <- grid.arrange(do.call('grid.arrange', c(plot_list, ncol=1)))
   bfi_grid_plot <<- plot_grid(plotlist=plot_list, 
                               align='v', 
                               cols=1,
                               rel_heights=c(1.15, 1, 1, 1, 1))
-  # save_plot(replace_dot_space(paste(title, '- Histogram - TEST')), grid_plot, height=get_plot_height(title))
-
-  
-  
-  ###########################################################
-  # hist_plot <- ggplot(data=bfi_score_df, aes(x=Value)) +
-  #   geom_bar() +
-  #   facet_wrap(~Title, ncol=1)
-  # print_plot(hist_plot, paste(title, '- Histogram'))
-  ###########################################################
 }
 
 combine_psychometric_plots <- function() {
-  right_side_plots <- plot_grid(plotlist=personality_plot_list,
-                               labels=c('B', 'C'),
-                               cols=1,
-                               align='h',
-                               rel_heights=c(2, 1))
-  # save_plot('personality_plots', right_side_plot)
-  # final_plot <- plot_grid(right_side_plot, bfi_grid_plot, labels = c('A', ''), ncol = 2, rel_width = c(1, 1))
+  right_side_plots <- plot_grid(erq_grid_plot,
+                                NULL,
+                                pss_plot, 
+                                NULL,
+                                labels=c('B', '', 'C', ''),
+                                label_size=18,
+                                cols=1,
+                                align='h',
+                                # rel_heights=c(2.5, 0.402, 1.158, 0.95))
+                                rel_heights=c(2.1, 0.8, 1.15, 0.95))
   final_plot <- plot_grid(bfi_grid_plot, 
                           NULL,
                           right_side_plots, 
                           rel_widths =c(1, 0.05, 1),
                           labels=c('A', '', ''), 
+                          label_size=18,
                           ncol=3)
   save_plot('personality_plot_combined', final_plot)
 }
@@ -1322,8 +981,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
-get_biographic_distribution()
+# extract_biographic_info()
+# get_biographic_distribution()
 ```
 
 
@@ -1344,28 +1003,28 @@ get_biographic_distribution()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_bfi_score()
-# draw_bfi_plot()
+extract_bfi_score()
+draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_erq_score()
-# draw_erq_plot()
+extract_erq_score()
+draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_pss_score()
-# draw_pss_plot()
+extract_pss_score()
+draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# combine_psychometric_plots()
+combine_psychometric_plots()
 ```
 
 
