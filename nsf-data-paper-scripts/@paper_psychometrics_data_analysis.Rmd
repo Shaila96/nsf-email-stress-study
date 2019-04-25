@@ -280,6 +280,7 @@ draw_group_bar_chart_nasa_tlx <- function() {
             axis.text.x = element_text(size=24),
             axis.text.y = element_text(size=20),
             strip.text.x = element_text(size=24),
+            axis.title.y = element_text(margin = margin(0, 12, 0, 0)),  ##top, right, bottom, left
             legend.position = 'none',
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
@@ -378,13 +379,13 @@ draw_stress_ques_bar_plot <- function() {
     ylab('Frequency') +
     scale_fill_manual(values=nasa_custom_color_list) +
     scale_x_continuous(breaks=seq(1, 7),
-                       labels=c('1' = '1 = Strongly disagree',
-                                '2' = '2',
-                                '3' = '3',
-                                '4' = '4',
-                                '5' = '5',
-                                '6' = '6',
-                                '7' = '7 = Strongly agree'),
+                       # labels=c('1' = '1 = Strongly disagree',
+                       #          '2' = '2',
+                       #          '3' = '3',
+                       #          '4' = '4',
+                       #          '5' = '5',
+                       #          '6' = '6',
+                       #          '7' = '7 = Strongly agree'),
                        expand=expand_scale(mult=c(0.1, 0.1), add=c(0, 0))) +
     theme_bw() +
     theme(text = element_text(size=20),

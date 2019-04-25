@@ -86,6 +86,13 @@ get_plot_label <- function(idx) {
   } else 'B'
 }
 
+round_p_value <- function(p_value) {
+  if (p_value < 0.00001) {
+    return(0)
+  }
+  return(p_value)
+}
+
 get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, file_name, transformed=F) {
   cor_test <- cor.test(df[[x_col]], df[[y_col]], method = "pearson")
   subj_no <- df %>% summarize(n = n())
@@ -95,7 +102,7 @@ get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, fil
 
   annot_label <- paste0("n = ", subj_no, 
                        # ", p = ", specify_decimal(cor_test$p.value, point), 
-                       ", p = ", cor_test$p.value, 
+                       ", p = ", round_p_value(cor_test$p.value), 
                        ", R = ", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
@@ -143,8 +150,8 @@ generate_hr_plot <- function(idx) {
                    idx,
                    'HR',
                    'N.HR',
-                   'Wrist Heart Rate [BPM]',
-                   'Chest Heart Rate [BPM]',
+                   'Wrist HR [BPM]',
+                   'Chest HR [BPM]',
                    'Chest HR vs Wrist HR',
                    'c_hr_vs_w_hr')
 }

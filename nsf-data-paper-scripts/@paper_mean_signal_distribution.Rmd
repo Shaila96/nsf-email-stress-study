@@ -200,9 +200,9 @@ get_x_label <- function(signal) {
   if (is_match(signal, 'PP')) { 
     return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
   } else if (signal=='HR') {
-    return('Chest Heart Rate [BPM]')
+    return('Chest HR [BPM]')
   } else if (signal=='N.HR') {
-    return('Wrist Heart Rate [BPM]')
+    return('Wrist HR [BPM]')
   } else if (is_match(signal, 'BR')) { 
     return('Breathing Rate [BPM]')
   } else if (is_match(signal, 'EDA')) {

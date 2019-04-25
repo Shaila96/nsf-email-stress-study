@@ -1,5 +1,5 @@
 ---
-title: "Supplimentary Plots"
+title: "Supplementary Plots"
 header-includes:
 - \usepackage{booktabs}
 - \usepackage{sectsty} \sectionfont{\centering}

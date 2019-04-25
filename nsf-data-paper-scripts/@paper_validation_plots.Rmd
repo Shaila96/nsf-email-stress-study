@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.EDA"
+signal_name <- "PP"
 
 
 ## CHANGE THIS!!!!
@@ -237,8 +237,10 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
   labels_vec <- gsub(".", "-", comparison_levels, fixed = TRUE)
   if (cond == "IL" || cond == "BL") {
     break_cond <- "RV-RB"
+    plot_margin_left <- 1.5
   } else {
     break_cond <- "Stroop-RB"
+    plot_margin_left <- 0.5
   }
   labels_vec <- replace(labels_vec, labels_vec=="SC-RB", break_cond)
   labels_vec <- replace(labels_vec, labels_vec=="WB-RB", "ST-RB")
@@ -274,6 +276,7 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
           theme(axis.title.x = element_blank(),
                 panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank(),
+                plot.margin = unit(c(0.5, 0.5, 0.5, plot_margin_left), "lines"),  ##top, right, bottom, left
                 axis.line = element_line(colour = "black")) + 
           geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
           scale_x_discrete(labels=labels_vec) + 
@@ -291,8 +294,10 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
   gg <- arrangeGrob(gg, top = textGrob(toupper(plot_label),
                                         x = unit(0, "npc"),
                                         y = unit(1, "npc"),
+                                        # vjust = 2, 
+                                        # hjust = -3,
                                         vjust = 2, 
-                                        hjust = -3,
+                                        hjust = -1.5,
                                         just = c("left","top"),
                                         gp = gpar(col="black", fontsize=22, fontface="bold")
                                        ))
@@ -724,16 +729,22 @@ interpret_results <- function(p_value) {
 figure_out_labels <- function(col_name, test_type) { 
   if (isMatch(col_name, 'PP')) { 
     return(expression(Delta~"ln("~bar("PP")~paste('[',''^'o','C',''^2,'])')))
-  } else if (isMatch(col_name, 'HR')) {
+  } else if (col_name=='HR') {
     # if (test_type == "tt") {
     #   return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
     # }
-    return(expression(Delta~bar('Heart Rate')~' [BPM]'))
+    return(expression(Delta~bar('Chest HR')~' [BPM]'))
+  } else if (col_name=='N.HR') {
+    # if (test_type == "tt") {
+    #   return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
+    # }
+    return(expression(Delta~bar('Wrist HR')~' [BPM]'))
   } else if (isMatch(col_name, 'BR')) { 
     # if (test_type == "tt") {
     #   return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
     # }
-    return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
+    # return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
+    return(expression(Delta~bar('BR')~' [BPM]')) 
   } else if (isMatch(col_name, 'EDA')) {
     if (test_type == "tt") {
       return(expression(Delta~"ln("~bar("EDA")~paste('[', mu, 'S])')))
