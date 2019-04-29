@@ -601,61 +601,69 @@ test_time <- function(condition, col, full = TRUE) {
         test <- "Writing Baseline - Resting Baseline" 
         p <- wilcox.test(testing_df[["WB.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "WB.RB", Measure = col, Condition = cond, p = p,                                     
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(WB.RB))), Significance = sign)) 
+        t_df <- rbind(t_df, tibble(Difference = "WB.RB", Measure = col, Condition = cond, p = p,                                   
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(WB.RB))), Significance = sign))
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
+        print(paste("t-test p-value : ", t.test(testing_df[["WB.RB"]])$p.value))
         
         test <- "Stress Condition - Resting Baseline" 
         p <- wilcox.test(testing_df[["SC.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "SC.RB", Measure = col, Condition = cond, p = p,                                     
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.RB))), Significance = sign)) 
+        t_df <- rbind(t_df, tibble(Difference = "SC.RB", Measure = col, Condition = cond, p = p,                                   
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.RB))), Significance = sign))
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
+        print(paste("t-test p-value : ", t.test(testing_df[["SC.RB"]])$p.value))
         
         test <- "StressCondition - Writing Baseline" 
         p <- wilcox.test(testing_df[["SC.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign)) 
         
         test <- "Dual Task - Resting Baseline" 
         p <- wilcox.test(testing_df[["DT.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign)) 
         
         test <- "Dual Task - Writing Baseline" 
         p <- wilcox.test(testing_df[["DT.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                     
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign)) 
+        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                   
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign))
+        print(paste("test_type: ", test_type, cond, test, p, sign))
+        print(paste("t-test p-value : ", t.test(testing_df[["DT.RB"]])$p.value))
         
         test <- "Dual Task - Stress Condition" 
         p <- wilcox.test(testing_df[["DT.SC"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign)) 
         
         test <- "Presentation - Resting Baseline" 
         p <- wilcox.test(testing_df[["P.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.RB", Measure = col, Condition = cond, p = p,                                     
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.RB))), Significance = sign)) 
+        t_df <- rbind(t_df, tibble(Difference = "P.RB", Measure = col, Condition = cond, p = p,                                   
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.RB))), Significance = sign))
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
+        print(paste("t-test p-value : ", t.test(testing_df[["P.RB"]])$p.value))
         
         test <- "Presentation - Writing Baseline" 
         p <- wilcox.test(testing_df[["P.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign)) 
         
         test <- "Presentation - Stress Condition" 
         p <- wilcox.test(testing_df[["P.SC"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                    
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign)) 
         
         test <- "Presentation - Dual Task" 
         p <- wilcox.test(testing_df[["P.DT"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,                                    
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.DT))), Significance = sign)) 
         
       } 
