@@ -194,6 +194,7 @@ read_data <- function() {
               mean_N.HR=mean(N.HR, na.rm=T),
               mean_BR=mean(BR, na.rm=T))
   # print_msg(str(mean_per_session_df))
+  convert_to_csv(mean_per_session_df, file.path(data_dir, 'mean_per_session_all_subj.csv'))
 }
 
 get_x_label <- function(signal) {
@@ -257,7 +258,7 @@ draw_plot <- function(signal, total_signal) {
                fill=Session)) +
     geom_density(alpha=0.8) +
     geom_vline(data=mean_per_session_df,
-               mapping=aes(xintercept=mean_per_session_df[[paste0('mean_', signal), color=]]),
+               mapping=aes(xintercept=mean_per_session_df[[paste0('mean_', signal)]]),
                colour=session_color_code,
                linetype='dashed',
                size=1) +
@@ -273,6 +274,25 @@ draw_plot <- function(signal, total_signal) {
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           plot.margin = unit(c(2, 0.5, 0.5, 0.5), "lines"))  ##top, right, bottom, left
+  
+  if (signal=='N.EDA') {
+        probability_density_plot <- probability_density_plot + 
+          scale_x_continuous(trans='log10',
+                             # )
+                             # ,
+                             # # limits=c(
+                             # #   min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
+                             # #   max(raw_df[raw_signal_col_name])
+                             # #   ),
+                             breaks=c(0.01, 0.1, 1, 10))
+      } 
+  
+  # else {
+  #       probability_density_plot <- probability_density_plot + 
+  #         scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
+  #                                     max(raw_df[raw_signal_col_name])))
+  #         
+  #     }
 
 
   

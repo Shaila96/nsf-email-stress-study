@@ -170,6 +170,32 @@ get_subj_with_high_eda <- function() {
   }
 }
 
+get_percentage_low_eda <- function() {
+  non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  print(nrow(non_filtered_df))
+  non_filtered_df <- non_filtered_df %>% 
+    select('N.EDA.non.filtered') %>% 
+    rename('EDA' = 'N.EDA.non.filtered') %>%
+    filter(complete.cases(.))
+  print(nrow(non_filtered_df))
+  
+  total_invalid_eda <- nrow(non_filtered_df[non_filtered_df$EDA<0.01 | non_filtered_df$EDA>100, ])
+  total_eda <- nrow(non_filtered_df)
+  print(paste0('Percentage of invalid EDA: ', (total_invalid_eda/total_eda)*100))
+  
+  
+  plot <- non_filtered_df %>% 
+    ggplot(aes(x=EDA)) +
+    geom_histogram(aes(y=..density..),
+                   alpha=0.8,
+                   # stat="identity",
+                   binwidth=20,
+                   breaks=c(0, 0.01, 0.1, 1, 10))
+  # +
+    # geom_density(alpha=.2) 
+  print(plot)
+}
+
 check_hr_both_sensor <- function(subj_id) {
   filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   filtered_df <- filtered_df[, c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'HR', 'N.HR')]
@@ -251,7 +277,8 @@ get_bad_subjects <- function() {
   # get_subj_high_br()
   # all_other_functions()
   
-  get_subj_with_high_eda()
+  # get_subj_with_high_eda()
+  get_percentage_low_eda()
   # check_hr_both_sensor('T011')
   # get_missing_subj_for_pp()
   

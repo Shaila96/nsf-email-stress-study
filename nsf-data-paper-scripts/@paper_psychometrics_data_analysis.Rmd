@@ -192,6 +192,7 @@ extract_nasa_tlx_score <- function() {
   ## Filter out the data for good subject list only 
   nasa_tlx_df <<- nasa_tlx_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
+  print_msg(paste0('NASA TLX Subject no: ', nrow(nasa_tlx_df)))
   ## convert_to_csv(nasa_tlx_df, file.path(survey_data_dir, 'nasa_tlx_score.csv'))
   
   ## getting the answer frequency for each question
@@ -619,6 +620,7 @@ get_biographic_y_lab <- function(col_name) {
 
 draw_biographic_distribution <- function(col_name, plot_label) {
   plot_df <- get_bio_bar_plot_df(col_name)
+  # print_msg(paste0(col_name, ': ', nrow(plot_df)))
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
   y_lab <- get_biographic_y_lab(col_name)
@@ -709,17 +711,20 @@ extract_erq_score_each_row <- function(current_subj_df) {
 extract_erq_score <- function() {
   erq_df <- post_survey_df[, c(22, seq(30, 39))]
   
-  # message(colnames(erq_df)) ## DO NOT DELETE
+  message(colnames(erq_df)) ## DO NOT DELETE
   colnames(erq_df) <- erq_ques_list
-  # print_msg(colnames(erq_df)) ## DO NOT DELETE
+  print_msg(colnames(erq_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
   erq_df <- erq_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
   # print_msg(str(erq_df))
+  # print_msg(paste0('Emotion Regulation Ques Subject no:', nrow(erq_df)))
   
   invisible(apply(erq_df, 1, function(each_row) extract_erq_score_each_row(each_row)))
   # convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
+  # print_msg(paste0('Emotion Regulation Ques Subject no:', nrow(erq_score_df)))
+  print_msg(paste0('Emotion Regulation Ques Subject no:', length(unique(erq_score_df$Subject))))
 }
 
 extract_pss_score_each_row <- function(current_subj_df) {
@@ -739,17 +744,20 @@ extract_pss_score_each_row <- function(current_subj_df) {
 extract_pss_score <- function() {
   pss_df <- pre_survey_df[, c(22, seq(33, 42))]
   
-  # message(colnames(pss_df)) ## DO NOT DELETE
+  message(colnames(pss_df)) ## DO NOT DELETE
   colnames(pss_df) <- pss_ques_list
-  # print_msg(colnames(pss_df)) ## DO NOT DELETE
+  print_msg(colnames(pss_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
   pss_df <- pss_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
   # print_msg(str(pss_df))
+  # print_msg(paste0('Perceived Stress Scale Subject no:', nrow(pss_df)))
   
   invisible(apply(pss_df, 1, function(each_row) extract_pss_score_each_row(each_row)))
   # convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
+  # print_msg(paste0('Perceived Stress Scale Subject no:', nrow(pss_score_df)))
+  print_msg(paste0('Perceived Stress Scale Subject no:', length(unique(pss_score_df$Subject))))
 }
 
 get_bfi_tibble <- function(df, title, forward_ques_list, reverse_ques_list) {
@@ -778,24 +786,31 @@ extract_bfi_score_each_row <- function(current_subj_df) {
 }
 
 extract_bfi_score <- function() {
-  bfi_df <- post_survey_df[, c(22, seq(31, 74))]
+  bfi_df <- post_survey_df[, c(22, seq(40, 83))]
   
-  # message(colnames(bfi_df)) ## DO NOT DELETE
+  print_msg(toString(colnames(bfi_df))) ## DO NOT DELETE
   colnames(bfi_df) <- bfi_ques_list
-  # print_msg(colnames(bfi_df)) ## DO NOT DELETE
+  print_msg(colnames(bfi_df)) ## DO NOT DELETE
   
   ## Filter out the data for good subject list only 
   bfi_df <- bfi_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
-  # print_msg(str(bfi_df))
+  # print_msg(paste0('Big Five Inventory Subject no:', nrow(bfi_df)))
   
   invisible(apply(bfi_df, 1, function(each_row) extract_bfi_score_each_row(each_row)))
   convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
+  # print_msg(paste0('Big Five Inventory Subject no:', nrow(bfi_score_df)))
+  print_msg(paste0('Big Five Inventory Subject no: ', length(unique(bfi_score_df$Subject))))
 }
 
 draw_pss_plot <- function() {
   title <- 'Perceived Stress Scale'
   pss_score_df$title <- 'Perception of Stress'
+  
+  print_msg('--------  Perceived Stress Scale  ----------')
+  print_msg(paste0('Range:', range(pss_score_df$Value)))
+  print_msg(paste0('Mean:', mean(pss_score_df$Value)))
+  print_msg(paste0('Standard Deviation:', sd(pss_score_df$Value)))
   
   pss_plot <<- ggplot(data=pss_score_df, aes(x=Value)) + 
     geom_bar() +
@@ -827,11 +842,11 @@ get_x_limit <- function(ques_type) {
   } else if (ques_type=='Expressive Suppression') {
     return(c(4, 28))
   } else if (ques_type=='Agreeableness') {
-    return(c(8, 40))
+    return(c(9, 45))
   } else if (ques_type=='Conscientiousness') {
     return(c(9, 45))
   } else if (ques_type=='Extraversion') {
-    return(c(9, 45))
+    return(c(8, 40))
   } else if (ques_type=='Neuroticism') {
     return(c(8, 40))
   } else if (ques_type=='Openness') {
@@ -874,11 +889,20 @@ draw_erq_plot <- function() {
   plot_list <- list()
   x_lab <- ''
   
+  print_msg('--------  Emotion Regulation Questionnaire  ----------')
+  
   for (ques_sub_type in ques_sub_type_levels) {
     # if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
     
     temp_df <- erq_score_df[erq_score_df$Title==ques_sub_type, ]
     temp_df$title <- ques_sub_type
+    
+    print_msg(ques_sub_type)
+    print_msg('------------------')
+    print_msg(paste0('Range:', range(temp_df$Value)))
+    print_msg(paste0('Mean:', mean(temp_df$Value)))
+    print_msg(paste0('Standard Deviation:', sd(temp_df$Value)))
+    
     hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
       geom_bar() +
       facet_grid(.~title) +
@@ -923,12 +947,22 @@ draw_bfi_plot <- function() {
   plot_list <- list()
   x_lab <- ''
   
+  print_msg('-------- Big Five Inventory --------')
+  
   ques_sub_type_levels <- levels(factor(bfi_score_df$Title))
   for (ques_sub_type in ques_sub_type_levels) {
     # if (length(plot_list)+1 == length(ques_sub_type_levels)) x_lab <- 'Scale Range'
     
     temp_df <- bfi_score_df[bfi_score_df$Title==ques_sub_type, ]
     temp_df$title <- ques_sub_type
+    
+    print_msg(ques_sub_type)
+    print_msg('------------------')
+    print_msg(paste0('Range:', range(temp_df$Value)))
+    print_msg(paste0('Mean:', mean(temp_df$Value)))
+    print_msg(paste0('Standard Deviation:', sd(temp_df$Value)))
+    
+    
     hist_plot <- ggplot(data=temp_df, aes(x=Value)) + 
       geom_bar() +
       # labs(title=title) +
@@ -1010,9 +1044,9 @@ read_data()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
-draw_stress_ques_bar_plot()
+# extract_nasa_tlx_score()
+# draw_group_bar_chart_nasa_tlx()
+# draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
 ```
 
@@ -1023,28 +1057,28 @@ draw_stress_ques_bar_plot()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_bfi_score()
-# draw_bfi_plot()
+extract_bfi_score()
+draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_erq_score()
-# draw_erq_plot()
+extract_erq_score()
+draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_pss_score()
-# draw_pss_plot()
+extract_pss_score()
+draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# combine_psychometric_plots()
+combine_psychometric_plots()
 ```
 
 

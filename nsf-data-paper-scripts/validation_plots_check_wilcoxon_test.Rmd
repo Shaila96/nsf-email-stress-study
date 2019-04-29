@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.HR"
+signal_name <- "HR"
 
 
 ## CHANGE THIS!!!!
@@ -386,75 +386,84 @@ test_time <- function(condition, col, full = TRUE) {
     temp_for_plotting <- temp 
     
     # Dang, it wasn't Normal
-    if (shapiro_test_results$p.value < 0.05) { 
-      if (!full) { 
-        print_msg(paste0(col, " is NOT normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Adjusting with `log` now. ")) 
-        flush.console() 
-      } 
-      # Dang, it wasn't Normal, so try correcting with a shift and then ln. 
-      if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-        print(paste('----------  SHIFTING', col, ' ----------'))
-        shift_val <- 0 
-        if (min(temp_col) <= 0) { 
-          shift_val <- min(temp_col) + 0.001 
-          if (!full) { 
-            print_msg(paste0(col, " values less than 0, shifted each value up by ", shift_val, "for ", condition, ". ")) 
-            flush.console() 
-          } 
-        } 
-        temp_col <- log(temp_col) + shift_val 
-      } 
-      
-      shapiro_test_results <- shapiro.test(temp_col) 
-      
-      # We preserve the current status of our dataframe by saving it for plotting later without any log adjustments to it. 
-      # Why? Because I was told to make it like this. 
-      temp_for_plotting <- temp 
-      
-      # Okay, the moment we have all been waiting for: do we have Normal data? 
-      if (shapiro_test_results$p.value < 0.05) { 
-        # if (full) { 
-        #   end_str <- paste0("In the following tests, we applied ln(", col, "). \n\n") 
-        # } else { 
-        #   message(paste0("Transformed data for ", col, " is still NOT normal (p = ", round(shapiro_test_results$p.value, 4), 
-        #                "). Continuing with Wilcoxn test. ")) 
-        #   flush.console() 
-        # } 
-        
-        # Dang, STILL not normal, so correct with ln anyway (per Professor Pavlidis' request), but this time permanently. 
-        test_type <- "w" 
-        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-        #   shift_val <- 0 
-        #   if (min(temp[[col]]) <= 0) { 
-        #     shift_val <- min(temp[[col]]) + 0.001 
-        #   } 
-        #   temp[[col]] <- log(temp[[col]]) + shift_val 
-        # } 
-      } else { 
-        if (!full) { 
-          print_msg(paste0("Transformed data for ", col, " is now normal (p = ", round(shapiro_test_results$p.value, 4), 
-                         "). Continuing with t-test. ")) 
-          flush.console() 
-        } 
-        
-        # We are doing a transformed t-test, so we still have to permanently log our data for this column! 
-        test_type <- "tt" 
-        # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
-        #   shift_val <- 0 
-        #   if (min(temp[[col]]) <= 0) { 
-        #     shift_val <- min(temp[[col]]) + 0.001 
-        #   } 
-        #   temp[[col]] <- log(temp[[col]]) + shift_val 
-        # } 
-      } 
-    } else { 
-      # Wow, it was actually Normal first try? Neat! 
-      if (!full) { 
-        print_msg(paste0(col, " is normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Continuing with t-test. ")) 
-        flush.console() 
-      } 
-      test_type <- "t" 
-    } 
+    # if (shapiro_test_results$p.value < 0.05) { 
+    #   if (!full) { 
+    #     print_msg(paste0(col, " is NOT normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Adjusting with `log` now. ")) 
+    #     flush.console() 
+    #   } 
+    #   # Dang, it wasn't Normal, so try correcting with a shift and then ln. 
+    #   if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+    #     print(paste('----------  SHIFTING', col, ' ----------'))
+    #     shift_val <- 0 
+    #     if (min(temp_col) <= 0) { 
+    #       shift_val <- min(temp_col) + 0.001 
+    #       if (!full) { 
+    #         print_msg(paste0(col, " values less than 0, shifted each value up by ", shift_val, "for ", condition, ". ")) 
+    #         flush.console() 
+    #       } 
+    #     } 
+    #     temp_col <- log(temp_col) + shift_val 
+    #   } 
+    #   
+    #   shapiro_test_results <- shapiro.test(temp_col) 
+    #   
+    #   # We preserve the current status of our dataframe by saving it for plotting later without any log adjustments to it. 
+    #   # Why? Because I was told to make it like this. 
+    #   temp_for_plotting <- temp 
+    #   
+    #   # Okay, the moment we have all been waiting for: do we have Normal data? 
+    #   if (shapiro_test_results$p.value < 0.05) { 
+    #     # if (full) { 
+    #     #   end_str <- paste0("In the following tests, we applied ln(", col, "). \n\n") 
+    #     # } else { 
+    #     #   message(paste0("Transformed data for ", col, " is still NOT normal (p = ", round(shapiro_test_results$p.value, 4), 
+    #     #                "). Continuing with Wilcoxn test. ")) 
+    #     #   flush.console() 
+    #     # } 
+    #     
+    #     # Dang, STILL not normal, so correct with ln anyway (per Professor Pavlidis' request), but this time permanently. 
+    #     test_type <- "w" 
+    #     # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+    #     #   shift_val <- 0 
+    #     #   if (min(temp[[col]]) <= 0) { 
+    #     #     shift_val <- min(temp[[col]]) + 0.001 
+    #     #   } 
+    #     #   temp[[col]] <- log(temp[[col]]) + shift_val 
+    #     # } 
+    #   } else { 
+    #     if (!full) { 
+    #       print_msg(paste0("Transformed data for ", col, " is now normal (p = ", round(shapiro_test_results$p.value, 4), 
+    #                      "). Continuing with t-test. ")) 
+    #       flush.console() 
+    #     } 
+    #     
+    #     # We are doing a transformed t-test, so we still have to permanently log our data for this column! 
+    #     test_type <- "tt" 
+    #     # if (col != "PP" && col != "D.EDA" && col != "N.EDA") { 
+    #     #   shift_val <- 0 
+    #     #   if (min(temp[[col]]) <= 0) { 
+    #     #     shift_val <- min(temp[[col]]) + 0.001 
+    #     #   } 
+    #     #   temp[[col]] <- log(temp[[col]]) + shift_val 
+    #     # } 
+    #   } 
+    # } else { 
+    #   # Wow, it was actually Normal first try? Neat! 
+    #   if (!full) { 
+    #     print_msg(paste0(col, " is normal (p = ", round(shapiro_test_results$p.value, 4), ") for ", condition, ". Continuing with t-test. ")) 
+    #     flush.console() 
+    #   } 
+    #   test_type <- "t" 
+    # } 
+    
+    
+    
+    
+    if (shapiro_test_results$p.value < 0.05) {
+      test_type <- "w"
+    } else {
+      test_type <- "t"
+    }
 
     conditions <- levels(factor(temp$Condition)) 
     for (cond in conditions) { 
@@ -524,11 +533,11 @@ test_time <- function(condition, col, full = TRUE) {
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.RB))), Significance = sign))
         print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
-        # test <- "StressCondition - Writing Baseline" 
-        # p <- t.test(testing_df[["SC.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign)) 
+        test <- "StressCondition - Writing Baseline"
+        p <- t.test(testing_df[["SC.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign))
         
         test <- "Dual Task - Resting Baseline" 
         p <- t.test(testing_df[["DT.RB"]])$p.value 
@@ -537,17 +546,17 @@ test_time <- function(condition, col, full = TRUE) {
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign)) 
         print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
-        # test <- "Dual Task - Writing Baseline" 
-        # p <- t.test(testing_df[["DT.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign)) 
-        # 
-        # test <- "Dual Task - Stress Condition" 
-        # p <- t.test(testing_df[["DT.SC"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign)) 
+        test <- "Dual Task - Writing Baseline"
+        p <- t.test(testing_df[["DT.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign))
+
+        test <- "Dual Task - Stress Condition"
+        p <- t.test(testing_df[["DT.SC"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign))
         
         test <- "Presentation - Resting Baseline" 
         p <- t.test(testing_df[["P.RB"]])$p.value 
@@ -556,23 +565,23 @@ test_time <- function(condition, col, full = TRUE) {
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.RB))), Significance = sign))
         print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
-        # test <- "Presentation - Writing Baseline" 
-        # p <- t.test(testing_df[["P.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign)) 
-        # 
-        # test <- "Presentation - Stress Condition" 
-        # p <- t.test(testing_df[["P.SC"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign)) 
-        # 
-        # test <- "Presentation - Dual Task" 
-        # p <- t.test(testing_df[["P.DT"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.DT))), Significance = sign)) 
+        test <- "Presentation - Writing Baseline"
+        p <- t.test(testing_df[["P.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign))
+
+        test <- "Presentation - Stress Condition"
+        p <- t.test(testing_df[["P.SC"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign))
+
+        test <- "Presentation - Dual Task"
+        p <- t.test(testing_df[["P.DT"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.DT))), Significance = sign))
       
       # Not a t-test or a transformed t-test? Don't worry - we got you covered with our friend, Wilcoxon! 
       } else if (test_type == "w" ) { 
@@ -597,11 +606,11 @@ test_time <- function(condition, col, full = TRUE) {
         print(paste("t-test p-value : ", t.test(testing_df[["SC.RB"]])$p.value))
         
         
-        # test <- "StressCondition - Writing Baseline" 
-        # p <- wilcox.test(testing_df[["SC.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign)) 
+        test <- "StressCondition - Writing Baseline"
+        p <- wilcox.test(testing_df[["SC.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign))
         
         test <- "Dual Task - Resting Baseline" 
         p <- wilcox.test(testing_df[["DT.RB"]])$p.value 
@@ -609,19 +618,19 @@ test_time <- function(condition, col, full = TRUE) {
         t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                     
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign)) 
         print(paste("test_type: ", test_type, cond, test, p, sign))
-        print(paste("t-test p-value : ", t.test(testing_df[["P.RB"]])$p.value))
+        print(paste("t-test p-value : ", t.test(testing_df[["DT.RB"]])$p.value))
         
-        # test <- "Dual Task - Writing Baseline" 
-        # p <- wilcox.test(testing_df[["DT.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign)) 
-        # 
-        # test <- "Dual Task - Stress Condition" 
-        # p <- wilcox.test(testing_df[["DT.SC"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign)) 
+        test <- "Dual Task - Writing Baseline"
+        p <- wilcox.test(testing_df[["DT.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign))
+
+        test <- "Dual Task - Stress Condition"
+        p <- wilcox.test(testing_df[["DT.SC"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign))
         
         test <- "Presentation - Resting Baseline" 
         p <- wilcox.test(testing_df[["P.RB"]])$p.value 
@@ -632,23 +641,23 @@ test_time <- function(condition, col, full = TRUE) {
         print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         print(paste("t-test p-value : ", t.test(testing_df[["P.RB"]])$p.value))
         
-        # test <- "Presentation - Writing Baseline" 
-        # p <- wilcox.test(testing_df[["P.WB"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign)) 
-        # 
-        # test <- "Presentation - Stress Condition" 
-        # p <- wilcox.test(testing_df[["P.SC"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign)) 
-        # 
-        # test <- "Presentation - Dual Task" 
-        # p <- wilcox.test(testing_df[["P.DT"]])$p.value 
-        # sign <- interpret_results(p) 
-        # t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,                                     
-        #                            Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.DT))), Significance = sign)) 
+        test <- "Presentation - Writing Baseline"
+        p <- wilcox.test(testing_df[["P.WB"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign))
+
+        test <- "Presentation - Stress Condition"
+        p <- wilcox.test(testing_df[["P.SC"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign))
+
+        test <- "Presentation - Dual Task"
+        p <- wilcox.test(testing_df[["P.DT"]])$p.value
+        sign <- interpret_results(p)
+        t_df <- rbind(t_df, tibble(Difference = "P.DT", Measure = col, Condition = cond, p = p,
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.DT))), Significance = sign))
         
       } 
       
@@ -726,19 +735,19 @@ figure_out_labels <- function(col_name, test_type) {
   if (isMatch(col_name, 'PP')) { 
     return(expression(Delta~"ln("~bar("PP")~paste(') [',''^'o','C',''^2,']')))
   } else if (isMatch(col_name, 'HR')) {
-    if (test_type == "tt" | test_type == "w") {
-      return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
-    }
+    # if (test_type == "tt" | test_type == "w") {
+    #   return(expression(Delta~"ln("~bar("Heart Rate")~') [BPM]'))
+    # }
     return(expression(Delta~bar('Heart Rate')~' [BPM]'))
   } else if (isMatch(col_name, 'BR')) { 
-    if (test_type == "tt" | test_type == "w") {
-      return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
-    }
+    # if (test_type == "tt" | test_type == "w") {
+    #   return(expression(Delta~"ln("~bar("Breathing Rate")~') [BPM]'))
+    # }
     return(expression(Delta~bar('Breathing Rate')~' [BPM]')) 
   } else if (isMatch(col_name, 'EDA')) {
-    if (test_type == "tt" | test_type == "w") {
-      return(expression(Delta~"ln("~bar("EDA")~paste(') [', mu, 'S]')))
-    }
+    # if (test_type == "tt" | test_type == "w") {
+    #   return(expression(Delta~"ln("~bar("EDA")~paste(') [', mu, 'S]')))
+    # }
     return(expression(Delta~bar('EDA')~' ['~mu~'S]')) 
   } 
   return('Unknown axis.') 
