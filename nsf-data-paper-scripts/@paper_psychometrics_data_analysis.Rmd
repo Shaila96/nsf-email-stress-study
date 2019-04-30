@@ -110,7 +110,7 @@ email_freq_order <- c('1', '2', '3', '4', '5', '6', '7')
 
 # nasa_tlx_ques_list <- c('Nasa_Mental', 'Nasa_Physical', 'Nasa_Temporal',
 #                         'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
-nasa_tlx_ques_list <- c('Mental', 'Physical', 'Temporal',
+nasa_tlx_ques_list <- c('Mental Demand', 'Physical Demand', 'Temporal Demand',
                         'Performance', 'Effort', 'Frustration') 
 nasa_tlx_and_stress_ques_list <- c('Stress_Question', paste0('Nasa_', nasa_tlx_ques_list))
 nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
@@ -1044,8 +1044,8 @@ read_data()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_nasa_tlx_score()
-# draw_group_bar_chart_nasa_tlx()
+extract_nasa_tlx_score()
+draw_group_bar_chart_nasa_tlx()
 # draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
 ```
@@ -1057,28 +1057,28 @@ read_data()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 <!-- Combine PLots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-combine_psychometric_plots()
+# combine_psychometric_plots()
 ```
 
 

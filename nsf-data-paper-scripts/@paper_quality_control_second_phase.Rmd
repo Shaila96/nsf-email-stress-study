@@ -39,11 +39,13 @@ survey_data_dir <- file.path(data_dir, 'survey-data')
 
 session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
 
+non_filtered_data_file_name <- 'full_df_non_filtered.csv'
 first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
 mean_data_file_name <- 'result_df_first_phase.csv'
 bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
 pre_survey_file_name <- 'pre-survey.csv'
 
+non_filtered_df <- tibble()
 first_phase_filtered_df <- tibble()
 second_phase_filtered_df <- tibble()
 bad_moderate_signal_df <- tibble()
@@ -200,8 +202,9 @@ make_bad_moderate_signal_data <- function() {
 }
 
 read_data <- function() {
+  non_filtered_df <<- read_csv(file.path(data_dir, non_filtered_data_file_name))
   # first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
-  second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name)) ## ITS WEIRD. BUT WE WILL MODIFY THIS DF ONLY
   mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
   bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
 }
@@ -241,6 +244,22 @@ remove_full_bad_signal <- function() {
     ungroup()
   
   convert_to_csv(mean_df, file.path(data_dir, 'result_df_second_phase.csv'))
+  
+  #################################################################################################
+  #########################       Mean value for raw data       ###################################
+  #################################################################################################
+  # mean_df <- non_filtered_df %>% 
+  #   select(-CovertedTime, -TimeElapsed, -Task) %>% 
+  #   group_by(Subject,	Session, Condition) %>% 
+  #   summarize_all(mean, na.rm=T) %>% 
+  #   ungroup()
+  # 
+  # print(str(mean_df))
+  # colnames(mean_df) <- c('Subject', 'Session', 'Condition', 'PP', 'HR', 'BR', 'D.EDA', 'D.HR', 'N.EDA', 'N.HR')
+  # print(str(mean_df))
+  # 
+  # convert_to_csv(mean_df, file.path(data_dir, 'result_df_non_filtered.csv'))
+  #################################################################################################
 }
 
 remove_partial_bad_signal <- function(subj, session, signal, from, to) {

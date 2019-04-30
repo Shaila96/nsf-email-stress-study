@@ -170,7 +170,7 @@ get_subj_with_high_eda <- function() {
   }
 }
 
-get_percentage_low_eda <- function() {
+get_percentage_invalid_eda <- function() {
   non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
   print(nrow(non_filtered_df))
   non_filtered_df <- non_filtered_df %>% 
@@ -194,6 +194,11 @@ get_percentage_low_eda <- function() {
   # +
     # geom_density(alpha=.2) 
   print(plot)
+}
+
+get_percentage_invalid_signal <- function() {
+  non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  print(str(non_filtered_df))
 }
 
 check_hr_both_sensor <- function(subj_id) {
@@ -278,11 +283,13 @@ get_bad_subjects <- function() {
   # all_other_functions()
   
   # get_subj_with_high_eda()
-  get_percentage_low_eda()
   # check_hr_both_sensor('T011')
   # get_missing_subj_for_pp()
   
   # get_subj_for_long_session()
+  
+  # get_percentage_invalid_eda()
+  get_percentage_invalid_signal()
 }
 
 
