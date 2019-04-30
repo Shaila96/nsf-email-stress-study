@@ -57,7 +57,6 @@ col_names <- c(common_col_names, signal_col_names)
 
 
 
-
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
 
 

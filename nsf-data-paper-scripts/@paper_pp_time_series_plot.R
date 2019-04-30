@@ -129,7 +129,9 @@ generate_pp_plot <- function() {
     
 
     #---- SETUPPING FOR PLOTS ----#
-    subj_no <- session_df %>% distinct(Subject) %>% summarize(n = n())
+    # print(nrow(session_df %>% distinct(Subject)))
+    # subj_no <- session_df %>% distinct(Subject) %>% summarize(n = n())
+    subj_no <- nrow(session_df %>% distinct(Subject))
     subj_no_annot <- paste("n =", subj_no)
     
     x_axis_label <- ''

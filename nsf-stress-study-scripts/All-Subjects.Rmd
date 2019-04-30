@@ -615,24 +615,24 @@ emails_df <- emails_df[ , c("Subject", "Email.1.Open.Email.Time", "Email.2.Open.
 
 
 ###################################################################################################################
-# write.table(result_df, file = paste0("@Datasets/full_df", file_name_extension, ".csv"),
-#             row.names=F, sep = ',')
-# write.table(result_df, file = paste0("@Datasets/full_df_first_phase_filtered", file_name_extension, ".csv"),
-#             row.names=F, sep = ',')
-# write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_first_phase_filtered"), file_name_extension, ".csv"),
-#             row.names=F, sep = ',')
+write.table(result_df, file = paste0("@Datasets/full_df", file_name_extension, ".csv"),
+            row.names=F, sep = ',')
+write.table(result_df, file = paste0("@Datasets/full_df_first_phase_filtered", file_name_extension, ".csv"),
+            row.names=F, sep = ',')
+write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_first_phase_filtered"), file_name_extension, ".csv"),
+            row.names=F, sep = ',')
+
+
+mean_df <- result_df %>%
+    select(-CovertedTime, -TimeElapsed, -Task) %>%
+    group_by(Subject,	Session, Condition) %>%
+    summarize_all(mean, na.rm=T) %>%
+    ungroup()
+
+write.table(mean_df, file = file.path("@Datasets/result_df_first_phase.csv"), row.names=F, sep = ',')
+write.table(mean_df, file = file.path(data_paper_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
 # 
-# 
-# mean_df <- result_df %>% 
-#     select(-CovertedTime, -TimeElapsed, -Task) %>% 
-#     group_by(Subject,	Session, Condition) %>% 
-#     summarize_all(mean, na.rm=T) %>% 
-#     ungroup()
-# 
-# write.table(mean_df, file = file.path("@Datasets/result_df_first_phase.csv"), row.names=F, sep = ',')
-# write.table(mean_df, file = file.path(data_paper_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
-# 
-# print(length(factor(levels(mean_df$Subject))))
+### print(length(factor(levels(mean_df$Subject))))
 ###################################################################################################################
 
 

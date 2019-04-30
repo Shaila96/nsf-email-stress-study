@@ -484,13 +484,13 @@ splitSessionsForPP <- function() {
   # print(class(subj_list_first_phase))
   
   sapply(grp_list, function(grp_name) {
-  # sapply(grp_list[1], function(grp_name) {
+  # sapply(grp_list[3], function(grp_name) {
 
     grp_dir <- file.path(data_dir, grp_name)
     subj_list <- getAllDirectoryList(grp_dir)
     
     sapply(subj_list, function(subj_name) {
-    # sapply(subj_list[21], function(subj_name) {
+    # sapply(subj_list[25], function(subj_name) {
       # runnable_subj_list <- list('T097')
       subj_dir <- file.path(grp_dir, subj_name)
       session_list <- getAllDirectoryList(subj_dir)
