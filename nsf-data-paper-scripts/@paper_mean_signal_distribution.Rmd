@@ -207,7 +207,8 @@ get_x_label <- function(signal) {
   } else if (is_match(signal, 'BR')) { 
     return('Breathing Rate [BPM]')
   } else if (is_match(signal, 'EDA')) {
-    return(expression(paste('EDA [', mu, 'S]')))
+    return(expression(paste('log'[10], '(EDA [', mu, 'S])')))
+    # return(expression(paste('EDA [', mu, 'S]')))
   } 
   return('Unknown axis.')
 }

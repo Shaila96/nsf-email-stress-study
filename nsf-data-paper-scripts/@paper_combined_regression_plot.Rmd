@@ -80,6 +80,7 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=12) {
   ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
 
+## BAD CODING
 get_plot_label <- function(idx) {
   if (idx==1) {
     'A'

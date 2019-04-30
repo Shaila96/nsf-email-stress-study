@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, HR, BR, N.HR, N.EDA
-signal_name <- "PP"
+signal_name <- "HR"
 
 
 ## CHANGE THIS!!!!
@@ -385,7 +385,7 @@ test_time <- function(condition, col, full = TRUE) {
     # we know it is safe and can permanently make the change for `temp[[col]]`. If we log it and hate it, `temp_col` is great 
     # because we never made that change permanently, so we can just continue on with the calculations with the unmodified column. 
     temp_col <- temp[[col]] 
-    print(str(temp_col))
+    # print(str(temp_col))
     shapiro_test_results <- shapiro.test(temp_col) 
     # This line below will make much more sense in just a bit... 
     temp_for_plotting <- temp 
@@ -504,8 +504,8 @@ test_time <- function(condition, col, full = TRUE) {
                P.WB = Presentation - BaselineWriting, 
                P.SC = Presentation - StressCondition, 
                P.DT = Presentation - DualTask) 
-      print(cond)
-      print(str(testing_df))
+      # print(cond)
+      # print(str(testing_df))
       
       # We set up a tibble, `t_df`, to put our test results into. 
       t_df <- tibble() 
@@ -536,55 +536,59 @@ test_time <- function(condition, col, full = TRUE) {
         sign <- interpret_results(p) 
         # Then we add EVERYTHING to that tibble we made earlier to hold it for us (wow, how nice!). 
         t_df <- rbind(t_df, tibble(Difference = "WB.RB", Measure = col, Condition = cond, p = p, 
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(WB.RB))), Significance = sign)) 
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(WB.RB))), Significance = sign))
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
         # And now just rinse and repeat a million times. 
         test <- "Stress Condition - Resting Baseline" 
         p <- t.test(testing_df[["SC.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "SC.RB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "SC.RB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.RB))), Significance = sign)) 
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
         test <- "StressCondition - Writing Baseline" 
         p <- t.test(testing_df[["SC.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "SC.WB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(SC.WB))), Significance = sign)) 
         
         test <- "Dual Task - Resting Baseline" 
         p <- t.test(testing_df[["DT.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign)) 
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
         test <- "Dual Task - Writing Baseline" 
         p <- t.test(testing_df[["DT.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                 
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign)) 
         
         test <- "Dual Task - Stress Condition" 
         p <- t.test(testing_df[["DT.SC"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "DT.SC", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.SC))), Significance = sign)) 
         
         test <- "Presentation - Resting Baseline" 
         p <- t.test(testing_df[["P.RB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.RB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.RB", Measure = col, Condition = cond, p = p,                                    
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.RB))), Significance = sign)) 
+        print(paste("Session:", test, "Test Type:", test_type, "Condition:", cond, "p-value:", p, "Significance:", sign))
         
         test <- "Presentation - Writing Baseline" 
         p <- t.test(testing_df[["P.WB"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.WB", Measure = col, Condition = cond, p = p,                                    
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.WB))), Significance = sign)) 
         
         test <- "Presentation - Stress Condition" 
         p <- t.test(testing_df[["P.SC"]])$p.value 
         sign <- interpret_results(p) 
-        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                     
+        t_df <- rbind(t_df, tibble(Difference = "P.SC", Measure = col, Condition = cond, p = p,                                    
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(P.SC))), Significance = sign)) 
         
         test <- "Presentation - Dual Task" 
