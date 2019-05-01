@@ -37,7 +37,21 @@ setwd(project_dir)
 data_dir <- 'data'
 plots_dir <- 'plots'
 
-data_file_name <- 'result_df.csv'
+
+
+### CHANGE THIS
+filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+data_file_name <- 'result_df_first_phase.csv'
+quality_control_version <- 'qc1'
+
+### CHANGE THIS
+# filtered_data_file_name <- 'full_df_second_phase_filtered.csv'
+# data_file_name <- 'result_df_second_phase.csv'
+# quality_control_version <- 'qc2'
+
+
+
+
 
 condition_types <- c('L', 'H')
 session_list <- c('RestingBaseline', 'BaselineWriting', 'DualTask', 'Presentation', 'StressCondition')
@@ -55,6 +69,8 @@ perspiration_col_list <- c(common_col_list, perspiration_signal_list)
 
 
 
+
+filtered_df <- tibble()
 mean_df <- tibble()
 mean_diff_df <- tibble()
 new_mean_diff_df <- tibble()
@@ -115,8 +131,6 @@ is_match <- function(string_we_have, pattern_we_are_looking_for) {
 
 replace_dot_space <- function(str) {
   gsubfn(".", list("." = "_", " " = "_"), tolower(str))
-  # gsub("\\.", "_", str)
-  # gsub(" ", "_", str) ## CHANGE THE BAD CODE NOW!!!
 }
 
 ## Function for annotating boxplot with n.
@@ -124,7 +138,6 @@ get_n <- function(df) {
   return(c(y=-Inf, vjust = -1, label=length(df))) 
 } 
 
-# 'RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask'
 get_session_title <- function(session_name, condition_type=NA) {
   if (session_name=='RestingBaseline') {
     return('Resting Baseline')
@@ -174,8 +187,6 @@ get_condition_type <- function(str) {
 }
 
 save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
-  # print(plot)
-  
   plot_path <- file.path(project_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=default_width, height=default_height)
   
@@ -183,8 +194,13 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=10) {
   ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
 }
 
-generate_mean_diff_data <- function() {
+read_data <- function() {
   mean_df <<- read_csv(file.path(data_dir, data_file_name))[, all_signal_col_list]
+  filtered_df <<- read_csv(file.path(data_dir, filtered_data_file_name))[, c(hr_col_list, 'TimeElapsed')]
+}
+
+generate_mean_diff_data <- function() {
+  # mean_df <<- read_csv(file.path(data_dir, data_file_name))[, all_signal_col_list]
   # print_msg(paste0('1. No. of rows - Initially: ', nrow(mean_df)))
   
   mean_diff_df <<- mean_df %>%
@@ -258,17 +274,18 @@ generate_residual_plots <- function(df, x_col, y_col, file_name) {
   fit <- lm(df[[x_col]] ~ df[[y_col]], data = df)  ## Fit the model
   print_msg(summary(fit))
 
-  plot_path <- file.path(plots_dir, paste0('residual-', replace_dot_space(tolower(file_name)), '.png'))
+  plot_path <- file.path(plots_dir, paste0('residual_', replace_dot_space(tolower(file_name)), '_', quality_control_version, '.png'))
   png(plot_path, width=12, height=8, units = 'in', res = 300)
   par(mfrow=c(2, 2))
   plot(fit)
   # dev.off()
   
-  plot_path <- file.path(plots_dir, paste0('single-residual-', replace_dot_space(tolower(file_name)), '.png'))
+  plot_path <- file.path(plots_dir, paste0('single_residual_', replace_dot_space(tolower(file_name)), '_', quality_control_version, '.png'))
   png(plot_path, width=12, height=8, units = 'in', res = 300)
   par(mfrow=c(1, 1))
   plot(fit, which=c(1))
   dev.off()
+  
 }
 
 get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_name, transformed=F) {
@@ -276,11 +293,12 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
   subj_no <- df %>% summarize(n = n())
   
   ## Very Bad Coding :P
-  if(x_col=='HR') point=10 else point=3
+  # if(x_col=='HR') point=10 else point=3
 
-  annot_label <- paste("n =", subj_no, 
-                       ", p =", specify_decimal(cor_test$p.value, point), 
-                       ", R =", specify_decimal(cor_test$estimate, 3))
+  annot_label <- paste0("n = ", subj_no, 
+                       # ", p = ", specify_decimal(cor_test$p.value, point), 
+                       ", p = ", cor_test$p.value, 
+                       ", R = ", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
@@ -298,13 +316,17 @@ get_scatter_plot <- function(df, x_col, y_col, x_label, y_label, title, file_nam
          vjust=1.5,
          label=annot_label,
          fontface = 'italic', 
-         size = 6) +
-    theme(text = element_text(size=16),
-          axis.title = element_text(size = 16),
-          plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+         size = 12) +
+    theme(text = element_text(size=42),
+          # axis.title = element_text(size = 24),
+          # plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),
+          axis.text = element_text(size = 32),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black")) 
   print(plot)
   
-  plot_path <- file.path(plots_dir, replace_dot_space(tolower(file_name)))
+  plot_path <- file.path(plots_dir, paste0('regression_', file_name, '_', quality_control_version))
   save_plot(plot_path, plot)
   
   ## RESIDUAL PLOTS 
@@ -361,12 +383,37 @@ get_significance_sign <- function(p_value) {
   } 
 } 
 
-t_test_hr <- function(df, plot_title, file_name) {
+draw_line_plot_for_outliers <- function(df, session_name) {
+  outlier_df <- df[df$Value %in% boxplot(df$Value, plot=FALSE)$out, ]
+  print_msg(outlier_df)
+  
+  filtered_df <- filtered_df %>% 
+    gather(Signal, Value, -Subject, -Condition, -Session, -TimeElapsed)
+  
+  for(subj in outlier_df$Subject) {
+    temp_filtered_df <- filtered_df %>% 
+      filter(Session==session_name & Subject==subj)
+      # filter(Subject==subj & if (session_name!='all-session') Session==session_name)
+    
+    plot <- temp_filtered_df %>% 
+      ggplot(aes(x=TimeElapsed, y=Value)) +
+      geom_line(aes(color=Signal)) +
+      ggtitle(paste0(session_name, ': ', subj)) +
+      ylab('Heart Rate [BPM]') +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
+    
+    print(plot)
+  }
+}
+
+t_test_hr <- function(df, session_name=NA, plot_title, file_name) {
   ## H0:m=0, Ha:m???0 (different)
   t_test <- t.test(df$HR, df$N.HR, data=df, paired=T)
   # print_msg(paste0('----------HR Box Plot Data: ', head(df, 2)))
-
-  get_box_plot(get_data_for_boxplot(df), 
+  
+  box_plot_df <- get_data_for_boxplot(df)
+  get_box_plot(box_plot_df, 
                'Signal', 
                'Value', 
                'Heart Rate', 
@@ -379,7 +426,10 @@ t_test_hr <- function(df, plot_title, file_name) {
   print_msg(paste('The mean differences between the HR from two sensors are', 
                   check_significance(t_test)))
   
-  
+  if (session_name!='all-session') {
+    draw_line_plot_for_outliers(box_plot_df, session_name)
+  }
+  # draw_line_plot_for_outliers(box_plot_df, session_name)
 }
 
 generate_eda_vs_pp_plot <- function() {
@@ -430,7 +480,7 @@ generate_eda_vs_pp_plot <- function() {
                    figure_out_labels('PP', T), 
                    figure_out_labels('EDA', T), 
                    'EDA vs PP Plot',
-                   'eda-vs-pp',
+                   'eda_vs_pp',
                    T)
   
   cor_test <- cor.test(new_mean_diff_df$PP, new_mean_diff_df$N.EDA, method = "pearson")
@@ -440,13 +490,17 @@ generate_eda_vs_pp_plot <- function() {
 generate_hr_plot <- function() {
   mean_df <- mean_df[, hr_col_list] %>% na.omit()
   # print_msg(paste0('----------HR Scatter Plot Data: ', head(mean_df, 2)))
-  get_scatter_plot(mean_df, 
-                   'HR', 
-                   'N.HR', 
-                   figure_out_labels('HR'), 
-                   figure_out_labels('N.HR'), 
+  
+  # print_msg(class(mean_df$HR))
+  # print_msg(class(mean_df$N.HR))
+  
+  get_scatter_plot(mean_df,
+                   'HR',
+                   'N.HR',
+                   'Wrist Heart Rate [BPM]',
+                   'Chest Heart Rate [BPM]',
                    'Chest HR vs Wrist HR',
-                   'chest-hr-vs-wrist-hr')
+                   'c_hr_vs_w_hr')
   
   # cor_test <- cor.test(new_mean_diff_df$HR, new_mean_diff_df$N.HR, method = "pearson")
   # print_msg(cor_test)
@@ -466,15 +520,16 @@ generate_hr_plot <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
 generate_mean_diff_data()
 ```
 
-\newpage
-# EDA vs PP - Scatter Plot (Session-Baseline)
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-generate_eda_vs_pp_plot()
-```
+<!-- \newpage -->
+<!-- # EDA vs PP - Scatter Plot (Session-Baseline) -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- # generate_eda_vs_pp_plot() -->
+<!-- ``` -->
 
 \newpage
 # Zephyr HR vs E4 HR - Scatter Plot (Session-Baseline)
@@ -483,33 +538,92 @@ generate_eda_vs_pp_plot()
 generate_hr_plot()
 ```
 
-\newpage
-# T Test - Mean Heart Rate - Per Session
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE}
-mean_hr_df <- mean_df[, hr_col_list]
-t_test_hr(mean_hr_df, 'HR Boxplot - all sessions', 'hr-boxplot-all-sessions')
-```
+<!-- \newpage -->
+<!-- # T Test - Mean Heart Rate - All Session -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- mean_hr_df <- mean_df[, hr_col_list] -->
+<!-- t_test_hr(mean_hr_df,  -->
+<!--           'all-session', -->
+<!--           plot_title='HR Boxplot - all sessions',  -->
+<!--           file_name='hr-boxplot-all-sessions') -->
+<!-- ``` -->
 
-\newpage
-# T Test - Mean Heart Rate - Session-Baseline
-\newpage
+<!-- \newpage -->
+<!-- # T Test - Mean Heart Rate - Per Session -->
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE} -->
+<!-- for (session_name in session_list) { -->
+<!--   if (session_name=='StressCondition') { -->
+<!--     for (condition_type in condition_types) { -->
+<!--       mean_hr_df <- mean_df[mean_df$Session==session_name -->
+<!--                                       & is_match(mean_df$Condition, condition_type), hr_col_list] -->
+<!--       t_test_hr(mean_hr_df,  -->
+<!--                 session_name, -->
+<!--                 plot_title=paste0('HR Boxplot - ', get_session_title(session_name, condition_type)), -->
+<!--                 file_name=paste0('hr_boxplot_', get_session_title(session_name, condition_type))) -->
+<!--     } -->
+<!--     cat("\\newpage\n") -->
+<!--   } else { -->
+<!--     mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list] -->
+<!--     t_test_hr(mean_hr_df,  -->
+<!--               session_name, -->
+<!--               plot_title=paste0('HR Boxplot - ', get_session_title(session_name)),  -->
+<!--               file_name=paste0('hr_boxplot_', get_session_title(session_name))) -->
+<!--   } -->
+<!--   cat("\\newpage\n") -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- \newpage -->
+<!-- EDA High valued subjects (5<) -->
+<!-- \newpage -->
+<!-- [1] "RestingBaseline" -->
+<!-- [1] "T032" "T132" -->
+
+
+<!-- [1] "BaselineWriting" -->
+<!-- [1] "T032" "T132" -->
+
+
+<!-- [1] "StressCondition" -->
+<!-- [1] "T032" "T132" -->
+
+
+<!-- [1] "DualTask" -->
+<!-- [1] "T011" "T032" "T132" -->
+
+
+<!-- [1] "Presentation" -->
+<!-- [1] "T132" -->
+
+
+
+<!-- \newpage -->
+<!-- # HR Comparison - T132 -->
+<!-- \newpage -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-for (session_name in session_list) {
-  if (session_name=='StressCondition') {
-    for (condition_type in condition_types) {
-      mean_hr_df <- mean_df[mean_df$Session==session_name
-                                      & is_match(mean_df$Condition, condition_type), hr_col_list]
-      t_test_hr(mean_hr_df,
-                paste0('HR Boxplot - ', get_session_title(session_name, condition_type)),
-                paste0('hr_boxplot_', get_session_title(session_name, condition_type)))
-    }
-  } else {
-    mean_hr_df <- mean_df[mean_df$Session==session_name, hr_col_list]
-    t_test_hr(mean_hr_df, 
-              paste0('HR Boxplot - ', get_session_title(session_name)), 
-              paste0('hr_boxplot_', get_session_title(session_name)))
-  }
-}
+# subj_list <- c('T132', 'T032', 'T011')
+# 
+# for(subj in subj_list) {
+#   for(session_name in session_list) {
+#     
+#     temp_filtered_df <- filtered_df %>% 
+#       filter(Session==session_name & Subject==subj) %>% 
+#       gather(Signal, Value, -Subject, -Condition, -Session, -TimeElapsed) 
+#     
+#     plot <- temp_filtered_df %>% 
+#       ggplot(aes(x=TimeElapsed, y=Value)) +
+#       geom_line(aes(color=Signal)) +
+#       ggtitle(paste0(session_name, ': ', subj)) +
+#       ylab('Heart Rate [BPM]') +
+#       theme_bw() +
+#       theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
+#     
+#     print(plot)
+#   }
+#   cat("\\pagebreak\n")
+# }
 
 ```

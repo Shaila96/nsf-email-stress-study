@@ -245,120 +245,111 @@ doCoreNLP <- function(session_dir, subj_name, cond) {
 
 
 ## IH 
-# find_subjects("IH")
-# title <- ggdraw() + draw_label("Intermittent Filler (IF) Essays", fontface='bold')
-# gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
-# gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
-# save_plot("nsf-stress-study-scripts/IH_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
-# 
-# ## IL
-# find_subjects("IL")
-# title <- ggdraw() + draw_label("Intermittent Nothing (IN) Essays", fontface='bold')
-# gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
-# gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
-# save_plot("nsf-stress-study-scripts/IL_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
-# 
-# ## BH 
-# find_subjects("BH") 
-# title <- ggdraw() + draw_label("Batch Filler (BF) Essays", fontface='bold')
-# gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
-# gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
-# save_plot("nsf-stress-study-scripts/BH_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
-# 
-# ## BL 
-# find_subjects("BL")
-# title <- ggdraw() + draw_label("Batch Nothing (BN) Essays", fontface='bold')
-# gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
-# gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
-# save_plot("nsf-stress-study-scripts/BL_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
+find_subjects("IH")
+title <- ggdraw() + draw_label("Intermittent Filler (IF) Essays", fontface='bold')
+gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
+gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
+save_plot("nsf-stress-study-scripts/IH_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
 
+## IL
+find_subjects("IL")
+title <- ggdraw() + draw_label("Intermittent Nothing (IN) Essays", fontface='bold')
+gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
+gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
+save_plot("nsf-stress-study-scripts/IL_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
 
+## BH 
+find_subjects("BH") 
+title <- ggdraw() + draw_label("Batch Filler (BF) Essays", fontface='bold')
+gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
+gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
+save_plot("nsf-stress-study-scripts/BH_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
 
+## BL 
+find_subjects("BL")
+title <- ggdraw() + draw_label("Batch Nothing (BN) Essays", fontface='bold')
+gg <- plot_grid(plotlist = plots, ncol = 3, align = "v", scale = 0.9)
+gg <- plot_grid(title, gg, ncol = 1, align = "v", rel_heights=c(0.04, 1))
+save_plot("nsf-stress-study-scripts/BL_essays.pdf", gg, ncol = 2, base_height = 20, base_width = 7)
 
 
 ## WRITE THE GRAND CSV 
-find_subjects("IH")
-find_subjects("IL")
-find_subjects("BH")
-find_subjects("BL")
 convert_to_csv(result_df, file.path('nsf-stress-study-scripts/@Datasets/essay_nlp_results.csv')) 
 
 
+## ESSAY PROMPTS 
+baseline_prompt <- "The best way for a society to prepare its young people for leadership in 
+                    government, industry, or other fields is by instilling in them a sense of '
+                    cooperation, not competition. Do you agree or disagree? Explain your 
+                    reasoning in detail. Note: copying and pasting in the essay window are 
+                    disabled." 
+dual_task_prompt <- "You will have 50 minutes to write. You will be given a topic. you can 
+                    research the topic on the web. Please do not watch videos on this topic, 
+                    but rather use written documents on the subject. Your performance will be 
+                    based on both the content of your essay and the relevance and sufficiency of 
+                    your responses to emails. Paragraph 1: Explain what The Technological 
+                    Singularity is in your own words. Paragraph 2: Explain and discuss the view 
+                    of your first Singularity theorist. Paragraph 3: Explain and discuss the 
+                    view of your second Singularity theorist. Paragraph 4: Explain and discuss 
+                    your own view of the Singularity. Paragraph 5: Conclude your essay 
+                    summarizing the views of the theorists and your own. Note: copying and 
+                    pasting in the essay window are disabled." 
 
+baseline_annotated = annotateString(baseline_prompt) 
+dual_task_annotated = annotateString(dual_task_prompt) 
 
-# ## ESSAY PROMPTS 
-# baseline_prompt <- "The best way for a society to prepare its young people for leadership in 
-#                     government, industry, or other fields is by instilling in them a sense of '
-#                     cooperation, not competition. Do you agree or disagree? Explain your 
-#                     reasoning in detail. Note: copying and pasting in the essay window are 
-#                     disabled." 
-# dual_task_prompt <- "You will have 50 minutes to write. You will be given a topic. you can 
-#                     research the topic on the web. Please do not watch videos on this topic, 
-#                     but rather use written documents on the subject. Your performance will be 
-#                     based on both the content of your essay and the relevance and sufficiency of 
-#                     your responses to emails. Paragraph 1: Explain what The Technological 
-#                     Singularity is in your own words. Paragraph 2: Explain and discuss the view 
-#                     of your first Singularity theorist. Paragraph 3: Explain and discuss the 
-#                     view of your second Singularity theorist. Paragraph 4: Explain and discuss 
-#                     your own view of the Singularity. Paragraph 5: Conclude your essay 
-#                     summarizing the views of the theorists and your own. Note: copying and 
-#                     pasting in the essay window are disabled." 
-# 
-# baseline_annotated = annotateString(baseline_prompt) 
-# dual_task_annotated = annotateString(dual_task_prompt) 
-# 
-# baseline_words <- wordcount(baseline_prompt) 
-# dual_task_words <- wordcount(dual_task_prompt) 
-# 
-# baseline_sent <- getSentiment(baseline_annotated) 
-# dual_task_sent <- getSentiment(dual_task_annotated) 
-# 
-# g1 <- baseline_sent %>% 
-#   mutate(sentiment = factor(sentiment, levels = c("Positive", "Neutral", "Negative"))) %>% 
-#   ggplot(aes(x = sentiment)) + 
-#   geom_bar() + 
-#   labs(title = paste0("WB Prompt"), 
-#        subtitle = paste0("Wordcount: ", baseline_words), 
-#        x = "Sentiment", 
-#        y = "Sentence Count") + 
-#   theme_bw() + 
-#   scale_x_discrete(drop=FALSE) + 
-#   theme(panel.background=element_rect(fill = "NA"), 
-#         panel.grid.minor = element_line(colour = "#E0E0E0"), 
-#         axis.text.x = element_text(angle = 90, hjust = 1), 
-#         plot.title = element_text(size=11), 
-#         plot.subtitle = element_text(size=9, face="italic")) + 
-#   scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1))))) + 
-#   scale_color_manual(values = c("Verypositive" = "#3bff00", 
-#                                 "Positive" = "green", 
-#                                 "Neutral" = "yellow", 
-#                                 "Negative" = "red", 
-#                                 "Verynegative" = "#910a0a")) 
-# 
-# g2 <- dual_task_sent %>% 
-#   mutate(sentiment = factor(sentiment, levels = c("Positive", "Neutral", "Negative"))) %>% 
-#   ggplot(aes(x = sentiment)) + 
-#   geom_bar() + 
-#   labs(title = paste0("DT Essay Prompt"), 
-#        subtitle = paste0("Wordcount: ", dual_task_words), 
-#        x = "Sentiment", 
-#        y = "Sentence Count") + 
-#   theme_bw() + 
-#   scale_x_discrete(drop=FALSE) + 
-#   theme(panel.background=element_rect(fill = "NA"), 
-#         panel.grid.minor = element_line(colour = "#E0E0E0"), 
-#         axis.text.x = element_text(angle = 90, hjust = 1), 
-#         plot.title = element_text(size=11), 
-#         plot.subtitle = element_text(size=9, face="italic"), 
-#         legend.position="none") + 
-#   scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1))))) + 
-#   scale_color_manual(values = c("Verypositive" = "#3bff00", 
-#                                 "Positive" = "green", 
-#                                 "Neutral" = "yellow", 
-#                                 "Negative" = "red", 
-#                                 "Verynegative" = "#910a0a")) 
-# 
-# title <- ggdraw() + draw_label("Sentimental Analysis of Essay Prompts", fontface='bold') 
-# g <- plot_grid(g1, g2, ncol = 2, align = "v") 
-# g <- plot_grid(title, g, ncol = 1, align = "v", rel_heights=c(0.1, 1)) 
-# save_plot("nsf-stress-study-scripts/essay_prompts.pdf", g) 
+baseline_words <- wordcount(baseline_prompt) 
+dual_task_words <- wordcount(dual_task_prompt) 
+
+baseline_sent <- getSentiment(baseline_annotated) 
+dual_task_sent <- getSentiment(dual_task_annotated) 
+
+g1 <- baseline_sent %>% 
+  mutate(sentiment = factor(sentiment, levels = c("Positive", "Neutral", "Negative"))) %>% 
+  ggplot(aes(x = sentiment)) + 
+  geom_bar() + 
+  labs(title = paste0("WB Prompt"), 
+       subtitle = paste0("Wordcount: ", baseline_words), 
+       x = "Sentiment", 
+       y = "Sentence Count") + 
+  theme_bw() + 
+  scale_x_discrete(drop=FALSE) + 
+  theme(panel.background=element_rect(fill = "NA"), 
+        panel.grid.minor = element_line(colour = "#E0E0E0"), 
+        axis.text.x = element_text(angle = 90, hjust = 1), 
+        plot.title = element_text(size=11), 
+        plot.subtitle = element_text(size=9, face="italic")) + 
+  scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1))))) + 
+  scale_color_manual(values = c("Verypositive" = "#3bff00", 
+                                "Positive" = "green", 
+                                "Neutral" = "yellow", 
+                                "Negative" = "red", 
+                                "Verynegative" = "#910a0a")) 
+
+g2 <- dual_task_sent %>% 
+  mutate(sentiment = factor(sentiment, levels = c("Positive", "Neutral", "Negative"))) %>% 
+  ggplot(aes(x = sentiment)) + 
+  geom_bar() + 
+  labs(title = paste0("DT Essay Prompt"), 
+       subtitle = paste0("Wordcount: ", dual_task_words), 
+       x = "Sentiment", 
+       y = "Sentence Count") + 
+  theme_bw() + 
+  scale_x_discrete(drop=FALSE) + 
+  theme(panel.background=element_rect(fill = "NA"), 
+        panel.grid.minor = element_line(colour = "#E0E0E0"), 
+        axis.text.x = element_text(angle = 90, hjust = 1), 
+        plot.title = element_text(size=11), 
+        plot.subtitle = element_text(size=9, face="italic"), 
+        legend.position="none") + 
+  scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1))))) + 
+  scale_color_manual(values = c("Verypositive" = "#3bff00", 
+                                "Positive" = "green", 
+                                "Neutral" = "yellow", 
+                                "Negative" = "red", 
+                                "Verynegative" = "#910a0a")) 
+
+title <- ggdraw() + draw_label("Sentimental Analysis of Essay Prompts", fontface='bold') 
+g <- plot_grid(g1, g2, ncol = 2, align = "v") 
+g <- plot_grid(title, g, ncol = 1, align = "v", rel_heights=c(0.1, 1)) 
+save_plot("nsf-stress-study-scripts/essay_prompts.pdf", g) 

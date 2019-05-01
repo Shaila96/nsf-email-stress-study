@@ -64,6 +64,8 @@ get_erq_sup_score <- function(df) {
 #---------------Big Five Inventory---------------#
 #------------------------------------------------#
 get_reverse_val_bfi <- function(ques_val) {
+  if(is.na(ques_val)) 
+    return(0)
   return(switch(as.numeric(ques_val), 5, 4, 3, 2, 1))
 }
 
@@ -74,7 +76,7 @@ get_bfi_score <- function(df, forward_ques_list, reverse_ques_list) {
   }
   
   for (rev_ques in reverse_ques_list) {
-    bfi_score <- bfi_score + get_reverse_val_bfi(df[[paste0('BFI_Q', forward_ques)]])
+    bfi_score <- bfi_score + get_reverse_val_bfi(df[[paste0('BFI_Q', rev_ques)]])
   }
   
   return(bfi_score)

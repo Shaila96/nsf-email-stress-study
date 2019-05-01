@@ -1,0 +1,82 @@
+---
+title: "Analysis - Sentiment & Neuroticism" 
+output: pdf_document 
+geometry: "top=3.5cm, bottom=3cm" 
+header-includes: 
+- \usepackage{booktabs} 
+- \usepackage{sectsty} 
+- \usepackage{titlesec} 
+- \titleformat*{\section}{\raggedleft\Large\bfseries} 
+- \newcommand{\sectionbreak}{\clearpage\vspace*{.35\textheight}} 
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+library(nlme)
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_path) {
+  write.table(df, file = file_path, row.names=F, sep = ',')
+}
+``` 
+
+\newpage 
+
+----- 
+
+Linear Model: 
+$$ 
+ SentimentScoreNeg = 1 + StressCondition + NeuroticismScore + 1|Subject
+$$ 
+
+----- 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+#-------------------------#
+#-------Main Program------#
+#-------------------------#
+# current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+# setwd(current_dir)
+
+setwd("T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-stress-study-scripts/@Datasets")
+
+all_data_df <- read.csv("data-uci.csv")[, c('pid', 'email_condition', 'stress_condition', 'big5_n')]
+nlp_data_df <- read.csv("essay_nlp_results.csv")[, c('Subject', 'Condition', 'Essay', 'Negative')]
+nlp_data_df <- nlp_data_df[nlp_data_df$Essay == "DT",]
+
+merged_df <- merge(nlp_data_df, all_data_df, by.x='Subject', by.y='pid')
+
+# str(merged_df)
+# print(merged_df$Subject)
+# print(length(merged_df$Subject))
+# print(length(merged_df$Negative))
+# print(nlp_data_df$Subject)
+
+# colnames(data)[colnames(data)=="Negative"] <- "SentimentScoreNeg"
+# colnames(data)[colnames(data)=="stress_condition"] <- "StressCondition"
+# colnames(data)[colnames(data)=="big5_n"] <- "NeuroticismScore"
+
+names(merged_df) <- c("Subject", "Condition", "EssayType", "SentimentScoreNeg", "EmailCondition", "StressCondition", "NeuroticismScore")
+
+convert_to_csv(merged_df, "sentiment_neuroticism.csv")
+
+
+
+# Mixed Model - Without Interaction
+model1 = lme(SentimentScoreNeg ~ 1 + StressCondition + NeuroticismScore,  data=merged_df,
+             random=~1|Subject, na.action = na.omit)
+summary(model1)
+
+
+# # Fixed Model
+# model2 = lm(SentimentScoreNeg ~ 1 + StressCondition + NeuroticismScore,  data=merged_df, na.action = na.omit)
+# summary(model2)
+# 
+# 
+# # Mixed Model - With Interaction
+# model3 = lme(SentimentScoreNeg ~ 1 + StressCondition + NeuroticismScore + StressCondition*NeuroticismScore,  data=merged_df, random=~1|Subject, na.action = na.omit)
+# summary(model3)
+``` 

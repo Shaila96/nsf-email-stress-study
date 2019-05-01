@@ -38,6 +38,7 @@ setwd(project_dir)
 
 data_dir <- 'data'
 survey_data_dir <- 'survey-data'
+performane_data_dir <- 'performane-data'
 plots_dir <- 'plots'
 
 data_file_name <- 'result_df.csv'
@@ -141,8 +142,8 @@ print_significance <- function(prop_test, alternative_val) {
   print_msg(paste0('than the proportion of disagreement, with a p-value = ', p_val))
 }
 
-is_match <- function(string_we_have, pattern_we_are_looking_for) { 
-  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
 } 
 
 replace_dot_space <- function(str) {
@@ -232,13 +233,13 @@ draw_group_bar_chart_nasa_tlx <- function() {
   nasa_tlx_long_df <- nasa_tlx_df %>%
     gather(Title, Value, -SubjectID) %>% ## making the data wide to long for all signals
     filter(Title != 'Stress_Question') %>% 
-    mutate(Title = gsub("Nasa_", "", Title))
+    mutate(Title = gsub('Nasa_', '', Title))
   nasa_tlx_long_df$Title <- factor(nasa_tlx_long_df$Title, levels=nasa_tlx_ques_list)
   
   ###########################################################
   subj_plot <- nasa_tlx_long_df %>%
     ggplot(aes(x=SubjectID, y=Value)) +
-    geom_bar(stat="identity") +
+    geom_bar(stat='identity') +
     facet_wrap(~Title, ncol=1)
   print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
   ###########################################################
@@ -248,7 +249,7 @@ draw_group_bar_chart_nasa_tlx <- function() {
   # draw_hist_plot(nasa_tlx_long_df, title)
   ###########################################################
   hist_plot <- nasa_tlx_long_df %>%
-    mutate(Value = recode(Value, '1' = "Strongly disagree", '2' = "Disagree", '3' = "Somewhat disagree", '4' = "Neither agree or disagree", '5' = "Somewhat agree", '6' = "Agree", '7' = "Strongly agree")) %>%
+    mutate(Value = recode(Value, '1' = 'Strongly disagree', '2' = 'Disagree', '3' = 'Somewhat disagree', '4' = 'Neither agree or disagree', '5' = 'Somewhat agree', '6' = 'Agree', '7' = 'Strongly agree')) %>%
     ggplot(aes(x=factor(Value, levels=nasa_task_options))) +
     # ggplot(aes(x=Value)) +
     geom_bar() +
@@ -343,6 +344,8 @@ extract_biographic_info <- function() {
   biographic_df <<- biographic_df %>% 
     filter(SubjectID %in% good_subj_list$Subject)
   # print_msg(str(biographic_df))
+  
+  # convert_to_csv(biographic_df, file.path(performane_data_dir, 'biographic_data.csv'))
 }
 
 get_bio_bar_plot_df <- function(col_name) {
@@ -477,6 +480,7 @@ get_biographic_distribution <- function() {
   draw_biographic_distribution('Writing_Proficiency')
   draw_biographic_distribution('Daily_Email_Frequency')
   
+  
   #### draw_biographic_distribution('Nationality')
   #### draw_biographic_distribution('Native_Language')
 }
@@ -520,11 +524,11 @@ extract_erq_score <- function() {
 }
 
 extract_pss_score_each_row <- function(current_subj_df) {
-  temp_pss_score_df <- tibble("Subject" = current_subj_df['SubjectID'],
-                          "Title" = "Percieved Stress Scale",
-                          "Value" = get_pss_score(current_subj_df),
-                          "MinVal" = 0,
-                          "MaxVal" = 40)
+  temp_pss_score_df <- tibble('Subject' = current_subj_df['SubjectID'],
+                          'Title' = 'Percieved Stress Scale',
+                          'Value' = get_pss_score(current_subj_df),
+                          'MinVal' = 0,
+                          'MaxVal' = 40)
 
   if (nrow(pss_score_df) == 0) {
     pss_score_df <<- temp_pss_score_df
@@ -604,11 +608,11 @@ print_plot <- function(plot, title, y_lab='Frequency',  x_axis_text_size=16, ang
           axis.title = element_text(size=20),
           axis.text.x = element_text(size=x_axis_text_size, angle=angle))
   
-  if (grepl('NASA TLX', title)) {
+  if (is_match(title, 'NASA TLX')) {
     plot <- plot + 
       # scale_x_discrete(breaks=nasa_task_options, labels=c(1:7)) +
       theme(strip.text = element_text(size=18),
-            panel.spacing = unit(1.5, "lines"))
+            panel.spacing = unit(1.5, 'lines'))
   }
   
   print(plot)
@@ -623,7 +627,7 @@ draw_pss_plot <- function() {
     coord_cartesian(xlim = c(0, 40))  ## min_val=0, max_val=40
   
   subj_plot <- ggplot(data=pss_score_df, aes(x=Subject, y=Value)) + 
-    geom_bar(stat="identity")
+    geom_bar(stat='identity')
     
   print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
   print_plot(hist_plot, paste(title,'- Histogram'))
@@ -715,7 +719,7 @@ draw_erq_plot <- function() {
 
   ###########################################################
   subj_plot <- ggplot(data=erq_score_df, aes(x=Subject, y=Value)) +
-    geom_bar(stat="identity") +
+    geom_bar(stat='identity') +
     facet_wrap(~Title, ncol=1)
   print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', 10, 90)
   ###########################################################
@@ -724,7 +728,7 @@ draw_erq_plot <- function() {
   ###########################################################
   # hist_plot <- ggplot(data=erq_score_df, aes(x=Value)) + 
   #   geom_bar() + 
-  #   ## facet_wrap(~Title, ncol=1, scales="free_x")
+  #   ## facet_wrap(~Title, ncol=1, scales='free_x')
   #   facet_wrap(~Title, ncol=1)
   # print_plot(hist_plot, paste(title, '- Histogram'))
   ###########################################################
@@ -735,7 +739,7 @@ draw_bfi_plot <- function() {
   
   ###########################################################
   subj_plot <- ggplot(data=bfi_score_df, aes(x=Subject, y=Value)) +
-    geom_bar(stat="identity") +
+    geom_bar(stat='identity') +
     facet_wrap(~Title, ncol=1)
   print_plot(subj_plot, paste(title,'- Per Subject'), 'Score', x_axis_text_size=10, angle=90, height=20)
   ###########################################################
@@ -762,8 +766,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
-get_biographic_distribution()
+# extract_biographic_info()
+# get_biographic_distribution()
 ```
 
 
@@ -784,22 +788,22 @@ get_proportion_test_nasa_tlx()
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
-draw_pss_plot()
+# extract_pss_score()
+# draw_pss_plot()
 ```
 
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
-draw_erq_plot()
+# extract_erq_score()
+# draw_erq_plot()
 ```
 
 
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
-draw_bfi_plot()
+# extract_bfi_score()
+# draw_bfi_plot()
 ```

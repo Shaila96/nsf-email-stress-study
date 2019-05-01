@@ -25,8 +25,8 @@ good_subj_file_name <- 'subj_good_df.csv'
 mean_file_name <- 'result_df.csv'
 
 
-# session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
-session_list <- c('Presentation')
+session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+# session_list <- c('Presentation')
 
 
 
@@ -162,13 +162,43 @@ get_subj_with_high_eda <- function() {
 
   for(session_name in session_list) {
     session_df <- filtered_df %>% filter(Session == session_name)
-    session_df <- session_df[session_df$N.EDA > 5, 
-                             ]
+    session_df <- session_df[session_df$N.EDA > 5, ]
     bad_subjects <- levels(factor((session_df$Subject)))
     print(session_name)
     print(bad_subjects)
     print(length(bad_subjects))
   }
+}
+
+get_percentage_invalid_eda <- function() {
+  non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  print(nrow(non_filtered_df))
+  non_filtered_df <- non_filtered_df %>% 
+    select('N.EDA.non.filtered') %>% 
+    rename('EDA' = 'N.EDA.non.filtered') %>%
+    filter(complete.cases(.))
+  print(nrow(non_filtered_df))
+  
+  total_invalid_eda <- nrow(non_filtered_df[non_filtered_df$EDA<0.01 | non_filtered_df$EDA>100, ])
+  total_eda <- nrow(non_filtered_df)
+  print(paste0('Percentage of invalid EDA: ', (total_invalid_eda/total_eda)*100))
+  
+  
+  plot <- non_filtered_df %>% 
+    ggplot(aes(x=EDA)) +
+    geom_histogram(aes(y=..density..),
+                   alpha=0.8,
+                   # stat="identity",
+                   binwidth=20,
+                   breaks=c(0, 0.01, 0.1, 1, 10))
+  # +
+    # geom_density(alpha=.2) 
+  print(plot)
+}
+
+get_percentage_invalid_signal <- function() {
+  non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
+  print(str(non_filtered_df))
 }
 
 check_hr_both_sensor <- function(subj_id) {
@@ -241,6 +271,10 @@ get_subj_for_long_session <- function() {
   }
 } 
 
+get_subj_high_eda <- function() {
+  
+}
+
 get_bad_subjects <- function() {
   # filtered_df <- read_csv(file.path(data_dir, filtered_file_name))
   # non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
@@ -252,7 +286,10 @@ get_bad_subjects <- function() {
   # check_hr_both_sensor('T011')
   # get_missing_subj_for_pp()
   
-  get_subj_for_long_session()
+  # get_subj_for_long_session()
+  
+  # get_percentage_invalid_eda()
+  get_percentage_invalid_signal()
 }
 
 

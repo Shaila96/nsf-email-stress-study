@@ -1,0 +1,174 @@
+---
+title: "Sensor Data Comparison Analysis"
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(directlabels)
+library(gsubfn)
+library(cowplot)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+project_dir <- "T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration/nsf-data-paper-scripts"
+setwd(project_dir)
+
+data_dir <- 'data'
+plots_dir <- 'plots'
+
+
+data_file_names <- c('result_df_first_phase.csv', 'result_df_second_phase.csv')
+
+common_col_list <- c('Subject', 'Condition', 'Session')
+hr_signal_list <- c('HR', 'N.HR')
+hr_col_list <- c(common_col_list, hr_signal_list)
+
+plot_list <- list()
+
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(data_dir, file_name), row.names=F, sep = ',')
+}
+
+specify_decimal <- function(x, k) {
+  trimws(format(round(x, k), nsmall=k))
+}
+
+print_msg <- function(df) {
+  print(df)
+  message(df)
+}
+
+is_match <- function(string_we_have, pattern_we_are_looking_for) { 
+  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+} 
+
+replace_dot_space <- function(str) {
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+}
+
+save_plot <- function(plot_name, plot, default_width=15, default_height=12) {
+  plot_path <- file.path(project_dir, plots_dir,  paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=default_width, height=default_height)
+  
+  plot_path <- file.path(project_dir, plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=default_width, height=default_height)
+}
+
+## BAD CODING
+get_plot_label <- function(idx) {
+  if (idx==1) {
+    'A'
+  } else 'B'
+}
+
+round_p_value <- function(p_value) {
+  if (p_value < 0.00001) {
+    return(0)
+  }
+  return(p_value)
+}
+
+get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, file_name, transformed=F) {
+  cor_test <- cor.test(df[[x_col]], df[[y_col]], method = "pearson")
+  subj_no <- df %>% summarize(n = n())
+  
+  ## Very Bad Coding :P
+  # if(x_col=='HR') point=10 else point=3
+
+  annot_label <- paste0("n = ", subj_no, 
+                       # ", p = ", specify_decimal(cor_test$p.value, point), 
+                       ", p = ", round_p_value(cor_test$p.value), 
+                       ", R = ", specify_decimal(cor_test$estimate, 3))
+    
+  plot <- df %>%
+    ggplot(aes(df[[x_col]], df[[y_col]])) +
+    geom_point(size = 3) +
+    geom_smooth(method = "lm") +
+    # ggtitle(title) + 
+    theme_bw() + 
+    xlab(x_label) + 
+    ylab(y_label) +
+    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    annotate("text",
+         x=max(df[[x_col]]),
+         y=Inf,
+         hjust=1,
+         vjust=1.5,
+         label=annot_label,
+         fontface = 'italic', 
+         size = 8) +
+    theme(text = element_text(size=22),
+          axis.text = element_text(size = 18),
+          plot.margin = unit(c(1, 0.5, 0.5, 0.5), "lines"),  ##top, right, bottom, left
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black")) 
+  
+  plot <- arrangeGrob(plot, top = textGrob(toupper(get_plot_label(idx)),
+                                        x = unit(0, "npc"),
+                                        y = unit(1, "npc"),
+                                        vjust = 2, 
+                                        hjust = -1.5,
+                                        just = c("left","top"),
+                                        gp = gpar(col="black", fontsize=22, fontface="bold")
+                                       ))
+  
+  plot_list[[length(plot_list)+1]] <<- plot
+}
+
+
+generate_hr_plot <- function(idx) {
+  mean_df <- read_csv(file.path(data_dir, data_file_names[idx]))[, hr_col_list] %>% na.omit()
+  print_msg(str(mean_df))
+
+  get_scatter_plot(mean_df,
+                   idx,
+                   'HR',
+                   'N.HR',
+                   'Wrist HR [BPM]',
+                   'Chest HR [BPM]',
+                   'Chest HR vs Wrist HR',
+                   'c_hr_vs_w_hr')
+}
+
+``` 
+
+
+
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+for (idx in 1:length(data_file_names)) {
+  generate_hr_plot(idx)
+}
+
+grid_plot <- plot_grid(plotlist=plot_list, cols=1)
+save_plot('hr_regression_plot_combined', grid_plot)
+
+```
+

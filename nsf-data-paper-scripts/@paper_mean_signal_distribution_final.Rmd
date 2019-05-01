@@ -1,0 +1,390 @@
+---
+title: 'Mean Signal Density Function Plots'
+# output: pdf_document 
+# fontsize: 44pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+# library(XLConnect)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(cowplot)
+
+library(grid)
+library(gridExtra)
+library(ggpubr)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+# setwd(root_dir)
+
+# raw_data_dir <- 'nsf-stress-study'
+# super_session_pattern <- '^SuperSession$' 
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+
+
+# mean_file_name <- 'result_df_second_phase.csv'
+# file_extension <- ''
+
+mean_file_name <- 'result_df_non_filtered.csv'
+file_extension <- '_qc0'
+
+common_col_names <- c('Subject', 'Condition', 'Session')
+signal_col_names <- c('PP', 'N.EDA', 'HR', 'N.HR', 'BR')
+col_names <- c(common_col_names, signal_col_names)
+
+
+
+session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
+
+
+
+# session_color_code <- c("#fceabb", "#f89c70", "#70a919", "#494b4c", "#46aee6", "#DC143C") ## RB to PR
+session_color_code <- c("#DC143C",     ## PR
+                        "#46aee6",     ## DT
+                        # "#494b4c",   ## STR 
+                        # "#70a919",   ## RV 
+                        "#f89c70",     ## ST
+                        "#fceabb"      ## RB
+                        )  
+
+
+legend_order <- c("RB",
+                  "ST",
+                  # "Relaxing Video",
+                  # "Stroop",
+                  "DT",
+                  "PR")
+# legend_order <- c("Resting Baseline",
+#                   "Single Task",
+#                   # "Relaxing Video",
+#                   # "Stroop",
+#                   "Dual Task",
+#                   "Presentation")
+
+
+
+
+default_height <- 10
+default_width <- 15
+
+
+nlp_score_df <- tibble()
+
+probability_plot_list <- list()
+cumulative_plot_list <- list()
+probability_plot_legend <- NULL
+cumulative_plot_legend <- NULL
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+specify_decimal <- function(x, k) {
+  trimws(format(round(x, k), nsmall=k))
+}
+
+remove_na <- function(df, col_list) {
+  return(df[complete.cases(df[, col_list]), ])
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+} 
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+is_matched_string <- function(pattern, str) { 
+  return(grepl(pattern, str, perl=TRUE)) 
+} 
+
+split_camel_case <- function(str) {
+  return(gsub('([A-Z])', ' \\1', str))
+}
+
+save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+  
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
+}
+
+#---- Add one space if it finds any CamelCase ----#
+# get_session_name <- function(session_name) {
+#   if (session_name == 'BaselineWriting') {
+#     return('Single Task')
+#   }
+#   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+# }
+
+
+# "RestingBaseline" = "Resting Baseline", 
+# "BaselineWriting" = "Single Task", 
+# "StressCondition" = "Stress Condition", 
+# "DualTask" = "Dual Task", 
+# "Presentation" = "Presentation"
+
+read_data <- function() {
+  mean_df <<- read_csv(file.path(data_dir, mean_file_name))[, col_names]
+  mean_df <<- mean_df %>% 
+    filter(Session!='StressCondition') %>% 
+    # mutate(Session=case_when(
+    #   (Session=="StressCondition" & is_match(Condition, 'L')) ~ 'Relaxing Video',
+    #   (Session=="StressCondition" & is_match(Condition, 'H')) ~ 'Stroop',
+    #   TRUE ~ Session )) %>% ## Default Condition 
+    mutate(Session=recode_factor(Session,
+                                 "Presentation" = "PR",
+                                 "DualTask" = "DT",
+                                 # "Stroop" = "Stroop",
+                                 # "Relaxing Video" = "Relaxing Video",
+                                 "BaselineWriting" = "ST",
+                                 "RestingBaseline" = "RB"
+                                 ))
+    # mutate(Session=recode_factor(Session,
+    #                              "Presentation" = "Presentation",
+    #                              "DualTask" = "Dual Task",
+    #                              # "Stroop" = "Stroop",
+    #                              # "Relaxing Video" = "Relaxing Video",
+    #                              "BaselineWriting" = "Single Task",
+    #                              "RestingBaseline" = "Resting Baseline"
+    #                              ))
+    # mutate(Session=recode_factor(Session,
+    #                              "RestingBaseline" = "Resting Baseline",
+    #                              "BaselineWriting" = "Single Task",
+    #                              # "StressCondition" = "Stress Condition",
+    #                              "Relaxing Video" = "Relaxing Video",
+    #                              "Stroop" = "Stroop",
+    #                              "DualTask" = "Dual Task",
+    #                              "Presentation" = "Presentation"
+    #                              ))
+  
+  
+  mean_per_session_df <<- mean_df %>%
+    select(-Subject, -Condition) %>% 
+    group_by(Session) %>%
+    summarise(mean_PP=mean(PP, na.rm=T),
+              mean_N.EDA=mean(N.EDA, na.rm=T),
+              mean_HR=mean(HR, na.rm=T),
+              mean_N.HR=mean(N.HR, na.rm=T),
+              mean_BR=mean(BR, na.rm=T))
+  # print_msg(str(mean_per_session_df))
+  convert_to_csv(mean_per_session_df, file.path(data_dir, 'mean_per_session_all_subj.csv'))
+}
+
+get_x_label <- function(signal) {
+  if (is_match(signal, 'PP')) { 
+    return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
+  } else if (signal=='HR') {
+    return('Chest HR [BPM]')
+  } else if (signal=='N.HR') {
+    return('Wrist HR [BPM]')
+  } else if (is_match(signal, 'BR')) { 
+    return('Breathing Rate [BPM]')
+  } else if (is_match(signal, 'EDA')) {
+    return(expression(paste('log'[10], '(EDA [', mu, 'S])')))
+    # return(expression(paste('EDA [', mu, 'S]')))
+  } 
+  return('Unknown axis.')
+}
+
+get_y_label <- function(signal) {
+  if (is_match(signal, 'PP') | signal=='HR' | signal=='BR') { 
+    return('PDF')
+  } else if (is_match(signal, 'N.HR') | is_match(signal, 'EDA')) { 
+    return('')
+  }
+}
+
+# get_color <- function(signal) {
+#   if(signal=="Resting Baseline") {
+#     return("#DC143C")
+#   } else if (signal=="Single Task") {
+#     return("#46aee6")
+#   } else if (signal=="Dual Task") {
+#     return("#f89c70")
+#   } else if (signal=="Presentation") {
+#     return("#fceabb")
+#   }
+# }
+
+add_bottom_legend <- function() {
+  theme(legend.position="bottom",
+        legend.spacing.x = unit(0.2, 'cm'), ## Distance between legend key and legend text
+        legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+        legend.direction = "horizontal",
+        legend.justification="center",
+        legend.title = element_blank())
+      ## +
+      ##   guides(col = guide_legend(nrow = 1))
+}
+
+remove_legend <- function() {
+  theme(legend.position="none")
+    # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+    # legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+    # legend.title = element_blank(),
+    # axis.title.y = element_text(size=13))
+}
+
+draw_plot <- function(signal, total_signal) {
+  probability_density_plot <-
+    mean_df %>%
+    ggplot(aes(x=mean_df[[signal]],
+               fill=Session)) +
+    geom_density(alpha=0.8) +
+    geom_vline(data=mean_per_session_df,
+               mapping=aes(xintercept=mean_per_session_df[[paste0('mean_', signal)]]),
+               colour=session_color_code,
+               linetype='dashed',
+               size=1) +
+    scale_fill_manual(values=session_color_code,
+                      breaks=legend_order) +
+    xlab(get_x_label(signal)) +
+    ylab(get_y_label(signal)) + 
+    # ylab('Probability Density Function') + 
+    theme(text=element_text(size=18),
+          axis.text = element_text(size=16),
+          # axis.title.y=element_text(size=18),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          plot.margin = unit(c(2, 0.5, 0.5, 0.5), "lines"))  ##top, right, bottom, left
+  
+  if (signal=='N.EDA') {
+        probability_density_plot <- probability_density_plot + 
+          scale_x_continuous(trans='log10',
+                             breaks=c(0.01, 0.1, 1, 10))
+      } 
+  
+  # else {
+  #       probability_density_plot <- probability_density_plot + 
+  #         scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
+  #                                     max(raw_df[raw_signal_col_name])))
+  #         
+  #     }
+
+
+  
+  
+  # cumulative_density_plot <- 
+  #   mean_df %>%
+  #   ggplot(aes(mean_df[[signal]], 
+  #              colour = Session)) + 
+  #   stat_ecdf(size=1,
+  #             alpha=0.7,
+  #             pad = F) +
+  #   xlab(get_x_label(signal)) +
+  #   ylab('Cumulative Density Function') +
+  #   scale_color_manual(values=session_color_code,
+  #                     breaks=legend_order)
+  
+  
+  
+  
+    if (length(probability_plot_list)+1 == total_signal) {
+      probability_plot_legend <<- get_legend(probability_density_plot + add_bottom_legend())
+      # cumulative_plot_legend <<- get_legend(cumulative_density_plot + add_bottom_legend())
+    }
+
+
+  probability_density_plot <- probability_density_plot + remove_legend()
+  # cumulative_density_plot <- cumulative_density_plot + remove_legend()
+    
+  # print(probability_density_plot)
+  # print(cumulative_density_plot)
+    
+  probability_plot_list[[length(probability_plot_list)+1]] <<- probability_density_plot
+  # cumulative_plot_list[[length(cumulative_plot_list)+1]] <<- cumulative_density_plot
+}
+
+draw_plots <- function() {
+  # for (signal in signal_col_names) {
+  #   density_plot <-
+  #     mean_df %>%
+  #     ggplot(aes(x=mean_df[[signal]], 
+  #                # color=Session, 
+  #                fill=Session)) +
+  #     geom_density(alpha=0.5) +
+  #     ggtitle(paste0(signal, ' Distribution')) +
+  #     scale_color_brewer(palette="Accent") +
+  #     # scale_color_manual(values=c("#F0FFFF", "#87CEFA", "#FFFF00", "#3CB371", "#DC143C")) +
+  #     xlab(get_x_label(signal)) +
+  #     ylab('Probability Density Function') +
+  #     theme(legend.position="bottom",
+  #           # legend.spacing.x = unit(0.1, 'cm'), ## Distance between legend key and legend text
+  #           legend.text = element_text(margin=margin(r=15, unit="pt")), ## Distance between legends
+  #           legend.title=element_blank())
+  #   
+  #   print(density_plot)
+  #   # probability_plot_list[[length(probability_plot_list)+1]] <<- density_plot
+  # }
+  
+  ### Can not check lenght of signal_col_names, have to pass another arg
+  ### Printing garbage values
+  ### Hassle to return multiple variables or have to take as global
+  sapply(signal_col_names, draw_plot, total_signal=length(signal_col_names))
+
+  # ### grid_plot <- grid.arrange(do.call('grid.arrange', c(probability_plot_list, ncol=2)))
+  grid_plot <- plot_grid(plotlist=probability_plot_list, cols=2)
+  grid_plot <- plot_grid(grid_plot,
+                         probability_plot_legend,
+                         rel_heights = c(10, 1),
+                         align='v',
+                         cols=1)
+  # ### print(grid_plot)
+  save_plot(paste0('mean_signal_distribution_pdf', file_extension), grid_plot)
+  
+  
+  
+  # grid_plot <- plot_grid(plotlist=cumulative_plot_list, cols=2)
+  # grid_plot <- plot_grid(grid_plot,
+  #                        cumulative_plot_legend,
+  #                        rel_heights = c(10, 1),
+  #                        align='v',
+  #                        cols=1)
+  # # ### print(grid_plot)
+  # save_plot('mean_signal_distribution_cdf', grid_plot)
+}
+``` 
+
+
+<!-- READ DATA GLOBLALLY -->
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
+```
+
+
+<!-- DRAW PLOTS -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+draw_plots()
+```
