@@ -45,7 +45,10 @@ common_col_list <- c('Subject', 'Condition', 'Session')
 hr_signal_list <- c('HR', 'N.HR')
 hr_col_list <- c(common_col_list, hr_signal_list)
 
+plot_label <- c('A', 'B')
+
 plot_list <- list()
+
 
 
 #-------------------------#
@@ -81,11 +84,11 @@ save_plot <- function(plot_name, plot, default_width=15, default_height=12) {
 }
 
 ## BAD CODING
-get_plot_label <- function(idx) {
-  if (idx==1) {
-    'A'
-  } else 'B'
-}
+# get_plot_label <- function(idx) {
+#   if (idx==1) {
+#     'A'
+#   } else 'B'
+# }
 
 round_p_value <- function(p_value) {
   if (p_value < 0.00001) {
@@ -130,7 +133,7 @@ get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, fil
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black")) 
   
-  plot <- arrangeGrob(plot, top = textGrob(toupper(get_plot_label(idx)),
+  plot <- arrangeGrob(plot, top = textGrob(toupper(plot_label[idx]),
                                         x = unit(0, "npc"),
                                         y = unit(1, "npc"),
                                         vjust = 2, 
