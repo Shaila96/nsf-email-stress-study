@@ -97,7 +97,9 @@ isMatch <- function(str, pattern) {
 } 
 
 get_y_axis_label <- function(col_name) { 
-  if (col_name=='HR') { 
+  if (col_name=='PP') { 
+    return(bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))) 
+  } else if (col_name=='HR') { 
     return('Chest HR [BPM]') 
   } else if (col_name=='N.HR') { 
     return('Wrist HR [BPM]') 
@@ -467,8 +469,8 @@ generate_signal_plot <- function(col_name) {
 
 
 generate_filtered_plots <- function() {
-  signal_list <- c("HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("BR", "N.EDA")
+  # signal_list <- c("PP", "HR", "BR", "N.EDA", "N.HR")
+  signal_list <- c("PP")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)

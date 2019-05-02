@@ -17,12 +17,15 @@ library(directlabels)
 current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(current_dir)
 
+source(file.path(dirname(current_dir), "@common_functions.R"))
+
 data_dir <- 'data'
 
 filtered_file_name <- 'full_df_filtered.csv'
 non_filtered_file_name <- 'full_df_non_filtered.csv'
 good_subj_file_name <- 'subj_good_df.csv'
 mean_file_name <- 'result_df.csv'
+bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
 
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
@@ -196,9 +199,60 @@ get_percentage_invalid_eda <- function() {
   print(plot)
 }
 
+get_limit <- function(col_name) {
+  if (is_match(col_name, 'HR')) {
+    return(c(40, 150))
+  } else if (is_match(col_name, 'BR')) {
+    return(c(4, 40))
+  } else if (is_match(col_name, 'EDA')) {
+    return(c(0.01, 100))
+  } 
+}
+
+specify_decimal <- function(num, decimal_points) {
+  trimws(format(round(num, decimal_points), nsmall=decimal_points))
+}
+
 get_percentage_invalid_signal <- function() {
   non_filtered_df <- read_csv(file.path(data_dir, non_filtered_file_name))
   print(str(non_filtered_df))
+  
+  non_filtered_df <- non_filtered_df %>% 
+    select(N.EDA.non.filtered, BR.non.filtered, HR.non.filtered, N.HR.non.filtered) %>% 
+    rename(EDA=N.EDA.non.filtered,
+           C_HR=HR.non.filtered,
+           W_HR=N.HR.non.filtered,
+           BR=BR.non.filtered)
+  
+  print(str(non_filtered_df))
+  
+  for(col_name in colnames(non_filtered_df)) {
+    print(col_name)
+    
+    temp_df <- non_filtered_df %>% 
+      select(col_name) %>% 
+      filter(complete.cases(.))
+    # print(nrow(temp_df))
+    
+    lower_bound_invalid_signal <- nrow(temp_df[temp_df[[col_name]]<get_limit(col_name)[1], ])
+    upper_bound_invalid_signal <- nrow(temp_df[temp_df[[col_name]]>get_limit(col_name)[2], ])
+    total_signal <- nrow(temp_df)
+    print(paste0('Percentage of invalid ', col_name, ' lower than ',  get_limit(col_name)[1], ': ', specify_decimal((lower_bound_invalid_signal/total_signal)*100, 2), '%'))
+    print(paste0('Percentage of invalid ', col_name, ' greater than ',  get_limit(col_name)[2], ': ', specify_decimal((upper_bound_invalid_signal/total_signal)*100, 2), '%'))
+  }
+}
+get_qc2_bad_signal_count <- function() {
+  qc2_df <- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
+  print(str(qc2_df))
+  
+  qc2_df <- qc2_df %>% 
+    select(Signal, Condition) %>% 
+    filter(is_match(Condition, 'Bad')) %>% 
+    group_by(Signal) %>% 
+    summarise(n=n())
+  
+  print(str(qc2_df))
+  
 }
 
 check_hr_both_sensor <- function(subj_id) {
@@ -290,6 +344,7 @@ get_bad_subjects <- function() {
   
   # get_percentage_invalid_eda()
   get_percentage_invalid_signal()
+  get_qc2_bad_signal_count()
 }
 
 

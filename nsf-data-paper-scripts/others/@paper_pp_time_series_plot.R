@@ -219,7 +219,7 @@ generate_pp_plot <- function() {
   
   #---- SAVING GRID PLOT ----#
   # plot_path <- file.path(plots_dir, paste0('pp-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-  plot_path <- file.path(plots_dir, paste0('pp-time-series'))
+  plot_path <- file.path(plots_dir, paste0('pp-time-series-qc0'))
   save_plot(plot_path, grid_plot)
 }
 
