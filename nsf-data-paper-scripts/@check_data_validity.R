@@ -18,10 +18,14 @@ length(unique(full_df_qc1_filtered$Subject))
 full_df_qc2_filtered <- read_csv(file.path(current_dir, "data/full_df_second_phase_filtered.csv"))
 length(unique(full_df_qc2_filtered$Subject))
 
+final_df <- read_csv(file.path(current_dir, "data/final-data-set/physiological_data.csv"))
+length(unique(final_df$Subject))
+
 
 
 unique(full_df_non_filtered$Subject) == unique(full_df_qc1_filtered$Subject)
 unique(full_df_non_filtered$Subject) == unique(full_df_qc2_filtered$Subject)
+unique(full_df_non_filtered$Subject) == unique(final_df$Subject)
 #-------------------------------------------------------#
 #---------------- MAKE SURE THIS IS  63 ----------------#
 #-------------------------------------------------------#

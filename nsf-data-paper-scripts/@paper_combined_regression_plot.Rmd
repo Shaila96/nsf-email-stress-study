@@ -107,7 +107,7 @@ get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, fil
   annot_label <- paste0("n = ", subj_no, 
                        # ", p = ", specify_decimal(cor_test$p.value, point), 
                        ", p = ", round_p_value(cor_test$p.value), 
-                       ", R = ", specify_decimal(cor_test$estimate, 3))
+                       ", r = ", specify_decimal(cor_test$estimate, 3))
     
   plot <- df %>%
     ggplot(aes(df[[x_col]], df[[y_col]])) +
@@ -165,13 +165,39 @@ generate_hr_plot <- function(idx) {
 
 
 \newpage
+## Regression Plot
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-for (idx in 1:length(data_file_names)) {
-  generate_hr_plot(idx)
+# for (idx in 1:length(data_file_names)) {
+#   generate_hr_plot(idx)
+# }
+# 
+# grid_plot <- plot_grid(plotlist=plot_list, cols=1)
+# save_plot('hr_regression_plot_combined', grid_plot)
+```
+
+\newpage
+## C_HR-W_HR Plot
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# plot_list <- list()
+for (data_file_name in data_file_names) {
+  mean_df <- read_csv(file.path(data_dir, data_file_name))[, hr_col_list] %>% 
+    na.omit() %>% 
+    mutate(hr_diff=abs(HR-N.HR))
+  
+  # print_msg(str(mean_df))
+  plot <- mean_df %>% 
+    ggplot(aes(x=hr_diff)) +
+    geom_density(alpha=0.8, fill='#ffad99') +
+    xlim(-10, 50) +
+    # xlim(-50, 50) +
+    xlab('Chest HR - Wrist HR') +
+    ylab('PDF')
+  print(plot)
+  
+  plot_list[[length(plot_list)+1]] <- plot
 }
 
 grid_plot <- plot_grid(plotlist=plot_list, cols=1)
-save_plot('hr_regression_plot_combined', grid_plot)
-
+save_plot('hr_diff_distribution_abs', grid_plot)
 ```
 

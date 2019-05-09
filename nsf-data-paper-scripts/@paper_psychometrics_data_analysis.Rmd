@@ -41,6 +41,7 @@ data_dir <- 'data'
 survey_data_dir <- 'survey-data'
 performane_data_dir <- 'performane-data'
 plots_dir <- 'plots'
+final_data_dir <- 'final-data-set'
 
 data_file_name <- 'result_df.csv'
 
@@ -57,6 +58,7 @@ nasa_tlx_freq_df <- tibble()
 pss_score_df <- tibble()
 erq_score_df <- tibble()
 bfi_score_df <- tibble()
+psychometric_df <- tibble()
 
 na_val <- 'NA'
 default_height <- 10
@@ -204,6 +206,10 @@ extract_nasa_tlx_score <- function() {
   
   nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_and_stress_ques_list)
   convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
+  
+  
+  psychometric_df <<- merge(psychometric_df, nasa_tlx_df, by='SubjectID', all.x=T)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
 }
 
 add_color <- function(value, value_list) {
@@ -468,7 +474,11 @@ extract_biographic_info <- function() {
     filter(SubjectID %in% good_subj_list$Subject)
   # print_msg(str(biographic_df))
   
-  # convert_to_csv(biographic_df, file.path(performane_data_dir, 'biographic_data.csv'))
+  # convert_to_csv(biographic_df, file.path(survey_data_dir, 'biographic_data.csv'))
+  
+  psychometric_df <<- biographic_df %>% 
+    select(-City, -State, -Postal)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
 }
 
 get_bio_bar_plot_df <- function(col_name) {
@@ -489,6 +499,10 @@ get_bio_bar_plot_df <- function(col_name) {
                                         '2' = education_order[2],
                                         '3' = education_order[3],
                                         '4' = education_order[4]))
+    # for (i in c(1:4)) {
+    #   print_msg(paste0(education_order[i], ': ',  nrow(df[df$Education==education_order[i],])))
+    #   print_msg(paste0('% of ', education_order[i], ': ',  nrow(df[df$Education==education_order[i],])/nrow(df)*100))
+    # }
   } else if (col_name == 'Writing_Proficiency') {
     df <- df %>% mutate(Writing_Proficiency = recode(Writing_Proficiency,
                                         '1' = writing_proficiency_order[1],
@@ -620,7 +634,7 @@ get_biographic_y_lab <- function(col_name) {
 
 draw_biographic_distribution <- function(col_name, plot_label) {
   plot_df <- get_bio_bar_plot_df(col_name)
-  # print_msg(paste0(col_name, ': ', nrow(plot_df)))
+  print_msg(paste0(col_name, ': ', nrow(plot_df)))
   
   title <- paste0(replace_underscore(col_name), ' Distribution')
   y_lab <- get_biographic_y_lab(col_name)
@@ -725,6 +739,15 @@ extract_erq_score <- function() {
   # convert_to_csv(erq_score_df[order(erq_score_df$Subject),], file.path(survey_data_dir, 'erq_score.csv'))
   # print_msg(paste0('Emotion Regulation Ques Subject no:', nrow(erq_score_df)))
   print_msg(paste0('Emotion Regulation Ques Subject no:', length(unique(erq_score_df$Subject))))
+  
+  
+  erq_score_df <- erq_score_df %>%
+    select(Subject, Title, Value) %>% 
+    mutate(Title = paste0('ERQ_', Title)) %>% 
+    spread(Title, Value)
+  
+  psychometric_df <<- merge(psychometric_df, erq_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
 }
 
 extract_pss_score_each_row <- function(current_subj_df) {
@@ -758,6 +781,15 @@ extract_pss_score <- function() {
   # convert_to_csv(pss_score_df[order(pss_score_df$Subject),], file.path(survey_data_dir, 'pss_score.csv'))
   # print_msg(paste0('Perceived Stress Scale Subject no:', nrow(pss_score_df)))
   print_msg(paste0('Perceived Stress Scale Subject no:', length(unique(pss_score_df$Subject))))
+  
+  
+  pss_score_df <- pss_score_df %>%
+    select(Subject, Title, Value) %>% 
+    mutate(Title = paste0('PSS_', Title)) %>% 
+    spread(Title, Value)
+  
+  psychometric_df <<- merge(psychometric_df, pss_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
+  convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
 }
 
 get_bfi_tibble <- function(df, title, forward_ques_list, reverse_ques_list) {
@@ -798,9 +830,18 @@ extract_bfi_score <- function() {
   # print_msg(paste0('Big Five Inventory Subject no:', nrow(bfi_df)))
   
   invisible(apply(bfi_df, 1, function(each_row) extract_bfi_score_each_row(each_row)))
-  convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
+  # convert_to_csv(bfi_score_df[order(bfi_score_df$Subject),], file.path(survey_data_dir, 'bfi_score.csv'))
   # print_msg(paste0('Big Five Inventory Subject no:', nrow(bfi_score_df)))
   print_msg(paste0('Big Five Inventory Subject no: ', length(unique(bfi_score_df$Subject))))
+  
+  
+  bfi_score_df <- bfi_score_df %>%
+    select(Subject, Title, Value) %>% 
+    mutate(Title = paste0('BFI_', Title)) %>% 
+    spread(Title, Value)
+  
+  psychometric_df <<- merge(psychometric_df, bfi_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
 }
 
 draw_pss_plot <- function() {
@@ -1035,8 +1076,8 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_biographic_info()
-# get_biographic_distribution()
+extract_biographic_info()
+get_biographic_distribution()
 ```
 
 
@@ -1045,7 +1086,7 @@ read_data()
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_nasa_tlx_score()
-draw_group_bar_chart_nasa_tlx()
+# draw_group_bar_chart_nasa_tlx()
 # draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
 ```
@@ -1057,21 +1098,21 @@ draw_group_bar_chart_nasa_tlx()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_bfi_score()
+extract_bfi_score()
 # draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_erq_score()
+extract_erq_score()
 # draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-# extract_pss_score()
+extract_pss_score()
 # draw_pss_plot()
 ```
 

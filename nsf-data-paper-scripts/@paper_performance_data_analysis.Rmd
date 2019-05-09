@@ -250,7 +250,7 @@ read_data <- function() {
   good_subj_list <<- read_csv(file.path(data_dir, good_subj_file_name))
 
   nlp_score_df <<- merge(good_subj_list, nlp_score_df, by='Subject') %>% 
-    mutate(Essay=fct_recode(Essay, 'Single Task'='WB', 'Dual Task'='DT'))
+    mutate(Essay=fct_recode(Essay, 'ST'='WB', 'DT'='DT'))
   # print_msg(str(nlp_score_df))
 }
 
@@ -474,7 +474,7 @@ extract_ets_score <- function() {
   
   ets_score_df <<- ets_score_df %>%
     separate(Subject, common_col_names) %>%  ##Seperate Subject col into 3 col
-    mutate(Session = fct_recode(Session, 'Single Task'='WB', 'Dual Task'='DT')) %>% 
+    mutate(Session = fct_recode(Session, 'ST'='WB', 'DT'='DT')) %>% 
     right_join(nlp_score_df, by=c('Subject', 'Condition', 'Session'='Essay')) %>% 
     # select(common_col_names, ets_performance_col_names, WordCount) %>%
     select(common_col_names, CriterionScore, WordCount, ets_error_col_names) %>%
