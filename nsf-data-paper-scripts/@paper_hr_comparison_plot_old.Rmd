@@ -155,17 +155,12 @@ read_data <- function() {
 }
 
 box_plot_hr_comparison <- function(df, session_name=NA, plot_title) {
-  t_test_first_filtered <- t.test(df$HR.x, df$N.HR.x, data=df, paired=T)
-  t_test_second_filtered <- t.test(df$HR.y, df$N.HR.y, data=df, paired=T)
+  # t_test_first_filtered <- t.test(df$HR.x, df$N.HR.x, data=df, paired=T)
+  # t_test_second_filtered <- t.test(df$HR.y, df$N.HR.y, data=df, paired=T)
   
-  # print(t_test_first_filtered$p.value)
-  # print(t_test_second_filtered$p.value)
-  # 
-  # t_test_first_filtered <- t.test(df$HR.x-df$N.HR.x,  mu=0, data=df)
-  # t_test_second_filtered <- t.test(df$HR.y-df$N.HR.y, mu=0, data=df)
-  # 
-  # print(t_test_first_filtered$p.value)
-  # print(t_test_second_filtered$p.value)q
+  # t.test(x, mu = 0, alternative = "two.sided")
+  t_test_first_filtered <- t.test(df$HR.x-df$N.HR.x, mu=0, data=df, paired=T)
+  t_test_second_filtered <- t.test(df$HR.y-df$N.HR.y, mu=0, data=df, paired=T)
   
   boxplot_df <- df %>% 
     # na.omit %>% 

@@ -308,6 +308,9 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
       #### CHANGE THIS - Data Filtering - V.V.I. - ****
       #############################################################################################
       if (grepl('HR', col_name)) {
+        ###############################################
+        ###########      150 to 140     ###############
+        ###############################################
         filtered_df <- filtered_df %>% filter(filtered_df[[col_name]] < 40 | filtered_df[[col_name]] > 150)
       } else if (grepl('BR', col_name)) {
         filtered_df <- filtered_df %>% filter(filtered_df[[col_name]] < 4 | filtered_df[[col_name]] > 40)

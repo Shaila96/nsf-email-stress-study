@@ -190,7 +190,7 @@ for (data_file_name in data_file_names) {
     geom_density(alpha=0.8, fill='#ffad99') +
     xlim(-10, 50) +
     # xlim(-50, 50) +
-    xlab('Chest HR - Wrist HR') +
+    xlab('abs(Chest HR - Wrist HR)') +
     ylab('PDF')
   print(plot)
   

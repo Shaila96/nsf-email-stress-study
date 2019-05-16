@@ -493,11 +493,7 @@ extract_ets_score <- function() {
 }
 
 
-## Add Subject no. annotation
-## Add mean line
-## Seperate y_lab for all plots
-## Word count y-ticks exponential
-draw_ets_plots <- function() {
+get_ets_data <- function() {
   # ets_score_df <- read_csv(file.path(performance_data_dir, ets_score_file_name))
   ets_score_long_df <- read_csv(file.path(performance_data_dir, ets_score_long_file_name))
   
@@ -510,6 +506,11 @@ draw_ets_plots <- function() {
                                                'MechanicErrorsRelative'='Mechanics Errors',
                                                'StyleErrorsRelative'='Style Errors'
                                                )) 
+}
+
+
+draw_ets_plots <- function() {
+  ets_plot_df <- get_ets_data()
   mean_df <- ddply(ets_plot_df, 
                    .(PerformanceCriteria, Session), 
                    summarise, 
@@ -547,13 +548,61 @@ draw_ets_plots <- function() {
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"))
 
-  print(ets_plot)
+  # print(ets_plot)
   save_plot('ets_score', ets_plot)
   
   ###############################################################################################
   ####                                 MEAN LINE PLOT                                       #####
   ####https://stackoverflow.com/questions/10942360/how-to-get-geom-vline-to-honor-facet-wrap#####
   ###############################################################################################
+}
+
+
+draw_ets_rank_test_plots <- function() {
+  ets_plot_df <- get_ets_data() %>% 
+    spread(Session, Value) %>% 
+    mutate(session_diff=DT-ST)
+  
+  print(str(ets_plot_df))
+  # print(str(ets_plot_df))
+    
+  for (performance_criteria in levels(factor(ets_plot_df$PerformanceCriteria))) {
+    temp_ets_plot_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ]
+    print(performance_criteria)
+    print(str(temp_ets_plot_df))
+    
+    #CHECK!!!
+    t_test <- t.test(data=temp_ets_plot_df, temp_ets_plot_df$DT, temp_ets_plot_df$ST, paired=T)
+    print(t_test)
+    
+    #CHECK!!!
+    w_test <- wilcoxon.test(data=temp_ets_plot_df, temp_ets_plot_df$DT, temp_ets_plot_df$ST, paired=T)
+    print(w_test)
+    
+    ##BOXPLOT
+    # plot <- df %>%
+    #   ggplot(aes(df[[x_col]], df[[y_col]])) +
+    #   geom_boxplot(width=0.3) +
+    #   ggtitle(title) +
+    #   xlab(x_label) +
+    #   ylab(y_label) +
+    #   theme_bw(base_size = 18) + 
+    #   theme(axis.title.x = element_blank()) +
+    #   geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
+    #   stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
+    #   stat_summary(fun.data = get_n, geom = "text", size = 6) +
+    #   scale_x_discrete(labels=c("diff" = "Chest HR - Wrist HR")) +
+    #   scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    #   annotate("text", x=1, y=Inf, label= significance, vjust = 1.2, size = 10) +
+    #   theme(text = element_text(size=16),
+    #         axis.title = element_text(size = 16),
+    #         plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+    # 
+    # print_msg(t_test)
+    # print_msg(paste('The mean differences between the HR from two sensors are', 
+    #                 check_significance(t_test)))
+  }
+  
 }
 
 draw_ets_regression_plot <- function() {
@@ -627,7 +676,8 @@ draw_ets_regression_plot <- function() {
 
 draw_ets_score_plots <- function() {
   extract_ets_score()
-  draw_ets_plots()
+  # draw_ets_plots()
+  draw_ets_rank_test_plots()
   # draw_ets_regression_plot()
 }
 
