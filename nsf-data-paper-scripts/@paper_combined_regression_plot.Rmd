@@ -191,7 +191,13 @@ for (data_file_name in data_file_names) {
     xlim(-10, 50) +
     # xlim(-50, 50) +
     xlab('abs(Chest HR - Wrist HR)') +
-    ylab('PDF')
+    ylab('PDF') +
+    theme(text = element_text(size=28),
+          axis.text = element_text(size=22))
+          # plot.margin = unit(c(1, 0.5, 0.5, 0.5), "lines"),  ##top, right, bottom, left
+          # panel.grid.major = element_blank(),
+          # panel.grid.minor = element_blank(),
+          # axis.line = element_line(colour = "black")) 
   print(plot)
   
   plot_list[[length(plot_list)+1]] <- plot

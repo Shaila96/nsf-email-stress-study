@@ -135,6 +135,35 @@ split_camel_case <- function(str) {
   return(gsub('([A-Z])', ' \\1', str))
 }
 
+is_significant <- function(test) {
+  return(test$p.value > 0.05)
+}
+
+check_significance <- function(test) {
+  if (is_significant(test)) {
+    return('not significant.')
+  }
+  return('significant.')
+}
+
+get_significance_sign <- function(p_value) { 
+  if (p_value > 0.05) { 
+    return(" ") 
+  } else if (p_value <= 0.001) { 
+    return("***") 
+  } else if (p_value <= 0.01) { 
+    return("**") 
+  } else if (p_value <= 0.05) { 
+    return("*") 
+  } 
+} 
+
+## Function for annotating boxplot with n.
+get_n <- function(df) { 
+  return(c(y=-Inf, vjust = -1, label=length(df))) 
+}
+
+
 save_plot <- function(plot_name, plot, width=default_width, height=default_height) {
   plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
   ggsave(plot_path, plot, width=width, height=height)
@@ -508,6 +537,52 @@ get_ets_data <- function() {
                                                )) 
 }
 
+get_significance_for_each_performance <- function() {
+  ets_plot_df <- get_ets_data() 
+  # %>% 
+  #   spread(Session, Value) %>% 
+  #   mutate(session_diff=DT-ST)
+  
+  # print(str(ets_plot_df))
+  # print(str(ets_plot_df))
+    
+  significance_df <- data.frame()
+  for (performance_criteria in levels(factor(ets_plot_df$PerformanceCriteria))) {
+    temp_ets_test_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ] %>% 
+      spread(Session, Value)
+    # print(str(temp_ets_test_df))
+    
+    
+    #CHECK!!!
+    t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
+    # print(t_test)
+    
+    #CHECK!!!
+    w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
+    # print(w_test)
+    
+    
+    temp_significance_df <- data.frame( "PerformanceCriteria" = performance_criteria, "Significance" = get_significance_sign(w_test$p.value))
+    significance_df <- rbind(significance_df, temp_significance_df)
+
+  
+    print_msg(t_test)
+    print_msg(paste('The mean differences between the HR from two sensors are',
+                    check_significance(t_test)))
+
+
+    print_msg(w_test)
+    print_msg(paste('The mean differences between the HR from two sensors are',
+                    check_significance(w_test)))
+
+    print_msg('-------------------------------------------------------------------------')
+  }
+  
+  print_msg(str(significance_df))
+  return(significance_df)
+}
 
 draw_ets_plots <- function() {
   ets_plot_df <- get_ets_data()
@@ -516,6 +591,14 @@ draw_ets_plots <- function() {
                    summarise, 
                    grp.mean=mean(Value), 
                    annotation=n())
+  
+  ##############################################################################
+  ###########  Make a df like mean_df with PerformanceCriteria  ################
+  ###########  Manually by draw_ets_rank_test_plots() function  ################
+  ##############################################################################
+  significance_df <- get_significance_for_each_performance()
+  
+  
   # print(str(mean_df))
   # print(mean_df$annotation)
   
@@ -536,6 +619,13 @@ draw_ets_plots <- function() {
     ylab('Probability Density Functions') +
     # scale_y_continuous(labels = scientific) +
     guides(fill = guide_legend(reverse=T)) +
+    geom_text(
+      data    = significance_df,
+      mapping = aes(x = Inf, y = Inf, label = Significance),
+      hjust   = 1.2,
+      vjust   = 1.5,
+      size    = 8
+    ) +
     theme_bw() +
     theme(text = element_text(size=20),
           panel.spacing=unit(2, 'lines'),
@@ -559,48 +649,73 @@ draw_ets_plots <- function() {
 
 
 draw_ets_rank_test_plots <- function() {
-  ets_plot_df <- get_ets_data() %>% 
-    spread(Session, Value) %>% 
-    mutate(session_diff=DT-ST)
+  ets_plot_df <- get_ets_data() 
+  # %>% 
+  #   spread(Session, Value) %>% 
+  #   mutate(session_diff=DT-ST)
   
-  print(str(ets_plot_df))
+  # print(str(ets_plot_df))
   # print(str(ets_plot_df))
     
+  plot_list <- list()
   for (performance_criteria in levels(factor(ets_plot_df$PerformanceCriteria))) {
-    temp_ets_plot_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ]
-    print(performance_criteria)
-    print(str(temp_ets_plot_df))
+    temp_ets_test_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ] %>% 
+      spread(Session, Value)
+    # print(str(temp_ets_test_df))
+    
+    temp_ets_box_plot_df <- temp_ets_test_df %>%
+      mutate(session_diff=DT-ST) %>%
+      select(-DT, -ST) %>%
+      gather(Signal, Value, -Subject, -Condition, -PerformanceCriteria)
+    # # print(performance_criteria)
+    print(str(temp_ets_box_plot_df))
     
     #CHECK!!!
-    t_test <- t.test(data=temp_ets_plot_df, temp_ets_plot_df$DT, temp_ets_plot_df$ST, paired=T)
-    print(t_test)
+    t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
+    # print(t_test)
     
     #CHECK!!!
-    w_test <- wilcoxon.test(data=temp_ets_plot_df, temp_ets_plot_df$DT, temp_ets_plot_df$ST, paired=T)
-    print(w_test)
+    w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
+    # print(w_test)
     
+    print_msg('-------------------------------------------------------------------------')
+    # print_msg(performance_criteria)
     ##BOXPLOT
-    # plot <- df %>%
-    #   ggplot(aes(df[[x_col]], df[[y_col]])) +
-    #   geom_boxplot(width=0.3) +
-    #   ggtitle(title) +
-    #   xlab(x_label) +
-    #   ylab(y_label) +
-    #   theme_bw(base_size = 18) + 
-    #   theme(axis.title.x = element_blank()) +
-    #   geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
-    #   stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
-    #   stat_summary(fun.data = get_n, geom = "text", size = 6) +
-    #   scale_x_discrete(labels=c("diff" = "Chest HR - Wrist HR")) +
-    #   scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
-    #   annotate("text", x=1, y=Inf, label= significance, vjust = 1.2, size = 10) +
-    #   theme(text = element_text(size=16),
-    #         axis.title = element_text(size = 16),
-    #         plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
-    # 
-    # print_msg(t_test)
-    # print_msg(paste('The mean differences between the HR from two sensors are', 
-    #                 check_significance(t_test)))
+    plot <- temp_ets_box_plot_df %>%
+      ggplot(aes(Signal, Value)) +
+      geom_boxplot(width=0.3) +
+      ggtitle(performance_criteria) +
+      ylab('Frequency/Count') +
+      theme_bw(base_size = 18) + 
+      theme(axis.title.x = element_blank()) +
+      geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
+      stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
+      stat_summary(fun.data = get_n, geom = "text", size = 6) +
+      scale_x_discrete(labels=c("session_diff" = "DT - ST")) +
+      scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+      annotate("text", x=1, y=Inf, label= get_significance_sign(w_test$p.value), vjust = 1.2, size = 10) +
+      theme(text = element_text(size=16),
+            axis.title = element_text(size = 16),
+            plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"))
+    
+    print(plot)
+    plot_list[[length(plot_list) + 1]] <- plot
+  
+    print_msg(t_test)
+    print_msg(paste('The mean differences between the HR from two sensors are',
+                    check_significance(t_test)))
+
+
+    print_msg(w_test)
+    print_msg(paste('The mean differences between the HR from two sensors are',
+                    check_significance(w_test)))
+
+    print_msg('-------------------------------------------------------------------------')
   }
   
 }
@@ -676,8 +791,8 @@ draw_ets_regression_plot <- function() {
 
 draw_ets_score_plots <- function() {
   extract_ets_score()
-  # draw_ets_plots()
-  draw_ets_rank_test_plots()
+  draw_ets_plots()
+  # draw_ets_rank_test_plots()
   # draw_ets_regression_plot()
 }
 
