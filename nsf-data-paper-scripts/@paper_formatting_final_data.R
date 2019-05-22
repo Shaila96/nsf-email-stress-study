@@ -21,6 +21,8 @@ qc2_filtered_file_name <- 'full_df_second_phase_filtered.csv'
 performance_file_name <- 'ets_score_final.csv'
 
 
+physiological_col_order <- c(1:6, 9, 8, 7,10)
+
 #-------------------------#
 #---FUNCTION DEFINITION---#
 #-------------------------#
@@ -34,32 +36,38 @@ make_physiological_df <- function() {
   
   final_physiological_df <- qc2_filtered_df %>% 
     select(-D.EDA, -D.HR, -Task) %>% 
-    rename(EDA=N.EDA,
-           C_HR=HR,
-           W_HR=N.HR)
+    rename('Participant ID'=Subject,
+           Group=Condition,
+           EDA=N.EDA,
+           'Chest HR'=HR,
+           'Wrist HR'=N.HR) %>% 
+    mutate(Session = recode(Session,
+                            'RestingBaseline' = 'RB',
+                            'BaselineWriting' = 'ST',
+                            'StressCondition' = 'PM',
+                            'DualTask' = 'DT',
+                            'Presentation' = 'PR'))
   
-  print(str(final_physiological_df))
-  convert_to_csv(final_physiological_df, file.path(data_dir, final_data_dir, 'physiological_data.csv'))
+  # print(str(final_physiological_df[, physiological_col_order)
+  convert_to_csv(final_physiological_df[, physiological_col_order], 
+                 file.path(data_dir, final_data_dir, 'Physiological Data.csv'))
 }
 
 make_performance_df <- function() {
-  performance_df <- read_csv(file.path(data_dir, performance_data_dir, performance_file_name))
+  performance_df <- read_csv(file.path(data_dir, performance_data_dir, performance_file_name)) %>% 
+    rename('Participant ID'=Subject,
+           Group=Condition)
   print(str(performance_df))
-  convert_to_csv(performance_df, file.path(data_dir, final_data_dir, 'performance_data.csv'))
+  convert_to_csv(performance_df, file.path(data_dir, final_data_dir, 'Performance Data.csv'))
 }
-
-# make_psychometrics_df <- function() {
-#   
-# }
 
 
 
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-# make_physiological_df()
-# make_performance_df()
-# make_psychometrics_df()
+make_physiological_df()
+make_performance_df()
 
 
 

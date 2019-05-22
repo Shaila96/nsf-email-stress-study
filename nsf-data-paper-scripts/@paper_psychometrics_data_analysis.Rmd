@@ -39,7 +39,7 @@ setwd(project_dir)
 
 data_dir <- 'data'
 survey_data_dir <- 'survey-data'
-performane_data_dir <- 'performane-data'
+# performance_data_dir <- 'performane-data'
 plots_dir <- 'plots'
 final_data_dir <- 'final-data-set'
 
@@ -48,6 +48,7 @@ data_file_name <- 'result_df.csv'
 pre_survey_file_name <- 'pre-survey.csv'
 post_survey_file_name <- 'post-survey.csv'
 good_subj_file_name <- 'subj_good_df.csv'
+mean_data_file_name <- 'result_df_second_phase.csv'
 
 good_subj_list <- tibble()
 pre_survey_df <- tibble()
@@ -114,7 +115,7 @@ email_freq_order <- c('1', '2', '3', '4', '5', '6', '7')
 #                         'Nasa_Performance', 'Nasa_Effort', 'Nasa_Frustration') 
 nasa_tlx_ques_list <- c('Mental Demand', 'Physical Demand', 'Temporal Demand',
                         'Performance', 'Effort', 'Frustration') 
-nasa_tlx_and_stress_ques_list <- c('Stress_Question', paste0('Nasa_', nasa_tlx_ques_list))
+nasa_tlx_and_stress_ques_list <- c('Stress_Question', paste0('NASA_', nasa_tlx_ques_list))
 nasa_task_options <- c('Strongly disagree', 'Disagree', 'Somewhat disagree', 
                        'Neither agree or disagree', 'Somewhat agree', 'Agree', 'Strongly agree')
 
@@ -204,12 +205,18 @@ extract_nasa_tlx_score <- function() {
     group_by(Question, Answer) %>%
     summarize(Frequency=n())
   
+  
   nasa_tlx_freq_df$Question <<- factor(nasa_tlx_freq_df$Question, levels=nasa_tlx_and_stress_ques_list)
   convert_to_csv(nasa_tlx_freq_df, file.path(survey_data_dir, 'nasa_tlx_for_plot.csv'))
   
   
-  psychometric_df <<- merge(psychometric_df, nasa_tlx_df, by='SubjectID', all.x=T)
-  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
+  ################################################################################
+  #                              FINAL DATA SET                                  #
+  ################################################################################
+  nasa_for_final_df <- nasa_tlx_df %>% 
+    select(-Stress_Question)
+  psychometric_df <<- merge(psychometric_df, nasa_for_final_df, by='SubjectID', all.x=T)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
 }
 
 add_color <- function(value, value_list) {
@@ -476,9 +483,14 @@ extract_biographic_info <- function() {
   
   # convert_to_csv(biographic_df, file.path(survey_data_dir, 'biographic_data.csv'))
   
+  
+  
+  ################################################################################
+  #                              FINAL DATA SET                                  #
+  ################################################################################
   psychometric_df <<- biographic_df %>% 
-    select(-City, -State, -Postal)
-  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
+    select(-City, -State, -Postal, -Occupation)
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
 }
 
 get_bio_bar_plot_df <- function(col_name) {
@@ -741,13 +753,17 @@ extract_erq_score <- function() {
   print_msg(paste0('Emotion Regulation Ques Subject no:', length(unique(erq_score_df$Subject))))
   
   
+  
+  ################################################################################
+  #                              FINAL DATA SET                                  #
+  ################################################################################
   erq_score_df <- erq_score_df %>%
     select(Subject, Title, Value) %>% 
     mutate(Title = paste0('ERQ_', Title)) %>% 
     spread(Title, Value)
   
   psychometric_df <<- merge(psychometric_df, erq_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
-  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
 }
 
 extract_pss_score_each_row <- function(current_subj_df) {
@@ -783,13 +799,17 @@ extract_pss_score <- function() {
   print_msg(paste0('Perceived Stress Scale Subject no:', length(unique(pss_score_df$Subject))))
   
   
+  
+  ################################################################################
+  #                              FINAL DATA SET                                  #
+  ################################################################################
   pss_score_df <- pss_score_df %>%
     select(Subject, Title, Value) %>% 
     mutate(Title = paste0('PSS_', Title)) %>% 
     spread(Title, Value)
   
   psychometric_df <<- merge(psychometric_df, pss_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
-  convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
 }
 
 get_bfi_tibble <- function(df, title, forward_ques_list, reverse_ques_list) {
@@ -835,13 +855,16 @@ extract_bfi_score <- function() {
   print_msg(paste0('Big Five Inventory Subject no: ', length(unique(bfi_score_df$Subject))))
   
   
+  ################################################################################
+  #                              FINAL DATA SET                                  #
+  ################################################################################
   bfi_score_df <- bfi_score_df %>%
     select(Subject, Title, Value) %>% 
     mutate(Title = paste0('BFI_', Title)) %>% 
     spread(Title, Value)
   
   psychometric_df <<- merge(psychometric_df, bfi_score_df, by.x='SubjectID', by.y='Subject', all.x=T)
-  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'psychometric_data.csv'))
+  # convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
 }
 
 draw_pss_plot <- function() {
@@ -1065,6 +1088,51 @@ combine_psychometric_plots <- function() {
   save_plot('personality_plot_combined', final_plot)
 }
 
+
+modify_final_df <- function() {
+  mean_df <- read_csv(file.path(data_dir, mean_data_file_name))[ , c("Condition", "Subject")] %>% unique()
+  psychometric_df <<- merge(x=psychometric_df, y=mean_df, by.x="SubjectID", by.y="Subject", all.x=TRUE) %>%
+    rename('Participant ID'=SubjectID,
+           Group=Condition,
+           'Other Nationality'=Other_Nationality,
+           'Native Language'=Native_Language,
+           'Other Native Language'=Other_Native_Language,
+           'Writing Proficiency'=Writing_Proficiency,
+           'Daily Email Frequency'=Daily_Email_Frequency
+           ) %>% 
+    select('Participant ID', 
+           Group, 
+           Age,
+           Gender,
+           Nationality,
+           'Other Nationality',
+           'Native Language',
+           'Other Native Language',
+           Education,
+           'Writing Proficiency',
+           'Daily Email Frequency',
+          
+           BFI_Agreeableness,
+           BFI_Conscientiousness,
+           BFI_Extraversion,
+           BFI_Neuroticism,
+           BFI_Openness,
+           
+           'ERQ_Cognitive Reappraisal',
+           'ERQ_Expressive Suppression',
+           
+           'PSS_Percieved Stress Scale',
+           
+           'NASA_Mental Demand',
+           'NASA_Physical Demand',
+           'NASA_Temporal Demand',
+           NASA_Performance,
+           NASA_Effort,
+           NASA_Frustration)
+  
+  convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
+}
+
 ``` 
 
 
@@ -1077,7 +1145,7 @@ read_data()
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 extract_biographic_info()
-get_biographic_distribution()
+# get_biographic_distribution()
 ```
 
 
@@ -1122,7 +1190,11 @@ extract_pss_score()
 # combine_psychometric_plots()
 ```
 
-
+<!-- Rename Column Names Final Questionnaire Data -->
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+modify_final_df()
+```
 
 
 
