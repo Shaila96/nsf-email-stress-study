@@ -276,6 +276,7 @@ plot2 <- function(testing_df, test_type, col, cond, pdf_file_name, plot_label) {
           theme(axis.title.x = element_blank(),
                 panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank(),
+                axis.text.x=element_text(size=16, face='bold'),
                 plot.margin = unit(c(0.5, 0.5, 0.5, plot_margin_left), "lines"),  ##top, right, bottom, left
                 axis.line = element_line(colour = "black")) + 
           geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) + 
@@ -785,13 +786,21 @@ figure_out_title <- function(col_name, condition, test_type) {
   # return(paste0(condition, ": ln(", col_name, ") ")) 
   
   if (condition == 'BH') {
-    return('Batch High Group')
+    # return('Batch High Group')
+    return('Batch High Group/BH')
+    # return('Batch High Group (BH)')
   } else if (condition == 'BL') {
-    return('Batch Low Group')
+    # return('Batch Low Group')
+    return('Batch Low Group/BL')
+    # return('Batch Low Group (BL)')
   } else if (condition == 'IH') {
-    return('Continual High Group')
+    # return('Continual High Group')
+    return('Continual High Group/CH')
+    # return('Continual High Group (CH)')
   } else if (condition == 'IL') {
-    return('Continual Low Group')
+    # return('Continual Low Group')
+    return('Continual Low Group/CL')
+    # return('Continual Low Group (CL)')
   }  
 } 
 
