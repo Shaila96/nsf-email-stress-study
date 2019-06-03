@@ -24,6 +24,7 @@ library(gridExtra)
 library(ggpubr) 
 library(gsubfn)
 library(knitr)
+library(cowplot)
 
 
 #-------------------------#
@@ -55,6 +56,14 @@ bad_moderate_signal_df <- tibble()
 #-------------------------#
 convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+save_plot <- function(plot_name, plot, width=15, height=10) {
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
 }
 
 print_msg <- function(msg) {
@@ -281,12 +290,12 @@ filter_data_second_phase <- function() {
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-make_bad_moderate_signal_data()
+# make_bad_moderate_signal_data()
 read_data()
 ```
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-filter_data_second_phase()
+# filter_data_second_phase()
 ```
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
@@ -302,20 +311,111 @@ temp_bad_moderate_signal_df <- bad_moderate_signal_df %>%
                           Signal=='N.HR' ~ 'W-HR',
                           Signal=='N.EDA' ~ 'EDA'))
                            
-bad_signal_df <- temp_bad_moderate_signal_df %>% 
-  filter(is_match(Condition, 'Bad'))
+# bad_signal_df <- temp_bad_moderate_signal_df %>% 
+#   filter(is_match(Condition, 'Bad'))
+# 
+# moderate_signal_df <- temp_bad_moderate_signal_df %>% 
+#   filter(is_match(Condition, 'Moderate'))
 
-moderate_signal_df <- temp_bad_moderate_signal_df %>% 
-  filter(is_match(Condition, 'Moderate'))
+bad_hr_signal_df <- temp_bad_moderate_signal_df %>% 
+  filter(Condition=='Bad' & is_match(Signal, 'HR')) %>% 
+  mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+                           Session=='Resting Baseline' ~ 'RB',
+                           Session=='Single Task' ~ 'ST',
+                           Session=='Stress Condition' ~ 'PM',
+                           Session=='Dual Task' ~ 'DT'))
+# print_msg(class(bad_hr_signal_df))
+# print_msg(str(bad_hr_signal_df))
+
+qc1_mean_df <- read_csv(file.path(data_dir, 'result_df_first_phase.csv')) %>% 
+  mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+                           Session=='RestingBaseline' ~ 'RB',
+                           Session=='BaselineWriting' ~ 'ST',
+                           Session=='StressCondition' ~ 'PM',
+                           Session=='DualTask' ~ 'DT')) %>% 
+  mutate(HR_Diff=abs(HR-N.HR)) %>% 
+  select(Subject, Session, HR_Diff)
+# print_msg(class(qc1_mean_df))
+# print_msg(str(qc1_mean_df))
+
+bad_hr_signal_df <- merge(bad_hr_signal_df, qc1_mean_df, by=c('Subject', 'Session'))
+# print_msg('----------------------------------------')
+# print_msg(range(bad_hr_signal_df$HR_Diff))
+# print_msg(nrow(bad_hr_signal_df))
+# print_msg('----------------------------------------')
+
+plot_list <- list()
+plot <- bad_hr_signal_df %>% 
+  ggplot(aes(x=HR_Diff)) +
+  geom_histogram(binwidth=1, fill='red') +
+  ggtitle('QC2 Discarded Signals') +
+  scale_x_continuous(limits = c(min(bad_hr_signal_df$HR_Diff), max(bad_hr_signal_df$HR_Diff))) +
+  # xlab('|Chest HR - Wrist HR| [BPM]') +
+  xlab('') +
+  ylab('Count') +
+  theme_bw() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=24),
+        axis.text.y = element_text(size=20),
+        plot.title = element_text(hjust = 0.5))
+print(plot)
+plot_list[[length(plot_list)+1]] <- plot
+
+
+
+qc2_mean_df <- read_csv(file.path(data_dir, 'result_df_second_phase.csv')) %>% 
+  # mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+  #                          Session=='RestingBaseline' ~ 'RB',
+  #                          Session=='BaselineWriting' ~ 'ST',
+  #                          Session=='StressCondition' ~ 'PM',
+  #                          Session=='DualTask' ~ 'DT')) %>% 
+  mutate(HR_Diff=abs(HR-N.HR)) %>% 
+  select(Subject, Session, HR_Diff)
+
+plot <- qc2_mean_df %>% 
+  filter(HR_Diff<=max(bad_hr_signal_df$HR_Diff) & HR_Diff>=min(bad_hr_signal_df$HR_Diff)) %>% 
+  ggplot(aes(x=HR_Diff)) +
+  geom_histogram(binwidth=1) +
+  ggtitle('QC2 Remaining Signals') +
+  scale_x_continuous(limits = c(min(bad_hr_signal_df$HR_Diff), max(bad_hr_signal_df$HR_Diff))) +
+  xlab('|Chest HR - Wrist HR| [BPM]') +
+  ylab('Count') +
+  theme_bw() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=24),
+        axis.text.y = element_text(size=20),
+        plot.title = element_text(hjust = 0.5))
+
+print(plot)
+plot_list[[length(plot_list)+1]] <- plot
+
+
+# qc1_mean_df <- qc1_mean_df %>% 
+#   filter(HR_Diff<=max(bad_hr_signal_df$HR_Diff) & HR_Diff>=min(bad_hr_signal_df$HR_Diff))
+# print_msg(max(bad_hr_signal_df$HR_Diff))
+# print_msg(min(bad_hr_signal_df$HR_Diff))
+# print_msg(str(qc1_mean_df))
+
+grid_plot <- plot_grid(plotlist=plot_list, cols=1)
+# grid_plot <- ggarrange(plot_list, cols=1)
+save_plot('hr_diff_frequency', grid_plot)
 ```
+
+
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'} -->
+<!-- kable(bad_signal_df) -->
+<!-- ``` -->
+
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'} -->
+<!-- kable(moderate_signal_df) -->
+<!-- ``` -->
 
 
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
-kable(bad_signal_df)
-```
-
-\newpage
-```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
-kable(moderate_signal_df)
+# kable(mean_df)
+kable(bad_hr_signal_df)
+kable(qc2_mean_df)
 ```

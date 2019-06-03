@@ -106,15 +106,22 @@ str(data)
 ggplot(data, aes(fill=condition, y=value, x=specie)) +
   geom_bar(position="dodge", stat="identity")
 
-# Stacked
-ggplot(data, aes(fill=condition, y=value, x=specie)) +
-  geom_bar( stat="identity")
-
-
-# Stacked Percent
-ggplot(data, aes(fill=condition, y=value, x=specie)) +
-  geom_bar( stat="identity", position="fill")
+# # Stacked
+# ggplot(data, aes(fill=condition, y=value, x=specie)) +
+#   geom_bar( stat="identity")
+# 
+# 
+# # Stacked Percent
+# ggplot(data, aes(fill=condition, y=value, x=specie)) +
+#   geom_bar( stat="identity", position="fill")
 
 
 
 # prop.test(c(14, 46), c(60, 60), p = NULL, alternative = "two.sided", correct = TRUE)
+
+
+# library(mvtnorm)
+# dmvnorm(x=c(0,0))
+# dmvnorm(x=c(0,0), mean=c(1,1))
+# x <- rmvnorm(n=100, mean=c(1,1))
+# plot(x)

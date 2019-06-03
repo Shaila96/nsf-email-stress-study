@@ -25,7 +25,7 @@ length(unique(final_df[['Participant ID']]))
 
 unique(full_df_non_filtered$Subject) == unique(full_df_qc1_filtered$Subject)
 unique(full_df_non_filtered$Subject) == unique(full_df_qc2_filtered$Subject)
-unique(full_df_non_filtered$Subject) == unique(final_df$Subject)
+unique(full_df_non_filtered$Subject) == unique(final_df[['Participant ID']])
 #-------------------------------------------------------#
 #---------------- MAKE SURE THIS IS  63 ----------------#
 #-------------------------------------------------------#

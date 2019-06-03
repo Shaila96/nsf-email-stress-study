@@ -45,7 +45,7 @@ common_col_list <- c('Subject', 'Condition', 'Session')
 hr_signal_list <- c('HR', 'N.HR')
 hr_col_list <- c(common_col_list, hr_signal_list)
 
-plot_label <- c('A1', 'B1', 'A2', 'B2')
+plot_label <- c('A1', 'A2', 'B1', 'B2')
 
 plot_list <- list()
 
@@ -171,7 +171,7 @@ generate_hr_plot <- function(idx) {
     geom_density(alpha=0.8, fill='#4d94ff') +
     xlim(-10, 50) +
     # xlim(-50, 50) +
-    xlab('|Chest HR [BPM] - Wrist HR [BPM]|') +
+    xlab('|Chest HR - Wrist HR| [BPM]') +
     ylab('PDF') +
     theme(text = element_text(size=22),
           axis.text = element_text(size = 18),
