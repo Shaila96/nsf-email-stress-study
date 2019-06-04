@@ -1,0 +1,421 @@
+---
+title: "Quality Control - Second Phase"
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{sectsty} \sectionfont{\centering}
+output:
+  pdf_document: default
+  html_document: default
+geometry: top=3.5cm, bottom=3cm
+---
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE} 
+#-------------------------#
+#--------LIBRARIES--------#
+#-------------------------#
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggpubr) 
+library(gsubfn)
+library(knitr)
+library(cowplot)
+
+
+#-------------------------#
+#-----GLOBAL VARIABLES----#
+#-------------------------#
+root_dir <- 'T:/Google Drive/University of Houston/CS - UH/@Research - CPL/@Projects/NsfStressDataCuration'
+setwd(root_dir)
+
+data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
+data_dir <- file.path(data_paper_dir, 'data')
+plots_dir <- file.path(data_paper_dir, 'plots')
+survey_data_dir <- file.path(data_dir, 'survey-data')
+
+session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'DualTask', 'Presentation')
+
+non_filtered_data_file_name <- 'full_df_non_filtered.csv'
+first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
+mean_data_file_name <- 'result_df_first_phase.csv'
+bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+pre_survey_file_name <- 'pre-survey.csv'
+
+non_filtered_df <- tibble()
+first_phase_filtered_df <- tibble()
+second_phase_filtered_df <- tibble()
+bad_moderate_signal_df <- tibble()
+
+#-------------------------#
+#---FUNCTION DEFINITION---#
+#-------------------------#
+convert_to_csv <- function(df, file_name) {
+  write.table(df, file = file.path(file_name), row.names=F, sep = ',')
+}
+
+save_plot <- function(plot_name, plot, width=15, height=10) {
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.png'))
+  ggsave(plot_path, plot, width=width, height=height)
+
+  plot_path <- file.path(plots_dir, paste0(plot_name, '.pdf'))
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
+}
+
+print_msg <- function(msg) {
+  print(msg)
+  message(msg)
+}
+
+is_match <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+}
+
+get_session_name <- function(session_abbr) {
+  if (session_abbr=='RB') {
+    return('RestingBaseline')
+  } else if (session_abbr=='ST') {
+    return('BaselineWriting')
+  } else if (session_abbr=='SC') {
+    return('StressCondition')
+  } else if (session_abbr=='DT') {
+    return('DualTask')
+  } else if (session_abbr=='P') {
+    return('Presentation')
+  }
+}
+
+add_bad_moderate_signal <- function(subj, session, signal, condition, reason='') {
+  ## Add diff(c_hr - w_hr)
+  
+  bad_moderate_signal_df <<- rbind(bad_moderate_signal_df, 
+                                  tibble(
+                                    'Subject'=subj,
+                                    'Session'=get_session_name(session),
+                                    'Signal'=signal,
+                                    'Condition'=condition,
+                                    'Reason'=reason
+                                    )
+                                  )
+}
+
+add_subject_info <- function() {
+  pre_survey_df <- read_csv(file.path(survey_data_dir, pre_survey_file_name))[, c(22:24)]
+  colnames(pre_survey_df) <- c('Subject', 'Age', 'Gender')
+  bio_df <- pre_survey_df %>% mutate(Gender = recode(Gender,
+                                        '1' = 'Male',
+                                        '2' = 'Female'))
+  bad_moderate_signal_df <<- merge(bad_moderate_signal_df, bio_df, by='Subject')
+}
+
+make_bad_moderate_signal_data <- function() {
+  
+  add_bad_moderate_signal('T011', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T011', 'SC', 'N.EDA', 'Bad') ##@@@@@@@@@@@@@@@@@@@
+  add_bad_moderate_signal('T011', 'ST', 'N.EDA', 'Bad') ##@@@@@@@@@@@@@@@@@@@
+  add_bad_moderate_signal('T011', 'DT', 'N.EDA', 'Bad') ##@@@@@@@@@@@@@@@@@@@
+  
+  add_bad_moderate_signal('T016', 'SC', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T016', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T019', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T019', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T019', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T019', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T031', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'DT', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
+  
+  add_bad_moderate_signal('T032', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T032', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T032', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T032', 'DT', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T035', 'RB', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'DT', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T035', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T047', 'RB', 'N.HR', 'Bad') 
+  add_bad_moderate_signal('T047', 'SC', 'N.HR', 'Bad') 
+  
+  add_bad_moderate_signal('T051', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T061', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T061', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T063', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T064', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T064', 'ST', 'N.EDA', 'Bad')
+  
+  add_bad_moderate_signal('T065', 'P', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T066', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T068', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T068', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T078', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T079', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T082', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T083', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T083', 'ST', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T085', 'P', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T091', 'ST', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T092', 'RB', 'HR', 'Partly Bad') ## Removed Bad Signal Part
+  add_bad_moderate_signal('T092', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T093', 'SC', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T094', 'P', 'N.HR', 'Bad')
+  
+  
+  add_bad_moderate_signal('T096', 'DT', 'N.EDA', 'Bad') ##@@@@@@@@@@@@@@@@@@@
+  
+  
+  add_bad_moderate_signal('T099', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T106', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T106', 'DT', 'N.HR', 'Bad') 
+  add_bad_moderate_signal('T106', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T113', 'ST', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T113', 'P', 'N.HR', 'Moderate')
+  
+  add_bad_moderate_signal('T114', 'P', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T132', 'P', 'N.HR', 'Moderate') ## Need to check EDA
+  add_bad_moderate_signal('T157', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T174', 'SC', 'N.HR', 'Moderate')
+  add_bad_moderate_signal('T174', 'ST', 'N.HR', 'Bad')
+  add_bad_moderate_signal('T174', 'P', 'N.HR', 'Bad')
+  
+  add_bad_moderate_signal('T176', 'ST', 'N.HR', 'Moderate')
+  
+  ##############################
+  ###     Add age, gender    ###
+  ##############################
+  add_subject_info()
+  ##############################
+  
+  convert_to_csv(bad_moderate_signal_df, file.path(data_dir, 'bad_moderate_signal.csv'))
+}
+
+read_data <- function() {
+  non_filtered_df <<- read_csv(file.path(data_dir, non_filtered_data_file_name))
+  # first_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name))
+  second_phase_filtered_df <<- read_csv(file.path(data_dir, first_phase_filtered_data_file_name)) ## ITS WEIRD. BUT WE WILL MODIFY THIS DF ONLY
+  mean_df <<- read_csv(file.path(data_dir, mean_data_file_name))
+  bad_moderate_signal_df <<- read_csv(file.path(data_dir, bad_moderate_signal_file_name))
+}
+
+#---- Add one space if it finds any CamelCase ----#
+get_printable_session_name <- function(x) {
+  sapply(x, function(session_abbr){
+    if (session_abbr == 'BaselineWriting') {
+      return('Single Task')
+    }
+    return(gsub("([a-z])([A-Z])", "\\1 \\2", session_abbr))
+  })
+}
+
+replace_by_NA <- function(row_df) {
+  message(row_df['Subject'])
+  message(row_df['Session'])
+  # message(get_session_name(row_df['Session']))
+             
+  second_phase_filtered_df[second_phase_filtered_df$Subject==row_df['Subject'] &
+                           # second_phase_filtered_df$Session==get_session_name(row_df['Session']),
+                           second_phase_filtered_df$Session==row_df['Session'],
+                           row_df['Signal']] <<- NA
+}
+
+remove_full_bad_signal <- function() {
+  bad_signal_df <- bad_moderate_signal_df %>% filter(Condition=='Bad')
+  
+  invisible(apply(bad_signal_df, 1, function(row) replace_by_NA(row)))
+  convert_to_csv(second_phase_filtered_df[order(second_phase_filtered_df$Subject),], 
+                 file.path(data_dir, 'full_df_second_phase_filtered.csv'))
+  
+  mean_df <- second_phase_filtered_df %>% 
+    select(-CovertedTime, -TimeElapsed, -Task) %>% 
+    group_by(Subject,	Session, Condition) %>% 
+    summarize_all(mean, na.rm=T) %>% 
+    ungroup()
+  
+  convert_to_csv(mean_df, file.path(data_dir, 'result_df_second_phase.csv'))
+  
+  #################################################################################################
+  #########################       Mean value for raw data       ###################################
+  #################################################################################################
+  # mean_df <- non_filtered_df %>% 
+  #   select(-CovertedTime, -TimeElapsed, -Task) %>% 
+  #   group_by(Subject,	Session, Condition) %>% 
+  #   summarize_all(mean, na.rm=T) %>% 
+  #   ungroup()
+  # 
+  # print(str(mean_df))
+  # colnames(mean_df) <- c('Subject', 'Session', 'Condition', 'PP', 'HR', 'BR', 'D.EDA', 'D.HR', 'N.EDA', 'N.HR')
+  # print(str(mean_df))
+  # 
+  # convert_to_csv(mean_df, file.path(data_dir, 'result_df_non_filtered.csv'))
+  #################################################################################################
+}
+
+remove_partial_bad_signal <- function(subj, session, signal, from, to) {
+  second_phase_filtered_df[second_phase_filtered_df$Subject==subj &
+                           # second_phase_filtered_df$Session==get_session_name(session) &
+                           second_phase_filtered_df$Session==session &
+                           second_phase_filtered_df$TimeElapsed >= from &
+                           second_phase_filtered_df$TimeElapsed <= to,
+                           signal] <<- NA
+}
+
+filter_data_second_phase <- function() {
+  remove_partial_bad_signal('T092', 'RB', 'HR', from=0, to=34)
+  remove_full_bad_signal()
+}
+
+``` 
+
+
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# make_bad_moderate_signal_data()
+read_data()
+```
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+# filter_data_second_phase()
+```
+
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+temp_bad_moderate_signal_df <- bad_moderate_signal_df %>%
+  select(Subject, Gender, Age, Session, Signal, Condition) %>% 
+  mutate(Session=get_printable_session_name(Session)) %>% 
+  # mutate(Session=case_when(Session=='P' ~ 'Presentation',
+  #                          Session=='RB' ~ 'Resting Baseline',
+  #                          Session=='ST' ~ 'Single Task',
+  #                          Session=='SC' ~ 'Stress Condition',
+  #                          Session=='DT' ~ 'Dual Task')) %>% 
+  mutate(Signal=case_when(Signal=='HR' ~ 'C-HR',
+                          Signal=='N.HR' ~ 'W-HR',
+                          Signal=='N.EDA' ~ 'EDA'))
+                           
+# bad_signal_df <- temp_bad_moderate_signal_df %>% 
+#   filter(is_match(Condition, 'Bad'))
+# 
+# moderate_signal_df <- temp_bad_moderate_signal_df %>% 
+#   filter(is_match(Condition, 'Moderate'))
+
+bad_hr_signal_df <- temp_bad_moderate_signal_df %>% 
+  filter(Condition=='Bad' & is_match(Signal, 'HR')) %>% 
+  mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+                           Session=='Resting Baseline' ~ 'RB',
+                           Session=='Single Task' ~ 'ST',
+                           Session=='Stress Condition' ~ 'PM',
+                           Session=='Dual Task' ~ 'DT'))
+# print_msg(class(bad_hr_signal_df))
+# print_msg(str(bad_hr_signal_df))
+
+qc1_mean_df <- read_csv(file.path(data_dir, 'result_df_first_phase.csv')) %>% 
+  mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+                           Session=='RestingBaseline' ~ 'RB',
+                           Session=='BaselineWriting' ~ 'ST',
+                           Session=='StressCondition' ~ 'PM',
+                           Session=='DualTask' ~ 'DT')) %>% 
+  mutate(HR_Diff=abs(HR-N.HR)) %>% 
+  select(Subject, Session, HR_Diff)
+# print_msg(class(qc1_mean_df))
+# print_msg(str(qc1_mean_df))
+
+bad_hr_signal_df <- merge(bad_hr_signal_df, qc1_mean_df, by=c('Subject', 'Session'))
+# print_msg('----------------------------------------')
+# print_msg(range(bad_hr_signal_df$HR_Diff))
+# print_msg(nrow(bad_hr_signal_df))
+# print_msg('----------------------------------------')
+
+plot_list <- list()
+plot <- bad_hr_signal_df %>% 
+  ggplot(aes(x=HR_Diff)) +
+  geom_histogram(binwidth=1, fill='red') +
+  ggtitle('QC2 Discarded Signals') +
+  scale_x_continuous(limits = c(min(bad_hr_signal_df$HR_Diff), max(bad_hr_signal_df$HR_Diff))) +
+  # xlab('|Chest HR - Wrist HR| [BPM]') +
+  xlab('') +
+  ylab('Count') +
+  theme_bw() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=24),
+        axis.text.y = element_text(size=20),
+        plot.title = element_text(hjust = 0.5))
+print(plot)
+plot_list[[length(plot_list)+1]] <- plot
+
+
+
+qc2_mean_df <- read_csv(file.path(data_dir, 'result_df_second_phase.csv')) %>% 
+  # mutate(Session=case_when(Session=='Presentation' ~ 'PR',
+  #                          Session=='RestingBaseline' ~ 'RB',
+  #                          Session=='BaselineWriting' ~ 'ST',
+  #                          Session=='StressCondition' ~ 'PM',
+  #                          Session=='DualTask' ~ 'DT')) %>% 
+  mutate(HR_Diff=abs(HR-N.HR)) %>% 
+  select(Subject, Session, HR_Diff)
+
+plot <- qc2_mean_df %>% 
+  filter(HR_Diff<=max(bad_hr_signal_df$HR_Diff) & HR_Diff>=min(bad_hr_signal_df$HR_Diff)) %>% 
+  ggplot(aes(x=HR_Diff)) +
+  geom_histogram(binwidth=1) +
+  ggtitle('QC2 Remaining Signals') +
+  scale_x_continuous(limits = c(min(bad_hr_signal_df$HR_Diff), max(bad_hr_signal_df$HR_Diff))) +
+  xlab('|Chest HR - Wrist HR| [BPM]') +
+  ylab('Count') +
+  theme_bw() +
+  theme(text = element_text(size=20),
+        axis.text.x = element_text(size=24),
+        axis.text.y = element_text(size=20),
+        plot.title = element_text(hjust = 0.5))
+
+print(plot)
+plot_list[[length(plot_list)+1]] <- plot
+
+
+# qc1_mean_df <- qc1_mean_df %>% 
+#   filter(HR_Diff<=max(bad_hr_signal_df$HR_Diff) & HR_Diff>=min(bad_hr_signal_df$HR_Diff))
+# print_msg(max(bad_hr_signal_df$HR_Diff))
+# print_msg(min(bad_hr_signal_df$HR_Diff))
+# print_msg(str(qc1_mean_df))
+
+grid_plot <- plot_grid(plotlist=plot_list, cols=1)
+# grid_plot <- ggarrange(plot_list, cols=1)
+save_plot('hr_diff_frequency', grid_plot)
+```
+
+
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'} -->
+<!-- kable(bad_signal_df) -->
+<!-- ``` -->
+
+<!-- \newpage -->
+<!-- ```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'} -->
+<!-- kable(moderate_signal_df) -->
+<!-- ``` -->
+
+
+\newpage
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+# kable(mean_df)
+kable(bad_hr_signal_df)
+kable(qc2_mean_df)
+```
