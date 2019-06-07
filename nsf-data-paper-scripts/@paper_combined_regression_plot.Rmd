@@ -48,7 +48,7 @@ hr_col_list <- c(common_col_list, hr_signal_list)
 plot_label <- c('A1', 'A2', 'B1', 'B2')
 
 plot_list <- list()
-
+test_plot_list <- list()
 
 
 #-------------------------#
@@ -145,6 +145,40 @@ get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, fil
   plot_list[[length(plot_list)+1]] <<- plot
 }
 
+generate_hr_test_plot <- function(idx) {
+  mean_df <- read_csv(file.path(data_dir, data_file_names[idx]))[, hr_col_list] %>% na.omit()
+  print_msg(str(mean_df))
+
+  plot <- mean_df %>% 
+    mutate(hr_diff=abs(HR-N.HR)) %>% 
+    ggplot(aes(x=hr_diff)) +
+    geom_histogram(binwidth=1) +
+    xlim(0, 50) +
+    # geom_histogram(aes(y=..density..), colour="black", fill="white") +
+    # geom_density(alpha=0.2, fill="#4d94ff") +
+    # xlim(-10, 50) +
+    xlab('|Chest HR - Wrist HR| [BPM]') +
+    ylab('PDF') +
+    theme(text = element_text(size=22),
+          axis.text = element_text(size = 18),
+          plot.margin = unit(c(1, 0.5, 1, 0.5), "lines"),  ##top, right, bottom, left
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black")) 
+
+  
+  # plot <- arrangeGrob(plot, top = textGrob(toupper(plot_label[length(plot_list)+1]),
+  #                                       x = unit(0, "npc"),
+  #                                       y = unit(1, "npc"),
+  #                                       vjust = 1.8, 
+  #                                       hjust = -1.2,
+  #                                       just = c("left","top"),
+  #                                       gp = gpar(col="black", fontsize=22, fontface="bold")
+  #                                      ))
+  
+  test_plot_list[[length(test_plot_list)+1]] <<- plot
+}
+
 
 generate_hr_plot <- function(idx) {
   mean_df <- read_csv(file.path(data_dir, data_file_names[idx]))[, hr_col_list] %>% na.omit()
@@ -208,13 +242,17 @@ generate_hr_plot <- function(idx) {
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 for (idx in 1:length(data_file_names)) {
   generate_hr_plot(idx)
+  generate_hr_test_plot(idx)
 }
 
-# grid_plot <- plot_grid(plotlist=plot_list, cols=1)
-# save_plot('hr_regression_plot_combined', grid_plot)
+
 
 grid_plot <- plot_grid(plotlist=plot_list, cols=2)
 save_plot('hr_regression_and_distribution', grid_plot)
+
+test_grid_plot <- plot_grid(plotlist=test_plot_list, cols=1)
+save_plot('test_hr_regression_plot_combined', test_grid_plot)
+
 ```
 
 \newpage
