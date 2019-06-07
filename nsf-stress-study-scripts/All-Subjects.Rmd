@@ -55,6 +55,7 @@ result_df <- tibble()
 emails_df <- tibble() 
 subject_summary <- tibble() 
 subjects_we_filtered <- tibble() 
+qc1_filtered_subject <- tibble() 
 
 file_name_extension <- ""
 runnable_subj_list <- read.csv("@Datasets/subj_good_df.csv")$Subject
@@ -362,12 +363,41 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
       } 
       
       
+      
+      ##########################################################################
       #### CHANGE THIS - Data Filtering - V.V.I. - ****
       # # ... and now for the global tibble. Goodbye bad subjects (they are now NA here)! 
       result_df[result_df$Subject %in% bad_subjects & result_df$Session == sess, col_name] <<- NA
+      ## Check Supplemetary - the HR data for starting 34 second is bad
+      if(sess=='RestingBaseline' & col_name=='HR' & condition=="IL") { 
+        result_df[result_df$Subject=='T092' &
+                   result_df$Session=='RestingBaseline' &
+                   result_df$TimeElapsed >= 0 &
+                   result_df$TimeElapsed <= 34,
+                   col_name] <<- NA
+        temp_qc1_filtered_subject <- tibble("Subject"='T092', 
+                                            "Session"=sess, 
+                                            "Measure"=col_name,
+                                            "Explanation"='Removed starting 34 sec data') 
+        qc1_filtered_subject <<- rbind(qc1_filtered_subject, temp_qc1_filtered_subject) 
+      }
+      ##########################################################################
+      
       
       # # We just message our changes so we know who got executed.
       for (subj_name in bad_subjects) {
+        temp_qc1_filtered_subject <- tibble("Subject"=subj_name, 
+                                            "Session"=sess, 
+                                            "Measure"=col_name,
+                                            "Explanation"='Filtered out whole session signal')
+        qc1_filtered_subject <<- rbind(qc1_filtered_subject, temp_qc1_filtered_subject) 
+        
+        # if (nrow(subjects_we_filtered) > 0) { 
+        #   qc1_filtered_subject <<- rbind(qc1_filtered_subject, temp_qc1_filtered_subject) 
+        # } else { 
+        #   qc1_filtered_subject <<- temp_qc1_filtered_subject 
+        # } 
+        
         message(paste0(subj_name, "'s ", col_name, " signal for ", sess, " has been removed. "))
         write(paste0(subj_name, "'s ", col_name, " signal for ", sess, " has been removed. "), file=log_file, append=TRUE)
       }
@@ -619,9 +649,12 @@ write.table(result_df, file = paste0("@Datasets/full_df", file_name_extension, "
             row.names=F, sep = ',')
 write.table(result_df, file = paste0("@Datasets/full_df_first_phase_filtered", file_name_extension, ".csv"),
             row.names=F, sep = ',')
-write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_first_phase_filtered"), file_name_extension, ".csv"),
-            row.names=F, sep = ',')
-
+write.table(result_df, file = paste0(file.path(data_paper_dir, "full_df_first_phase_filtered"),
+                                     file_name_extension, ".csv"), row.names=F, sep = ',')
+write.table(qc1_filtered_subject, 
+            file = paste0(file.path(data_paper_dir, "bad_signal_first_phase"), file_name_extension, ".csv"), 
+            row.names=F, 
+            sep = ',')
 
 mean_df <- result_df %>%
     select(-CovertedTime, -TimeElapsed, -Task) %>%
@@ -631,6 +664,10 @@ mean_df <- result_df %>%
 
 write.table(mean_df, file = file.path("@Datasets/result_df_first_phase.csv"), row.names=F, sep = ',')
 write.table(mean_df, file = file.path(data_paper_dir, "result_df_first_phase.csv"), row.names=F, sep = ',')
+
+
+
+
 # 
 ### print(length(factor(levels(mean_df$Subject))))
 ###################################################################################################################

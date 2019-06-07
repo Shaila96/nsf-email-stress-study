@@ -43,7 +43,7 @@ session_list <- c('RestingBaseline', 'StressCondition', 'BaselineWriting', 'Dual
 non_filtered_data_file_name <- 'full_df_non_filtered.csv'
 first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
 first_phase_mean_file_name <- 'result_df_first_phase.csv'
-bad_signal_file_name <- 'bad_signal.csv'
+bad_signal_file_name <- 'bad_signal_second_phase.csv'
 pre_survey_file_name <- 'pre-survey.csv'
 
 non_filtered_df <- tibble()
