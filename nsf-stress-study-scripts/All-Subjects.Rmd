@@ -353,6 +353,39 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
         bad_subjects <- c(bad_subjects, "T031")
       }
       
+      ## Check Supplemetary - the HR data for starting 34 second is bad
+      # if(col_name=="HR" & condition=="IL" & sess=='RestingBaseline') {
+      # if(col_name=="HR" & sess=="RestingBaseline" & condition=="IL") {
+      #   message('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+      #   message(sess)
+      #   message(col_name)
+      #   message(condition)
+      #   message('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+      #   result_df[result_df$Subject=="T092" &
+      #              result_df$Session=="RestingBaseline" &
+      #              result_df$TimeElapsed >= 0 &
+      #              result_df$TimeElapsed <= 34,
+      #              col_name] <<- NA
+      #   message(nrow(result_df[result_df$Subject=="T092" &
+      #              result_df$Session=="RestingBaseline" &
+      #              result_df$TimeElapsed >= 0, col_name]))
+      #   print(str(result_df[result_df$Subject=="T092" &
+      #              result_df$Session=="RestingBaseline" &
+      #              result_df$TimeElapsed >= 0,]))
+      #   # print(str(result_df[result_df$Subject=="T092" &
+      #   #            result_df$Session=="RestingBaseline" &
+      #   #            result_df$TimeElapsed >= 0 &
+      #   #            result_df$TimeElapsed <= 34,
+      #   #            col_name]))
+      #   
+      #   
+      #   # temp_qc1_filtered_subject <- tibble("Subject"='T092', 
+      #   #                                     "Session"=sess, 
+      #   #                                     "Measure"=col_name,
+      #   #                                     "Explanation"='Removed starting 34 sec data') 
+      #   # qc1_filtered_subject <<- rbind(qc1_filtered_subject, temp_qc1_filtered_subject) 
+      # }
+      
       
       # And here is the execution, first for out temporary dataframe for plotting... 
       filtered_df <- filtered_df %>% 
@@ -371,19 +404,6 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
       #### CHANGE THIS - Data Filtering - V.V.I. - ****
       # # ... and now for the global tibble. Goodbye bad subjects (they are now NA here)! 
       result_df[result_df$Subject %in% bad_subjects & result_df$Session == sess, col_name] <<- NA
-      ## Check Supplemetary - the HR data for starting 34 second is bad
-      if(sess=='RestingBaseline' & col_name=='HR' & condition=="IL") { 
-        result_df[result_df$Subject=='T092' &
-                   result_df$Session=='RestingBaseline' &
-                   result_df$TimeElapsed >= 0 &
-                   result_df$TimeElapsed <= 34,
-                   col_name] <<- NA
-        temp_qc1_filtered_subject <- tibble("Subject"='T092', 
-                                            "Session"=sess, 
-                                            "Measure"=col_name,
-                                            "Explanation"='Removed starting 34 sec data') 
-        qc1_filtered_subject <<- rbind(qc1_filtered_subject, temp_qc1_filtered_subject) 
-      }
       ##########################################################################
       
       
@@ -557,6 +577,19 @@ result_df <- result_df[ , c("Subject", "Condition", "Session", "CovertedTime", "
 result_df <- result_df %>% 
   group_by(Subject, Session) %>% 
   mutate(TimeElapsed = as.integer(CovertedTime) - as.integer(head(CovertedTime, 1))) 
+
+
+
+#### CHANGE THIS - Data Filtering - V.V.I. - ****
+result_df[result_df$Subject=="T092" & 
+            result_df$Session=="RestingBaseline" &
+            result_df$TimeElapsed >= 0 &
+            result_df$TimeElapsed <= 34,
+            'HR'] <- NA
+
+
+
+
 # Now we create a now column, `Task`, this is NA for everything except DualTask. When it is DualTask's time, we have the task be essay to show that 
 # the subject is writing their essay until we see they have opened the email, which shows they are now writing the email. We will see how exactly this 
 # works in the loops below. 
@@ -658,6 +691,20 @@ write.table(qc1_filtered_subject,
             file = paste0(file.path(data_paper_dir, "bad_signal_first_phase"), file_name_extension, ".csv"), 
             row.names=F, 
             sep = ',')
+
+
+signal_list <- c("PP", "BR", "N.EDA", "HR", "N.HR")
+filtered_subject_no_df <- qc1_filtered_subject %>% 
+  filter(Measure %in% signal_list) %>% 
+  rename(Signal=Measure) %>% 
+  group_by(Signal, Session) %>% 
+  summarise(QC1=n()) %>% 
+  arrange(match(Signal, signal_list))
+write.table(filtered_subject_no_df, 
+            file = paste0(file.path(data_paper_dir, "filtered_subject_no_qc1"), file_name_extension, ".csv"), 
+            row.names=F, 
+            sep = ',')
+
 
 mean_df <- result_df %>%
     select(-CovertedTime, -TimeElapsed, -Task) %>%

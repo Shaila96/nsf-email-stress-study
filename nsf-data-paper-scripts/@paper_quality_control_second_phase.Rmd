@@ -44,6 +44,7 @@ non_filtered_data_file_name <- 'full_df_non_filtered.csv'
 first_phase_filtered_data_file_name <- 'full_df_first_phase_filtered.csv'
 first_phase_mean_file_name <- 'result_df_first_phase.csv'
 bad_signal_file_name <- 'bad_signal_second_phase.csv'
+qc1_filtered_subject_no_file_name <- 'filtered_subject_no_qc1.csv'
 pre_survey_file_name <- 'pre-survey.csv'
 
 non_filtered_df <- tibble()
@@ -51,6 +52,7 @@ first_phase_filtered_df <- tibble()
 second_phase_filtered_df <- tibble()
 bad_moderate_signal_df <- tibble()
 bad_mean_df <- tibble()
+filtered_subject_no_df <- tibble()
 
 hr_diff_threshold <- 15.5
 
@@ -99,6 +101,7 @@ read_data <- function() {
   qc1_mean_df <<- read_csv(file.path(data_dir, first_phase_mean_file_name)) %>% 
     mutate(HR_Diff=abs(HR-N.HR))
   # bad_signal_df <<- read_csv(file.path(data_dir, bad_signal_file_name))
+  qc1_filtered_subject_no_df <<- read_csv(file.path(data_dir, qc1_filtered_subject_no_file_name))
 }
 
 draw_hr_diff_hist_density_plot <- function() {
@@ -164,15 +167,18 @@ make_bad_data <- function() {
   bad_mean_df <<- qc1_mean_df %>% 
     select(Subject, Session, HR_Diff) %>% 
     arrange(HR_Diff) %>% 
-    filter(HR_Diff>hr_diff_threshold)
+    filter(HR_Diff>hr_diff_threshold) %>% 
+    mutate(Signal='N.HR',
+           Condition='Bad',
+           Reason='')
 
   
   ########################################
   #         Indicating which signal      #
   ########################################
-  bad_mean_df$Signal <<- 'N.HR'
-  bad_mean_df$Condition <<- 'Bad'
-  bad_mean_df$Reason <<- ''
+  # bad_mean_df$Signal <<- 'N.HR'
+  # bad_mean_df$Condition <<- 'Bad'
+  # bad_mean_df$Reason <<- ''
   
   
   # add_bad_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
@@ -189,10 +195,25 @@ make_bad_data <- function() {
   ##############################
   add_subject_info()
   ##############################
-
-  kable(qc1_mean_df)
-  kable(bad_mean_df)
   convert_to_csv(bad_mean_df, file.path(data_dir, bad_signal_file_name))
+
+  
+  qc2_filtered_subject_no_df <- bad_mean_df %>% 
+    group_by(Signal, Session) %>%
+    summarise(QC2=n())
+  filtered_subject_no_df <- merge(qc1_filtered_subject_no_df, qc2_filtered_subject_no_df, by=c('Signal', 'Session'), all.x=T) %>%
+    arrange(match(Signal, c("PP", "BR", "N.EDA", "HR", "N.HR")))
+  convert_to_csv(filtered_subject_no_df, file.path(data_dir, 'filtered_subject_no_qc1_qc2.csv'))
+ 
+   
+  filtered_subject_no_df <- filtered_subject_no_df %>%
+    select(-Session) %>%
+    group_by(Signal) %>%
+    mutate(QC1=sum(QC1, na.rm=T), QC2=sum(QC2, na.rm=T)) %>%
+    group_by(Signal, QC1, QC2) %>% 
+    filter(row_number() == 1) %>% 
+    arrange(match(Signal, c("PP", "BR", "N.EDA", "HR", "N.HR")))
+  convert_to_csv(filtered_subject_no_df, file.path(data_dir, 'filtered_subject_no_total.csv'))
 }
 
 replace_by_NA <- function(row_df) {
