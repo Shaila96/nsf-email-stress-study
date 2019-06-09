@@ -175,7 +175,7 @@ make_bad_data <- function() {
   bad_mean_df$Reason <<- ''
   
   
-  add_bad_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
+  # add_bad_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
   # add_bad_signal('T092', 'RB', 'HR', 'Partly Bad')
   add_bad_signal('T011', 'SC', 'N.EDA', 'Bad')
   add_bad_signal('T011', 'ST', 'N.EDA', 'Bad')

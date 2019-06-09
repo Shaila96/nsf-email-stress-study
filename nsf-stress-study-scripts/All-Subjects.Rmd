@@ -347,10 +347,13 @@ do_the_actual_plotting_now <- function(df, col_name, condition) {
         bad_subjects <- c(bad_subjects, "T031")
       }
       
-      # if (col_name == "PP" & condition == "BH") {
-      #   bad_subjects <- c(bad_subjects, "T016")
-      # }
-
+      # Half time Chest HR signal missing
+      # add_bad_signal('T031', 'DT', 'HR', 'Bad', 'Half time signal missing')
+      if (col_name == "HR" & condition == "IL" & sess == "DualTask") {
+        bad_subjects <- c(bad_subjects, "T031")
+      }
+      
+      
       # And here is the execution, first for out temporary dataframe for plotting... 
       filtered_df <- filtered_df %>% 
         filter(Session == sess & !(Subject %in% bad_subjects)) 
