@@ -258,22 +258,22 @@ filter_data_second_phase <- function() {
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
 read_data()
 draw_hr_diff_hist_density_plot()
-make_bad_data()
 ```
 
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-filter_data_second_phase()
+# make_bad_data()
+# filter_data_second_phase()
 ```
 
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-qc1_mean_df <<- qc1_mean_df %>% 
-    select(Subject, Session, HR_Diff) %>% 
-    arrange(HR_Diff)  
- 
-bad_mean_df <<- bad_mean_df %>% 
-    arrange(HR_Diff) 
-  
-kable(qc1_mean_df)
-kable(bad_mean_df)
+# qc1_mean_df <<- qc1_mean_df %>% 
+#     select(Subject, Session, HR_Diff) %>% 
+#     arrange(HR_Diff)  
+#  
+# bad_mean_df <<- bad_mean_df %>% 
+#     arrange(HR_Diff) 
+#   
+# kable(qc1_mean_df)
+# kable(bad_mean_df)
 ```

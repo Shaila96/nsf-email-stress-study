@@ -25,7 +25,8 @@ filtered_file_name <- 'full_df_filtered.csv'
 non_filtered_file_name <- 'full_df_non_filtered.csv'
 good_subj_file_name <- 'subj_good_df.csv'
 mean_file_name <- 'result_df.csv'
-bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+# bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+bad_moderate_signal_file_name <- 'bad_signal_second_phase.csv'
 
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
@@ -201,7 +202,7 @@ get_percentage_invalid_eda <- function() {
 
 get_limit <- function(col_name) {
   if (is_match(col_name, 'HR')) {
-    return(c(40, 150))
+    return(c(40, 140))
   } else if (is_match(col_name, 'BR')) {
     return(c(4, 40))
   } else if (is_match(col_name, 'EDA')) {

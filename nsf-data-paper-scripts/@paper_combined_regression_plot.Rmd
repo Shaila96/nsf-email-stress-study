@@ -50,6 +50,8 @@ plot_label <- c('A1', 'A2', 'B1', 'B2')
 plot_list <- list()
 test_plot_list <- list()
 
+qc1_mean_df <- tibble()
+
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -117,7 +119,9 @@ get_scatter_plot <- function(df, idx, x_col, y_col, x_label, y_label, title, fil
     theme_bw() + 
     xlab(x_label) + 
     ylab(y_label) +
-    scale_y_continuous(expand = c(0.2, 0, 0.2, 0)) +
+    scale_x_continuous(limits = c(min(qc1_mean_df$N.HR), max(qc1_mean_df$N.HR))) +
+    scale_y_continuous(limits = c(min(qc1_mean_df$HR), max(qc1_mean_df$HR)),
+                       expand = c(0.2, 0, 0.2, 0)) +
     annotate("text",
          x=max(df[[x_col]]),
          y=Inf,
@@ -149,21 +153,24 @@ generate_hr_test_plot <- function(idx) {
   mean_df <- read_csv(file.path(data_dir, data_file_names[idx]))[, hr_col_list] %>% na.omit()
   print_msg(str(mean_df))
 
+  
+  
+  
+  
+  ###############################################################
   plot <- mean_df %>% 
     mutate(hr_diff=abs(HR-N.HR)) %>% 
     ggplot(aes(x=hr_diff)) +
     
     
-    # geom_histogram(binwidth=1) +
-    # xlim(0, 50) +
-    # ylab('Count') +
+    geom_histogram(binwidth=1) +
+    xlim(0, 50) +
+    ylab('Count') +
     
-    
-    geom_histogram(aes(y=..density..), colour="black", fill="white") +
-    geom_density(alpha=0.2, fill="#4d94ff") +
-    xlim(-10, 50) +
-    ylab('PDF') +
-    
+    # geom_histogram(aes(y=..density..), colour="black", fill="white") +
+    # geom_density(alpha=0.2, fill="#4d94ff") +
+    # xlim(-10, 50) +
+    # ylab('PDF') +
     
     xlab('|Chest HR - Wrist HR| [BPM]') +
     theme(text = element_text(size=22),
@@ -173,9 +180,14 @@ generate_hr_test_plot <- function(idx) {
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black")) 
 
+  
   test_plot_list[[length(test_plot_list)+1]] <<- plot
+  ###############################################################
 }
 
+read_data <- function() {
+  qc1_mean_df <<- read_csv(file.path(data_dir, data_file_names[1]))[, hr_col_list] %>% na.omit()
+}
 
 generate_hr_plot <- function(idx) {
   mean_df <- read_csv(file.path(data_dir, data_file_names[idx]))[, hr_col_list] %>% na.omit()
@@ -224,9 +236,10 @@ generate_hr_plot <- function(idx) {
 \newpage
 ## Regression Plot
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
+read_data()
 for (idx in 1:length(data_file_names)) {
   generate_hr_plot(idx)
-  generate_hr_test_plot(idx)
+  # generate_hr_test_plot(idx)
 }
 
 
@@ -234,8 +247,8 @@ for (idx in 1:length(data_file_names)) {
 grid_plot <- plot_grid(plotlist=plot_list, cols=2)
 save_plot('hr_regression_and_distribution', grid_plot)
 
-test_grid_plot <- plot_grid(plotlist=test_plot_list, cols=1)
-save_plot('test_hr_density', test_grid_plot)
+# test_grid_plot <- plot_grid(plotlist=test_plot_list, cols=1)
+# save_plot('test_hr_hist', test_grid_plot)
 
 ```
 

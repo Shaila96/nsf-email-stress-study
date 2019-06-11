@@ -59,7 +59,7 @@ mean_data_file_name <- 'result_df_first_phase.csv'
 # mean_data_file_name <- 'result_df_second_phase.csv'
 
 
-bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+bad_moderate_signal_file_name <- 'bad_signal_second_phase.csv'
 
 
 hr_col_names <- c('HR', 'N.HR')
@@ -195,11 +195,11 @@ get_bad_signal_list <- function(subj, session) {
 }
 
 draw_plots <- function() {
-  # subj_list <- levels(factor(filtered_df$Subject))
+  subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T005', 'T051', 'T145')
   # subj_list <- c('T063', 'T068')
-  subj_list <- c('T011', 'T031')
+  # subj_list <- c('T011', 'T031')
   
   for(subj in subj_list) {
     

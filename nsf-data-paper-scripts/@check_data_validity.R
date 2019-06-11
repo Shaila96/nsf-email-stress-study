@@ -8,17 +8,16 @@ setwd(current_dir)
 
 #---------------------- CHECK full_data.csv
 full_df_non_filtered <- read_csv(file.path(current_dir, "data/full_df_non_filtered.csv"))
-length(unique(full_df_non_filtered$Subject))
-
-
 full_df_qc1_filtered <- read_csv(file.path(current_dir, "data/full_df_first_phase_filtered.csv"))
-length(unique(full_df_qc1_filtered$Subject))
-
-
 full_df_qc2_filtered <- read_csv(file.path(current_dir, "data/full_df_second_phase_filtered.csv"))
-length(unique(full_df_qc2_filtered$Subject))
-
 final_df <- read_csv(file.path(current_dir, "data/final-data-set/Physiological Data.csv"))
+
+
+
+
+length(unique(full_df_non_filtered$Subject))
+length(unique(full_df_qc1_filtered$Subject))
+length(unique(full_df_qc2_filtered$Subject))
 length(unique(final_df[['Participant ID']]))
 
 
