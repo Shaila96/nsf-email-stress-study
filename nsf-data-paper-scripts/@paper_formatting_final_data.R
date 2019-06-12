@@ -21,7 +21,18 @@ qc2_filtered_file_name <- 'full_df_second_phase_filtered.csv'
 performance_file_name <- 'ets_score_final.csv'
 
 
-physiological_col_order <- c(1:6, 9, 8, 7,10)
+# physiological_col_order <- c(1:5, 11, 6, 9, 8, 7, 10)
+physiological_col_order <- c('Participant ID',
+                             'Group',
+                             'Treatment',
+                             'Time',
+                             'TimeElapsed',
+                             'TaskMarkers',
+                             'PP',
+                             'EDA',
+                             'BR',
+                             'Chest HR',
+                             'Wrist HR')
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -35,18 +46,23 @@ make_physiological_df <- function() {
   print(str(qc2_filtered_df))
   
   final_physiological_df <- qc2_filtered_df %>% 
-    select(-D.EDA, -D.HR, -Task) %>% 
+    select(-D.EDA, -D.HR) %>% 
     rename('Participant ID'=Subject,
            Group=Condition,
+           Treatment=Session,
+           Time=CovertedTime,
+           TaskMarkers=Task,
            EDA=N.EDA,
            'Chest HR'=HR,
            'Wrist HR'=N.HR) %>% 
-    mutate(Session = recode(Session,
+    mutate(Treatment = recode(Treatment,
                             'RestingBaseline' = 'RB',
                             'BaselineWriting' = 'ST',
                             'StressCondition' = 'PM',
                             'DualTask' = 'DT',
-                            'Presentation' = 'PR'))
+                            'Presentation' = 'PR'),
+           TaskMarkers = recode(TaskMarkers,
+                                'Essay' = 'Report'))
   
   # print(str(final_physiological_df[, physiological_col_order)
   convert_to_csv(final_physiological_df[, physiological_col_order], 
@@ -67,7 +83,7 @@ make_performance_df <- function() {
 #-------Main Program------#
 #-------------------------#
 make_physiological_df()
-make_performance_df()
+# make_performance_df()
 
 
 

@@ -568,15 +568,22 @@ get_significance_for_each_performance <- function() {
     significance_df <- rbind(significance_df, temp_significance_df)
 
   
-    print_msg(t_test)
-    print_msg(paste('The mean differences between the HR from two sensors are',
-                    check_significance(t_test)))
+    print_msg('-------------------------------------------------------------------------')
+    print_msg('-------------------------------------------------------------------------')
+    print_msg(paste0('--------------     ', performance_criteria, '     --------------------'))
+    print_msg('-------------------------------------------------------------------------')
+    print_msg('-------------------------------------------------------------------------')
+
+    # print_msg(t_test)
+    # print_msg(paste('The mean differences between the HR from two sensors are',
+    #                 check_significance(t_test)))
 
 
     print_msg(w_test)
     print_msg(paste('The mean differences between the HR from two sensors are',
                     check_significance(w_test)))
 
+    print_msg('-------------------------------------------------------------------------')
     print_msg('-------------------------------------------------------------------------')
   }
   

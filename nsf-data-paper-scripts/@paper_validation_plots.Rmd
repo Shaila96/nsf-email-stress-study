@@ -22,8 +22,8 @@ library(kableExtra)
 library(cowplot) 
 library(gsubfn)
 
-# PP, HR, BR, N.HR, N.EDA
-signal_name <- "N.EDA"
+# PP, N.EDA, BR, HR, N.HR
+signal_name <- "N.HR"
 
 
 ## CHANGE THIS!!!!
@@ -629,15 +629,15 @@ test_time <- function(condition, col, full = TRUE) {
         p <- wilcox.test(testing_df[["DT.RB"]])$p.value 
         sign <- interpret_results(p) 
         t_df <- rbind(t_df, tibble(Difference = "DT.RB", Measure = col, Condition = cond, p = p,                                   
-                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign)) 
+                                   Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.RB))), Significance = sign))
+        print(paste("test_type: ", test_type, cond, test, p, sign))
+        print(paste("t-test p-value : ", t.test(testing_df[["DT.RB"]])$p.value))
         
         test <- "Dual Task - Writing Baseline" 
         p <- wilcox.test(testing_df[["DT.WB"]])$p.value 
         sign <- interpret_results(p) 
         t_df <- rbind(t_df, tibble(Difference = "DT.WB", Measure = col, Condition = cond, p = p,                                   
                                    Name = test, Test = name, n = nrow(testing_df %>% filter(!is.na(DT.WB))), Significance = sign))
-        print(paste("test_type: ", test_type, cond, test, p, sign))
-        print(paste("t-test p-value : ", t.test(testing_df[["DT.RB"]])$p.value))
         
         test <- "Dual Task - Stress Condition" 
         p <- wilcox.test(testing_df[["DT.SC"]])$p.value 

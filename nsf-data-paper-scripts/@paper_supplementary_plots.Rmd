@@ -59,7 +59,7 @@ mean_data_file_name <- 'result_df_first_phase.csv'
 # mean_data_file_name <- 'result_df_second_phase.csv'
 
 
-bad_moderate_signal_file_name <- 'bad_moderate_signal.csv'
+bad_moderate_signal_file_name <- 'bad_signal_second_phase.csv'
 
 
 hr_col_names <- c('HR', 'N.HR')
@@ -114,6 +114,8 @@ figure_out_labels <- function(col_name) {
 get_session_name <- function(session_name) {
   if (session_name == 'BaselineWriting') {
     return('Single Task')
+  } else if (session_name == 'StressCondition') {
+    return('Priming')
   }
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
