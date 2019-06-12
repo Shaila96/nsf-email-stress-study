@@ -21,9 +21,10 @@ setwd(current_dir)
 source(file.path(dirname(current_dir), "@common_functions.R"))
 
 data_dir <- 'data'
+tamu_dir <- 'data-from-tamu'
 plots_dir <- 'plots'
 
-data_file_name <- 'full_df_first_phase_filtered.csv'
+data_file_name <- 'df_hrv.csv'
 # grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC'[0], ' signal sets'))
 # grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
 grid_plot_title <- bquote(paste('QC1', ' signal sets'))
@@ -94,8 +95,8 @@ get_abbr_session_name <- function(session_name) {
   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
 }
 
-generate_pp_plot <- function() {
-  pp_all_df <- read_csv(file.path(data_dir, data_file_name))
+generate_hrv_plot <- function() {
+  pp_all_df <- read_csv(file.path(data_dir, tamu_dir, data_file_name))
   pp_all_df <- pp_all_df[, c(seq(1, 6))]
   # print(str(pp_all_df))
   
@@ -106,7 +107,7 @@ generate_pp_plot <- function() {
   pp_all_df <- pp_all_df[complete.cases(pp_all_df), ] %>% filter(Session %in% session_list)
   pp_non_dual_df <- pp_all_df %>% filter(Session != 'DualTask')
   
-  max_y <- max(pp_all_df$PP)
+  max_y <- max(pp_all_df$HRV)
   max_x <- max(pp_non_dual_df$TimeElapsed)
   
   # subj_no_annot_x_pos = max_x-max_x/40
@@ -219,7 +220,7 @@ generate_pp_plot <- function() {
   
   #---- SAVING GRID PLOT ----#
   # plot_path <- file.path(plots_dir, paste0('pp-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-  plot_path <- file.path(plots_dir, paste0('pp-time-series-qc0'))
+  plot_path <- file.path(plots_dir, paste0('hrv-time-series'))
   save_plot(plot_path, grid_plot)
 }
 
@@ -229,7 +230,7 @@ generate_pp_plot <- function() {
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-generate_pp_plot()
+generate_hrv_plot()
 
 
 
