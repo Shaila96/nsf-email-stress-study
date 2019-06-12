@@ -10,10 +10,19 @@ library(tibble)
 #-------------------------#
 #-----GLOBAL VARIABLES----#
 #-------------------------#
-data_dir <- 'nsf-stress-study' 
+current_dir <- dirname(dirname(rstudioapi::getSourceEditorContext()$path)) 
+setwd(current_dir)
+
+source(file.path(current_dir, "@common_functions.R"))
+
+raw_data_dir <- 'nsf-stress-study'
+script_dir <- 'nsf-data-paper-scripts'
+data_dir <- 'data'
+performance_data_dir <- 'performane-data'
+
 super_session_pattern <- '^SuperSession$'
 
-testing_df_file_path <- "nsf-stress-study-scripts/@Datasets/testing_df.csv"
+# testing_df_file_path <- "nsf-stress-study-scripts/@Datasets/testing_df.csv"
 essay_df <- tibble()
 
 
@@ -40,8 +49,35 @@ getMatchedFileNames <- function(directory, file_pattern) {
   return(list.files(path=directory, pattern=file_pattern, recursive=F))
 }
 
-getEssayTibble <- function(subj_name, session, essay_content) {
-  return(tibble('Subject'=subj_name, 'Session'=session, 'Essay'=essay_content))
+# getEssayTibble <- function(subj_name, session, essay_content) {
+#   return(tibble('Subject'=subj_name, 
+#                 'Session'=session, 
+#                 'Essay'=essay_content))
+# }
+
+get_data_if_col_exists <- function(subj_name, df, col_name){
+  # message(col_name)
+  if(col_name %in% colnames(df)) {
+    return(df[[col_name]])
+  }
+  
+  message(paste0('For Subject ', subj_name, ', ', col_name, ' does not exists.'))
+  return('')
+}
+
+getEssayTibble <- function(subj_name, df) {
+  return(tibble('Subject'=subj_name, 
+                'WB Essay'=df$Essay.Baseline.Content,
+                'DT Essay'=df$Essay.Dualtask.Content,
+                'Email1'=get_data_if_col_exists(subj_name, df, 'Email.1.Content'),
+                'Email2'=get_data_if_col_exists(subj_name, df, 'Email.2.Content'),
+                'Email3'=get_data_if_col_exists(subj_name, df, 'Email.3.Content'),
+                'Email4'=get_data_if_col_exists(subj_name, df, 'Email.4.Content'),
+                'Email5'=get_data_if_col_exists(subj_name, df, 'Email.5.Content'),
+                'Email6'=get_data_if_col_exists(subj_name, df, 'Email.6.Content'),
+                'Email7'=get_data_if_col_exists(subj_name, df, 'Email.7.Content'),
+                'Email8'=get_data_if_col_exists(subj_name, df, 'Email.8.Content')
+                ))
 }
 
 addRowForEssay <- function(df, tibble_df) {
@@ -53,28 +89,30 @@ addRowForEssay <- function(df, tibble_df) {
 }
 
 extractEssayForEachSubject <- function(session_dir, subj_name) {
-  subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx')
+  # subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx')
+  subj_interface_file_pattern <- paste0('^[^~].*-', subj_name, '.xlsx')
   subj_interface_file_name <- getMatchedFileNames(session_dir, subj_interface_file_pattern)
   subj_interface_df <- readWorksheet(XLConnect::loadWorkbook(file.path(session_dir, subj_interface_file_name)), sheet = 'Sheet1')
   
-  essay_df <<- addRowForEssay(essay_df, getEssayTibble(subj_name, "WB", subj_interface_df$Essay.Baseline.Content))
-  essay_df <<- addRowForEssay(essay_df, getEssayTibble(subj_name, "DT", subj_interface_df$Essay.Dualtask.Content))
+  # essay_df <<- addRowForEssay(essay_df, getEssayTibble(subj_name, "WB", subj_interface_df$Essay.Baseline.Content))
+  # essay_df <<- addRowForEssay(essay_df, getEssayTibble(subj_name, "DT", subj_interface_df$Essay.Dualtask.Content))
+  
+  essay_df <<- addRowForEssay(essay_df, getEssayTibble(subj_name, subj_interface_df))
 }
 
 
 extractEssays <- function() {
-  grp_list <- getAllDirectoryList(data_dir)
-  testing_df <- read.csv(testing_df_file_path)[, c('Subject')]
-  good_subj_list <- as.list(levels(testing_df))
+  grp_list <- getAllDirectoryList(raw_data_dir)
+  good_subj_list <- read.csv(file.path(script_dir, data_dir, "subj_good_df.csv"))$Subject
   
   sapply(grp_list, function(grp_name) {
-    # sapply(grp_list[1], function(grp_name) {
+  # sapply(grp_list[1], function(grp_name) {
     
-    grp_dir <- file.path(data_dir, grp_name)
+    grp_dir <- file.path(raw_data_dir, grp_name)
     subj_list <- getAllDirectoryList(grp_dir)
     
     sapply(subj_list, function(subj_name) {
-      # sapply(subj_list[3], function(subj_name) {
+    # sapply(subj_list[3], function(subj_name) {
       # good_subj_list <- list('T003')
       subj_dir <- file.path(grp_dir, subj_name)
       session_list <- getAllDirectoryList(subj_dir)
@@ -114,7 +152,8 @@ extractEssays <- function() {
   # print(rownames(essay_df))
   
   # convert_to_csv(essay_df, "nsf-stress-study-scripts/@Datasets/essay_all.csv")
-  write.xlsx(as.data.frame(essay_df), "nsf-stress-study-scripts/@Datasets/essay_all.xlsx")
+  write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, performance_data_dir, "Essays and Emails.xlsx"))
+  # write.xlsx(as.data.frame(essay_df), "essay_all.xlsx")
 } 
 
 
@@ -122,9 +161,6 @@ extractEssays <- function() {
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-current_dir <- dirname(dirname(rstudioapi::getSourceEditorContext()$path)) 
-setwd(current_dir)
-
 extractEssays() 
 
 

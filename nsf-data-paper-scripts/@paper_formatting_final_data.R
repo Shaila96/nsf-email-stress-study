@@ -21,7 +21,7 @@ qc2_filtered_file_name <- 'full_df_second_phase_filtered.csv'
 performance_file_name <- 'ets_score_final.csv'
 
 
-physiological_col_order <- c(1:5, 11, 6, 9, 8, 7, 10)
+# physiological_col_order <- c(1:5, 11, 6, 9, 8, 7, 10)
 physiological_col_order <- c('Participant ID',
                              'Group',
                              'Treatment',
