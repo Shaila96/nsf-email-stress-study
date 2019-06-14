@@ -33,7 +33,7 @@ check_outlier = F
 ## CHANGE THIS!!!!
 hr_data_only <- F
 file_name_part_sensor_comparison <- ''
-col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "N.EDA", "D.HR", "N.HR", "HRV")
+col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "N.EDA", "N.HR", "HRV")
 
 
 ## CHANGE THIS!!!!
@@ -54,8 +54,9 @@ plots_dir <- 'plots'
 
 
 
-filtered_file_name <- 'full_df_second_phase_filtered.csv'
-filtered_file_name <- 'full_df_second_phase_filtered.csv'
+# filtered_file_name <- 'full_df_second_phase_filtered.csv'
+filtered_file_name <- file.path('data-from-tamu', 'df_hrv.csv')
+
 
 file_name_part_outlier <- ''
 
@@ -63,8 +64,24 @@ sensor_comparicon_col <- c('HR', 'N.HR')
 condition_list <- c('BH', 'BL', 'IH', 'IL')
 
 
-full_df <<- read_csv(file.path(data_dir, filtered_file_name))[, col_names_final]
-
+full_df <<- read_csv(file.path(data_dir, filtered_file_name))
+full_df <<- full_df %>% 
+    rename(Subject='Participant ID',
+           Condition=Group,
+           Session=Treatment,
+           CovertedTime=Time,
+           Task=TaskMarkers,
+           N.EDA=EDA,
+           HR='Chest HR',
+           N.HR='Wrist HR') %>% 
+    mutate(Session = recode(Session,
+                            'RB' = 'RestingBaseline',
+                            'ST' = 'BaselineWriting',
+                            'PM' = 'StressCondition',
+                            'DT' = 'DualTask',
+                            'PR' = 'Presentation'),
+           Task = recode(Task, 'Report' = 'Essay')) %>% 
+  select(col_names_final)
 
 
 # full_df$HR <- as.numeric(full_df$HR) 
@@ -771,6 +788,8 @@ figure_out_labels <- function(col_name, test_type) {
       return(expression(Delta~"ln("~bar("EDA")~paste('[', mu, 'S])')))
     }
     return(expression(Delta~bar('EDA')~' ['~mu~'S]')) 
+  } else if (isMatch(col_name, 'HRV')) {
+    return(expression(Delta~bar('HRV')~' [IBI]')) 
   } 
   return('Unknown axis.') 
 } 
