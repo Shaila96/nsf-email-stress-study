@@ -22,17 +22,17 @@ performance_file_name <- 'ets_score_final.csv'
 
 
 # physiological_col_order <- c(1:5, 11, 6, 9, 8, 7, 10)
-physiological_col_order <- c('Participant ID',
+physiological_col_order <- c('Participant_ID',
                              'Group',
                              'Treatment',
                              'Time',
-                             'TimeElapsed',
-                             'TaskMarkers',
+                             'Treatment_Time',
+                             'Task',
                              'PP',
                              'EDA',
                              'BR',
-                             'Chest HR',
-                             'Wrist HR')
+                             'Chest_HR',
+                             'Wrist_HR')
 
 #-------------------------#
 #---FUNCTION DEFINITION---#
@@ -47,14 +47,14 @@ make_physiological_df <- function() {
   
   final_physiological_df <- qc2_filtered_df %>% 
     select(-D.EDA, -D.HR) %>% 
-    rename('Participant ID'=Subject,
+    rename(Participant_ID=Subject,
            Group=Condition,
            Treatment=Session,
            Time=CovertedTime,
            TaskMarkers=Task,
            EDA=N.EDA,
-           'Chest HR'=HR,
-           'Wrist HR'=N.HR) %>% 
+           Chest_HR=HR,
+           Wrist_HR=N.HR) %>% 
     mutate(Treatment = recode(Treatment,
                             'RestingBaseline' = 'RB',
                             'BaselineWriting' = 'ST',
@@ -71,7 +71,7 @@ make_physiological_df <- function() {
 
 make_performance_df <- function() {
   performance_df <- read_csv(file.path(data_dir, performance_data_dir, performance_file_name)) %>% 
-    rename('Participant ID'=Subject,
+    rename(Participant_ID=Subject,
            Group=Condition)
   print(str(performance_df))
   convert_to_csv(performance_df, file.path(data_dir, final_data_dir, 'Performance Data.csv'))
@@ -83,7 +83,7 @@ make_performance_df <- function() {
 #-------Main Program------#
 #-------------------------#
 make_physiological_df()
-# make_performance_df()
+make_performance_df()
 
 
 

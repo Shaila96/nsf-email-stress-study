@@ -225,8 +225,12 @@ generate_signal_plot <- function(col_name) {
   # message(get_total_subj_no(filtered_df))
   # message("----------------------------")
   
-  raw_df <- extract_session_data(raw_df)
-  filtered_df <- extract_session_data(filtered_df)
+  
+  #####################################################
+  # raw_df <- extract_session_data(raw_df)
+  # filtered_df <- extract_session_data(filtered_df)
+  #####################################################
+  
   
   # message("---- Whole Data ----")
   # message(get_total_subj_no(raw_df))
