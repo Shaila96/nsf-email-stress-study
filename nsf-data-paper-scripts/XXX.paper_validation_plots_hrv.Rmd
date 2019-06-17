@@ -55,7 +55,7 @@ plots_dir <- 'plots'
 
 
 # filtered_file_name <- 'full_df_second_phase_filtered.csv'
-filtered_file_name <- file.path('data-from-tamu', 'df_hrv.csv')
+filtered_file_name <- file.path('data-from-tamu', 'v1', 'df_hrv.csv')
 
 
 file_name_part_outlier <- ''
