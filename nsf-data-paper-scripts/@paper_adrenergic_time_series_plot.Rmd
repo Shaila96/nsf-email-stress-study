@@ -190,6 +190,7 @@ get_abbr_session_name <- function(session_name) {
 }
 
 get_total_subj_no <- function(df) {
+  # df <- extract_session_data(df)
   return(length(levels(factor(df$Subject))))
 }
 

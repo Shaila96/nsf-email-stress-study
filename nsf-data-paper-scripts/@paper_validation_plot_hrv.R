@@ -4,6 +4,7 @@
 library(readr)
 library(dplyr)
 library(tidyr)
+library(forcats)
 library(ggplot2)
 library(grid)
 library(gridExtra)
@@ -21,16 +22,26 @@ setwd(current_dir)
 
 source(file.path(dirname(current_dir), "@common_functions.R"))
 
+log_dir <- file.path(dirname(current_dir), 'log-files')
+log.file <- file.path(log_dir, paste0('hrv-missing-subj-', format(Sys.Date(), format='%m-%d-%y'), '.txt'))
+file.create(log.file)
+
+
 data_dir <- 'data'
 tamu_dir <- 'data-from-tamu'
 plots_dir <- 'plots'
 
+filtered_subj_file_name <- 'filtered_subject_list.csv'
+qc2_full_df_file_name <- 'full_df_second_phase_filtered.csv'
 hrv_file_name <- 'hrv.csv'
+rr_file_name <- 'rr.csv'
 
-plot_df <- tibble()
+# rr_df <- tibble()
+
 plot_list <- list()
 
 
+comparison_levels <- c( "WB.RB", "SC.RB", "DT.RB", "P.RB")
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
 # session_list <- c('StressCondition')
 
@@ -68,6 +79,15 @@ figure_out_title <- function(group) {
   }  
 } 
 
+figure_out_labels <- function(col_name) { 
+  if (isMatch(col_name, 'nn')) { 
+    return(expression(Delta~'NN'))
+  } else if (col_name=='rmssd') {
+    return(expression(Delta~'RMSSD [ms]'))
+  } 
+  return('Unknown axis.') 
+} 
+
 get_significance <- function(p_value) { 
   if (p_value > 0.05) { 
     return(" ") 
@@ -84,28 +104,15 @@ give.n <- function(x) {
   return(c(y=-Inf, vjust = -1, label=length(x))) 
 } 
 
-plot_rmssd <- function() {
-  hrv_df <- read_csv(file.path(data_dir, tamu_dir, hrv_file_name)) %>% 
-    rename(Group=Treatment)
-  print(str(hrv_df))
-  
-  hrv_df <- hrv_df %>% 
-    spread(Session, RMSSD) %>% 
-    mutate(WB.RB = ST - RB, 
-           SC.RB = PM - RB, 
-           DT.RB = DT - RB, 
-           P.RB = PR - RB) %>% 
-    gather(Comparison, Value, -Participant, -Group,
-           -RB, -ST, -PM, -DT, - PR) %>% 
-    filter(!is.na(Comparison))
-  
-  print(str(hrv_df))
-  # convert_to_csv(hrv_df, file.path(data_dir, tamu_dir, 'hrv_validation_plot_df.csv'))
-  
-  comparison_levels <- c( "WB.RB", "SC.RB", "DT.RB", "P.RB")
+isMatch <- function(string_we_have, pattern_we_are_looking_for) { 
+  return(grepl(pattern_we_are_looking_for, string_we_have)) 
+} 
+
+draw_validation_plot <- function(df, signal) {
+  plot_list <<- list()
   for (group in c('BH', 'BL', 'IH', 'IL')) {
     
-    temp_hrv_df <- hrv_df %>% 
+    temp_df <- df %>% 
       filter(Group==group)
     
     if (group == "IL" || group == "BL") {
@@ -117,57 +124,264 @@ plot_rmssd <- function() {
     }
     
     labels_vec <- gsub(".", "-", comparison_levels, fixed = TRUE)
-    # print(levels(factor(hrv_df$Comparison)))
+    print(labels_vec)
+    print(levels(factor(temp_df$Comparison)))
     labels_vec <- replace(labels_vec, labels_vec=="SC-RB", break_cond)
     labels_vec <- replace(labels_vec, labels_vec=="WB-RB", "ST-RB")
     labels_vec <- replace(labels_vec, labels_vec=="P-RB", "PR-RB")
     
     sign <- c()
     for (comparison in comparison_levels) {
-      temp_comparison_df <- temp_hrv_df %>% 
+      temp_comparison_df <- temp_df %>% 
         filter(Comparison==comparison)
-      print(get_significance(t.test(temp_comparison_df$Value)$p.value))
+      # print(get_significance(t.test(temp_comparison_df$Value)$p.value))
       sign <- c(sign, get_significance(t.test(temp_comparison_df$Value)$p.value))
     }
     
-    gg <- ggplot(temp_hrv_df, aes(x = Comparison, y = Value)) + 
+    gg <- ggplot(temp_df, aes(x = Comparison, y = Value)) + 
       geom_boxplot() + 
-      labs(title = figure_out_title(group), y = expression(Delta~'RMSSD [ms]')) +
-        theme_bw(base_size = 18) +
-        theme(axis.title.x = element_blank(),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              axis.text.x=element_text(size=16, face='bold'),
-              plot.margin = unit(c(0.5, 0.5, 0.5, plot_margin_left), "lines"),  ##top, right, bottom, left
-              axis.line = element_line(colour = "black")) +
-        geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
-        scale_x_discrete(labels=labels_vec) +
-        stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
-        stat_summary(fun.data = give.n, geom = "text", size = 6) +
-        scale_y_continuous(expand = c(0.15, 0, 0.15, 0)) +
-        annotate("text", x=1, y=Inf, label= sign[1], vjust = 1.2, size = 10) +
-        annotate("text", x=2, y=Inf, label= sign[2], vjust = 1.2, size = 10) +
-        annotate("text", x=3, y=Inf, label= sign[3], vjust = 1.2, size = 10) +
-        annotate("text", x=4, y=Inf, label= sign[4], vjust = 1.2, size = 10)
+      labs(title = figure_out_title(group), y = figure_out_labels(signal)) +
+      theme_bw(base_size = 18) +
+      theme(axis.title.x = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.text.x=element_text(size=16, face='bold'),
+            plot.margin = unit(c(0.5, 0.5, 0.5, plot_margin_left), "lines"),  ##top, right, bottom, left
+            axis.line = element_line(colour = "black")) +
+      geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
+      scale_x_discrete(labels=labels_vec) +
+      stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
+      stat_summary(fun.data = give.n, geom = "text", size = 6) +
+      scale_y_continuous(expand = c(0.15, 0, 0.15, 0)) +
+      annotate("text", x=1, y=Inf, label= sign[1], vjust = 1.2, size = 10) +
+      annotate("text", x=2, y=Inf, label= sign[2], vjust = 1.2, size = 10) +
+      annotate("text", x=3, y=Inf, label= sign[3], vjust = 1.2, size = 10) +
+      annotate("text", x=4, y=Inf, label= sign[4], vjust = 1.2, size = 10)
     
     plot_list[[length(plot_list) + 1]] <<- gg
   }
   
   grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
-  plot_path <- file.path(plots_dir, 'hrv-validation-plot')
+  plot_path <- file.path(plots_dir, paste0(signal, '-validation-plot'))
   save_plot(plot_path, grid_plot)
 }
 
+plot_rmssd <- function() {
+  hrv_df <- read_csv(file.path(data_dir, tamu_dir, hrv_file_name)) %>% 
+    rename(Group=Treatment)
+  # print(str(hrv_df))
+  
+  hrv_df <- hrv_df %>% 
+    spread(Session, RMSSD) %>% 
+    mutate(WB.RB = ST - RB, 
+           SC.RB = PM - RB, 
+           DT.RB = DT - RB, 
+           P.RB = PR - RB) %>% 
+    gather(Comparison, Value, -Participant, -Group,
+           -RB, -ST, -PM, -DT, - PR) %>%
+    mutate(Comparison = factor(Comparison, levels = comparison_levels)) %>% 
+    filter(!is.na(Comparison))
+  
+  
+  # print(str(hrv_df))
+  # convert_to_csv(hrv_df, file.path(data_dir, tamu_dir, 'hrv_validation_plot_df.csv'))
+  
 
-plot_nn <- function() {
+  
+  
+  ########################################################
+  draw_validation_plot(hrv_df, 'rmssd')
+  ######################################################## 
+  
+  
+  ########################################################
+  # for (group in c('BH', 'BL', 'IH', 'IL')) {
+  #   
+  #   temp_hrv_df <- hrv_df %>% 
+  #     filter(Group==group)
+  #   
+  #   if (group == "IL" || group == "BL") {
+  #     break_cond <- "RV-RB"
+  #     plot_margin_left <- 1.5
+  #   } else {
+  #     break_cond <- "Stroop-RB"
+  #     plot_margin_left <- 0.5
+  #   }
+  #   
+  #   labels_vec <- gsub(".", "-", comparison_levels, fixed = TRUE)
+  #   # print(levels(factor(hrv_df$Comparison)))
+  #   labels_vec <- replace(labels_vec, labels_vec=="SC-RB", break_cond)
+  #   labels_vec <- replace(labels_vec, labels_vec=="WB-RB", "ST-RB")
+  #   labels_vec <- replace(labels_vec, labels_vec=="P-RB", "PR-RB")
+  #   
+  #   sign <- c()
+  #   for (comparison in comparison_levels) {
+  #     temp_comparison_df <- temp_hrv_df %>% 
+  #       filter(Comparison==comparison)
+  #     print(get_significance(t.test(temp_comparison_df$Value)$p.value))
+  #     sign <- c(sign, get_significance(t.test(temp_comparison_df$Value)$p.value))
+  #   }
+  #   
+  #   gg <- ggplot(temp_hrv_df, aes(x = Comparison, y = Value)) + 
+  #     geom_boxplot() + 
+  #     labs(title = figure_out_title(group), y = expression(Delta~'RMSSD [ms]')) +
+  #       theme_bw(base_size = 18) +
+  #       theme(axis.title.x = element_blank(),
+  #             panel.grid.major = element_blank(),
+  #             panel.grid.minor = element_blank(),
+  #             axis.text.x=element_text(size=16, face='bold'),
+  #             plot.margin = unit(c(0.5, 0.5, 0.5, plot_margin_left), "lines"),  ##top, right, bottom, left
+  #             axis.line = element_line(colour = "black")) +
+  #       geom_hline(yintercept=0, linetype="dashed", color = "red", alpha = 0.6, size=1) +
+  #       scale_x_discrete(labels=labels_vec) +
+  #       stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
+  #       stat_summary(fun.data = give.n, geom = "text", size = 6) +
+  #       scale_y_continuous(expand = c(0.15, 0, 0.15, 0)) +
+  #       annotate("text", x=1, y=Inf, label= sign[1], vjust = 1.2, size = 10) +
+  #       annotate("text", x=2, y=Inf, label= sign[2], vjust = 1.2, size = 10) +
+  #       annotate("text", x=3, y=Inf, label= sign[3], vjust = 1.2, size = 10) +
+  #       annotate("text", x=4, y=Inf, label= sign[4], vjust = 1.2, size = 10)
+  #   
+  #   plot_list[[length(plot_list) + 1]] <<- gg
+  # }
+  # 
+  # grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
+  # plot_path <- file.path(plots_dir, 'hrv-validation-plot')
+  # save_plot(plot_path, grid_plot)
+  ########################################################
   
 }
 
+#########################################################
+## Discard the data outside of 2SD of the distribution ##
+#########################################################
+discard_outliers <- function(subj, sess, temp_rr_df) {
+  mean <- mean(temp_rr_df$RR)
+  sd <- sd(temp_rr_df$RR)
+  sd_val <- 2
+
+  print(paste('Filtering extremest points: ', subj, ', ', sess))
+  # write(paste('Filtering extremest points: ', subj, ', ', sess), file=log.file, append=TRUE)
+  # print(paste0('mean: ', mean, ', sd: ', sd))
+
+  outliers <- temp_rr_df %>%
+    filter(temp_rr_df$RR<mean-sd_val*sd | temp_rr_df$RR>mean+sd_val*sd) %>%
+    select(RR) %>%
+    unlist()
+  
+  rr_df[rr_df$Subject==subj &
+        rr_df$Session==sess &
+        rr_df$RR %in% as.list(outliers),
+        'RR'] <<- NA
+}
+
+discard_full_session_rr <- function(subj, sess) {
+  print(paste('Filtering whole session: ', subj, ', ', sess))
+  # write(paste('Filtering whole session: ', subj, ', ', sess), file=log.file, append=TRUE)
+  rr_df[rr_df$Subject==subj & rr_df$Session==sess, 'RR'] <<- NA
+}
+
+plot_nn <- function() {
+  ##########################################################################
+  # subjects <- levels(factor(rr_df$Subject))
+  # sessions <- levels(factor(rr_df$Session))
+  # print(length(subjects))
+  
+  subjects <- levels(factor(good_subj_df$Subject))
+  sessions <- c('RB', 'ST', 'PM', 'DT', 'PR')
+  
+  for (subj in subjects) {
+    for (sess in sessions) {
+      temp_rr_df <- rr_df %>%
+        filter(Subject == subj, Session == sess)
+      # temp_filtered_subj_df <- filtered_subj_df %>%
+      #   filter(Subject == subj, Session == sess)
+      temp_qc2_filtered_subj_df <- qc2_filtered_subj_df %>% 
+        filter(Subject == subj, Session == sess)
+      
+      # print(nrow(filtered_subj_df))
+      # print(nrow(temp_filtered_subj_df))
+      
+      
+      if (nrow(temp_qc2_filtered_subj_df)>0 & nrow(temp_rr_df)==0) { 
+        write(paste('Missing rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+      } else if (nrow(temp_qc2_filtered_subj_df)==0 & nrow(temp_rr_df)>0) { 
+        discard_full_session_rr(subj, sess)
+        write(paste('Invalid rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+      } else {
+        discard_outliers(subj, sess, temp_rr_df)
+      }
+      
+      # if (nrow(temp_filtered_subj_df)>0) {
+      #   discard_full_session_rr(subj, sess)
+      # } else {
+      #   discard_outliers(subj, sess, temp_rr_df)
+      # }
+    }
+  }
+  convert_to_csv(rr_df, file.path(data_dir, tamu_dir, 'rr_df_filtered.csv'))
+  ##########################################################################
+  
+  
+  
+  rr_df <<- read_csv(file.path(data_dir, tamu_dir, 'rr_df_filtered.csv'))
+  mean_rr_df <- rr_df %>% 
+    select(Subject, Group, Session, RR) %>% 
+    group_by(Subject, Group, Session) %>% 
+    summarize(NN = mean(RR, na.rm = TRUE)) %>% 
+    spread(Session, NN) %>% 
+    mutate(WB.RB = ST - RB, 
+           SC.RB = PM - RB, 
+           DT.RB = DT - RB, 
+           P.RB = PR - RB) %>% 
+    gather(Comparison, Value, -Subject, -Group,
+           -RB, -ST, -PM, -DT, - PR) %>% 
+    mutate(Comparison = factor(Comparison, levels = comparison_levels)) %>% 
+    filter(!is.na(Comparison))
+    # mutate(Comparison = fct_reorder(Comparison, comparison_levels)) 
+  
+  # convert_to_csv(mean_rr_df, file.path(data_dir, tamu_dir, 'mean_rr_df_filtered.csv'))
+  draw_validation_plot(mean_rr_df, 'nn')
+}
+
+
+
+read_data <- function() {
+  good_subj_df <<- read_csv(file.path(data_dir, 'subj_good_df.csv'))
+  
+  rr_df <<- read_csv(file.path(data_dir, tamu_dir, rr_file_name)) %>%
+    rename(Group=Treatment,
+           Subject=Participant)
+  # print(str(rr_df))
+  
+  filtered_subj_df <<- read_csv(file.path(data_dir, filtered_subj_file_name)) %>%
+    mutate(Session = recode(Session,
+                            'RestingBaseline' = 'RB',
+                            'BaselineWriting' = 'ST',
+                            'StressCondition' = 'PM',
+                            'DualTask' = 'DT',
+                            'Presentation' = 'PR')) %>%
+    filter(Signal=='HR')
+  # print(nrow(filtered_subj_df))
+  # print(str(filtered_subj_df))
+  
+  
+  qc2_filtered_subj_df <<- read_csv(file.path(data_dir, qc2_full_df_file_name)) %>% 
+    select(Subject, Session, HR) %>% 
+    mutate(Session = recode(Session,
+                            'RestingBaseline' = 'RB',
+                            'BaselineWriting' = 'ST',
+                            'StressCondition' = 'PM',
+                            'DualTask' = 'DT',
+                            'Presentation' = 'PR')) %>% 
+    na.omit()
+}
 
 
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
+read_data()
 # plot_rmssd()
 plot_nn()
 
