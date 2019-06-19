@@ -281,50 +281,8 @@ discard_full_session_rr <- function(subj, sess) {
   rr_df[rr_df$Subject==subj & rr_df$Session==sess, 'RR'] <<- NA
 }
 
-plot_nn <- function() {
-  ##########################################################################
-  # subjects <- levels(factor(rr_df$Subject))
-  # sessions <- levels(factor(rr_df$Session))
-  # print(length(subjects))
-  
-  subjects <- levels(factor(good_subj_df$Subject))
-  sessions <- c('RB', 'ST', 'PM', 'DT', 'PR')
-  
-  for (subj in subjects) {
-    for (sess in sessions) {
-      temp_rr_df <- rr_df %>%
-        filter(Subject == subj, Session == sess)
-      # temp_filtered_subj_df <- filtered_subj_df %>%
-      #   filter(Subject == subj, Session == sess)
-      temp_qc2_filtered_subj_df <- qc2_filtered_subj_df %>% 
-        filter(Subject == subj, Session == sess)
-      
-      # print(nrow(filtered_subj_df))
-      # print(nrow(temp_filtered_subj_df))
-      
-      
-      if (nrow(temp_qc2_filtered_subj_df)>0 & nrow(temp_rr_df)==0) { 
-        write(paste('Missing rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
-      } else if (nrow(temp_qc2_filtered_subj_df)==0 & nrow(temp_rr_df)>0) { 
-        discard_full_session_rr(subj, sess)
-        write(paste('Invalid rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
-      } else {
-        discard_outliers(subj, sess, temp_rr_df)
-      }
-      
-      # if (nrow(temp_filtered_subj_df)>0) {
-      #   discard_full_session_rr(subj, sess)
-      # } else {
-      #   discard_outliers(subj, sess, temp_rr_df)
-      # }
-    }
-  }
-  convert_to_csv(rr_df, file.path(data_dir, tamu_dir, 'rr_df_filtered.csv'))
-  ##########################################################################
-  
-  
-  
-  rr_df <<- read_csv(file.path(data_dir, tamu_dir, 'rr_df_filtered.csv'))
+draw_nn_validation_plot <- function() {
+  rr_df <<- read_csv(file.path(data_dir, tamu_dir, 'rr_df_filtered_qc1.csv'))
   mean_rr_df <- rr_df %>% 
     select(Subject, Group, Session, RR) %>% 
     group_by(Subject, Group, Session) %>% 
@@ -338,21 +296,102 @@ plot_nn <- function() {
            -RB, -ST, -PM, -DT, - PR) %>% 
     mutate(Comparison = factor(Comparison, levels = comparison_levels)) %>% 
     filter(!is.na(Comparison))
-    # mutate(Comparison = fct_reorder(Comparison, comparison_levels)) 
   
   # convert_to_csv(mean_rr_df, file.path(data_dir, tamu_dir, 'mean_rr_df_filtered.csv'))
   draw_validation_plot(mean_rr_df, 'nn')
 }
 
+clean_invalid_rr <- function() {
+  subjects <- levels(factor(qc2_filtered_subj_df$Subject))
+  sessions <- levels(factor(qc2_filtered_subj_df$Session))
+
+  for (subj in subjects) {
+    for (sess in sessions) {
+      temp_rr_df <- rr_df %>%
+        filter(Subject == subj, Session == sess)
+      temp_qc2_filtered_subj_df <- qc2_filtered_subj_df %>% 
+        filter(Subject == subj, Session == sess)
+      
+      if (nrow(temp_qc2_filtered_subj_df)==0 & nrow(temp_rr_df)>0) { 
+        discard_full_session_rr(subj, sess)
+        # write(paste('Invalid rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+      }
+    }
+  }
+  
+  rr_df <<- rr_df %>%
+    group_by(Subject, Group, Session) %>%
+    mutate(TreatmentTime=as.integer(Time)-as.integer(head(Time, 1)))
+  convert_to_csv(rr_df, file.path(data_dir, tamu_dir, 'rr_df_filtered_qc0.csv'))
+}
+
+filter_extreme_rr <- function() {
+  subjects <- levels(factor(qc2_filtered_subj_df$Subject))
+  sessions <- levels(factor(qc2_filtered_subj_df$Session))
+  
+  for (subj in subjects) {
+    for (sess in sessions) {
+      temp_rr_df <- rr_df %>%
+        filter(Subject == subj, Session == sess)
+      temp_qc2_filtered_subj_df <- qc2_filtered_subj_df %>% 
+        filter(Subject == subj, Session == sess)
+      
+      if (nrow(temp_qc2_filtered_subj_df)>0 & nrow(temp_rr_df)==0) { 
+        write(paste('Missing rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+      } else if (nrow(temp_qc2_filtered_subj_df)==0 & nrow(temp_rr_df)>0) { 
+        # discard_full_session_rr(subj, sess)
+        write(paste('Invalid rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+      } else {
+        discard_outliers(subj, sess, temp_rr_df)
+      }
+    }
+  }
+  
+  # rr_df <<- rr_df %>%
+  #   group_by(Subject, Group, Session) %>%
+  #   mutate(TreatmentTime=as.integer(Time)-as.integer(head(Time, 1)))
+  convert_to_csv(rr_df, file.path(data_dir, tamu_dir, 'rr_df_filtered_qc1.csv'))
+}
+
+
+
+plot_nn <- function() {
+  ##########################################################################
+  # subjects <- levels(factor(qc2_filtered_subj_df$Subject))
+  # sessions <- levels(factor(qc2_filtered_subj_df$Session))
+  # 
+  # for (subj in subjects) {
+  #   for (sess in sessions) {
+  #     temp_rr_df <- rr_df %>%
+  #       filter(Subject == subj, Session == sess)
+  #     temp_qc2_filtered_subj_df <- qc2_filtered_subj_df %>% 
+  #       filter(Subject == subj, Session == sess)
+  #     
+  #     if (nrow(temp_qc2_filtered_subj_df)>0 & nrow(temp_rr_df)==0) { 
+  #       write(paste('Missing rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+  #     } else if (nrow(temp_qc2_filtered_subj_df)==0 & nrow(temp_rr_df)>0) { 
+  #       discard_full_session_rr(subj, sess)
+  #       write(paste('Invalid rr data for: ', subj, ', ', sess), file=log.file, append=TRUE)
+  #     } else {
+  #       discard_outliers(subj, sess, temp_rr_df)
+  #     }
+  #   }
+  # }
+  # convert_to_csv(rr_df, file.path(data_dir, tamu_dir, 'rr_df_filtered.csv'))
+  ##########################################################################
+  
+  
+  clean_invalid_rr()
+  filter_extreme_rr()
+  draw_nn_validation_plot()
+}
+
 
 
 read_data <- function() {
-  good_subj_df <<- read_csv(file.path(data_dir, 'subj_good_df.csv'))
-  
   rr_df <<- read_csv(file.path(data_dir, tamu_dir, rr_file_name)) %>%
     rename(Group=Treatment,
            Subject=Participant)
-  # print(str(rr_df))
   
   filtered_subj_df <<- read_csv(file.path(data_dir, filtered_subj_file_name)) %>%
     mutate(Session = recode(Session,
@@ -362,9 +401,6 @@ read_data <- function() {
                             'DualTask' = 'DT',
                             'Presentation' = 'PR')) %>%
     filter(Signal=='HR')
-  # print(nrow(filtered_subj_df))
-  # print(str(filtered_subj_df))
-  
   
   qc2_filtered_subj_df <<- read_csv(file.path(data_dir, qc2_full_df_file_name)) %>% 
     select(Subject, Session, HR) %>% 
@@ -382,10 +418,11 @@ read_data <- function() {
 #-------Main Program------#
 #-------------------------#
 read_data()
-# plot_rmssd()
 plot_nn()
 
 
+
+# plot_rmssd()
 
 
 
