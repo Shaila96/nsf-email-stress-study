@@ -81,7 +81,7 @@ figure_out_title <- function(group) {
 
 figure_out_labels <- function(col_name) { 
   if (isMatch(col_name, 'nn')) { 
-    return(expression(Delta~'NN'))
+    return(expression(Delta~bar('RR')~' [ms]'))
   } else if (col_name=='rmssd') {
     return(expression(Delta~'RMSSD [ms]'))
   } 
@@ -186,7 +186,7 @@ plot_rmssd <- function() {
   # print(str(hrv_df))
   # convert_to_csv(hrv_df, file.path(data_dir, tamu_dir, 'hrv_validation_plot_df.csv'))
   
-
+  
   
   
   ########################################################
@@ -259,19 +259,19 @@ discard_outliers <- function(subj, sess, temp_rr_df) {
   mean <- mean(temp_rr_df$RR)
   sd <- sd(temp_rr_df$RR)
   sd_val <- 2
-
+  
   print(paste('Filtering extremest points: ', subj, ', ', sess))
   # write(paste('Filtering extremest points: ', subj, ', ', sess), file=log.file, append=TRUE)
   # print(paste0('mean: ', mean, ', sd: ', sd))
-
+  
   outliers <- temp_rr_df %>%
     filter(temp_rr_df$RR<mean-sd_val*sd | temp_rr_df$RR>mean+sd_val*sd) %>%
     select(RR) %>%
     unlist()
   
   rr_df[rr_df$Subject==subj &
-        rr_df$Session==sess &
-        rr_df$RR %in% as.list(outliers),
+          rr_df$Session==sess &
+          rr_df$RR %in% as.list(outliers),
         'RR'] <<- NA
 }
 
@@ -304,7 +304,7 @@ draw_nn_validation_plot <- function() {
 clean_invalid_rr <- function() {
   subjects <- levels(factor(qc2_filtered_subj_df$Subject))
   sessions <- levels(factor(qc2_filtered_subj_df$Session))
-
+  
   for (subj in subjects) {
     for (sess in sessions) {
       temp_rr_df <- rr_df %>%
@@ -381,8 +381,8 @@ plot_nn <- function() {
   ##########################################################################
   
   
-  clean_invalid_rr()
-  filter_extreme_rr()
+  # clean_invalid_rr()
+  # filter_extreme_rr()
   draw_nn_validation_plot()
 }
 

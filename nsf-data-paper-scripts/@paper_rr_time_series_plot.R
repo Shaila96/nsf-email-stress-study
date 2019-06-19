@@ -6,7 +6,9 @@ library(dplyr)
 library(ggplot2)
 library(grid)
 library(gridExtra)
+library(ggpubr) 
 library(directlabels)
+library(gsubfn)
 library(scales)
 
 
@@ -24,27 +26,37 @@ data_dir <- 'data'
 tamu_dir <- 'data-from-tamu'
 plots_dir <- 'plots'
 
-data_file_name <- 'df_hrv.csv'
-grid_plot_title <- bquote(paste('QC1', ' signal sets'))
-# y_axis_label <- bquote(paste('log'[10], '(HRV [IBI])'))
-y_axis_label <- 'HRV [IBI]'
+non_filtered_file_name <- 'rr_df_filtered_qc0.csv'
+filtered_file_name <- 'rr_df_filtered_qc1.csv'
+
+col_list <- c('Subject', 'Group', 'Session', 'TreatmentTime', 'RR')
+
+######################
+##       ****       ##
+######################
+axis_type <- 'normal'
+y_axis_label <- 'RR [ms]'
+
+
+######################
+##       ****       ##
+######################
+# axis_type <- 'log-based'
+# y_axis_label <- bquote(paste('log'[10], '(RR [ms])'))
+# y_axis_threshold <- 0
 
 plot_list <- list()
 
 
-
-session_color_code <- c('', '', '#229954', '', '', '')
-
-
 session_atr <- 'all-session'
-session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation', 'DualTask')
-# session_list <- c('StressCondition')
+session_list <- c('RB', 'ST', 'PM', 'PR', 'DT')
+# session_list <- c('RB')
 
 # session_atr <- 'non-dual-session'
-# session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'Presentation')
+# session_list <- c('RB', 'ST', 'PM', 'PR')
 
 # session_atr <- 'dual-session'
-# session_list <- c('DualTask')
+# session_list <- c('DT')
 
 
 
@@ -68,89 +80,94 @@ save_plot <- function(plot_name, plot) {
   ggsave(plot_path, plot, device=cairo_pdf, width=10, height=10)
 }
 
+isMatch <- function(str, pattern) { 
+  return(grepl(pattern, str)) 
+} 
+
+#---- Removing NA values and extracting data for only the valid sessions ----#
+extract_session_data <- function(df) {
+  # return(df %>% filter(Session %in% session_list))
+  return(df[complete.cases(df), ] %>% filter(Session %in% session_list))
+}
+
+get_total_subj_no <- function(df) {
+  # df <- extract_session_data(df)
+  return(length(levels(factor(df$Subject))))
+}
+
+get_subj_no_label <- function(subj_no) {
+  return(paste("n =", subj_no))
+}
+
+replace_dots <- function(str) {
+  gsubfn(".", list("." = "_", " " = "_"), tolower(str))
+  # gsub("\\.", "-", str)
+}
+
 #---- Add one space if it finds any CamelCase ----#
-get_session_name <- function(session_name) {
-  if (session_name == 'BaselineWriting') {
-    return('Single Task')
-  } else if (session_name == 'StressCondition') {
-    return('Priming')
-  }
-  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+# get_session_name <- function(session_name) {
+#   if (session_name == 'BaselineWriting') {
+#     return('Single Task')
+#   } else if (session_name == 'StressCondition') {
+#     return('Priming')
+#   }
+#   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+# }
+# 
+# get_abbr_session_name <- function(session_name) {
+#   if (session_name=='RestingBaseline') {
+#     return('RB')
+#   } else if (session_name=='BaselineWriting') {
+#     return('ST')
+#   } else if (session_name == 'StressCondition') {
+#     return('PM')
+#   } else if (session_name == 'DualTask') {
+#     return('DT')
+#   } else if (session_name == 'Presentation') {
+#     return('PR')
+#   }
+#   return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
+# }
+
+read_data <- function() {
+  raw_df <<- read_csv(file.path(data_dir, tamu_dir, non_filtered_file_name))[, col_list]
+  filtered_df <<- read_csv(file.path(data_dir, tamu_dir, filtered_file_name))[, col_list]
+  
+  # print(str(raw_df))
+  # print(str(filtered_df))
 }
 
-get_abbr_session_name <- function(session_name) {
-  if (session_name=='RestingBaseline') {
-    return('RB')
-  } else if (session_name=='BaselineWriting') {
-    return('ST')
-  } else if (session_name == 'StressCondition') {
-    return('PM')
-  } else if (session_name == 'DualTask') {
-    return('DT')
-  } else if (session_name == 'Presentation') {
-    return('PR')
-  }
-  return(gsub("([a-z])([A-Z])", "\\1 \\2", session_name))
-}
-
-generate_hrv_plot <- function() {
-  pp_all_df <- read_csv(file.path(data_dir, tamu_dir, data_file_name))
-  # pp_all_df <- pp_all_df[, c(seq(1, 6))]
-  # print(str(pp_all_df))
+generate_time_series_plot <- function() {
   
-  pp_all_df <- pp_all_df %>% 
-    rename(Subject='Participant ID',
-           Condition=Group,
-           Session=Treatment,
-           CovertedTime=Time,
-           Task=TaskMarkers,
-           N.EDA=EDA,
-           HR='Chest HR',
-           N.HR='Wrist HR') %>% 
-    mutate(Session = recode(Session,
-                            'RB' = 'RestingBaseline',
-                            'ST' = 'BaselineWriting',
-                            'PM' = 'StressCondition',
-                            'DT' = 'DualTask',
-                            'PR' = 'Presentation'),
-           Task = recode(Task, 'Report' = 'Essay')) %>% 
-    select(c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'HRV'))
-  message(str(pp_all_df))
-  
-  # subj_list <- levels(factor(pp_all_df$Subject))
+  #####################################################
+  #                    *********                      #
+  #####################################################
+  raw_df <- extract_session_data(raw_df)
+  filtered_df <- extract_session_data(filtered_df)
+  #####################################################
   
   
-  #################### CHECK THIS  ################### 
-  pp_all_df <- pp_all_df[complete.cases(pp_all_df), ] %>% filter(Session %in% session_list)
-  pp_non_dual_df <- pp_all_df %>% filter(Session != 'DualTask')
+  #---- We do not want to calculate the max of x for all sessions again & again ----#
+  non_dual_raw_df <- raw_df %>% filter(Session != 'DT')
+  max_x <- max(non_dual_raw_df$TreatmentTime)
   
-  max_y <- max(pp_all_df$HRV)
-  max_x <- max(pp_non_dual_df$TimeElapsed)
   
-  # subj_no_annot_x_pos = max_x-max_x/40
-  # subj_no_annot_y_pos = max_y-max_y/8
-  # print(min(pp_all_df$PP))
-  # print(max(pp_all_df$PP))
-
   for(sess_idx in 1 : length(session_list)) {
     session_name <- session_list[sess_idx]
-    session_df <- pp_all_df %>% 
-      filter(Session==session_name) %>% 
-      mutate(StressCondition=case_when(is_match(Condition, 'H') ~ 'High',
-                                       is_match(Condition, 'L') ~ 'Low'
-                                       ))
-    # print(str(session_df))
     
-    if (session_name == 'DualTask') {
-      max_x <- max(session_df$TimeElapsed)
+    session_raw_df <- raw_df %>% 
+      filter(Session == session_name)
+    
+    session_filtered_df <- filtered_df %>% 
+      filter(Session == session_name)
+    
+    
+    if (session_name == 'DT') {
+      max_x <- max(session_raw_df$TreatmentTime)
     }
+    # print(session_name)
+    # print(max_x)
     
-
-    #---- SETUPPING FOR PLOTS ----#
-    # print(nrow(session_df %>% distinct(Subject)))
-    # subj_no <- session_df %>% distinct(Subject) %>% summarize(n = n())
-    subj_no <- nrow(session_df %>% distinct(Subject))
-    subj_no_annot <- paste("n =", subj_no)
     
     x_axis_label <- ''
     
@@ -159,85 +176,138 @@ generate_hrv_plot <- function() {
       x_axis_label <- 'Time [s]'
     }
     
-    if (nrow(session_df) != 0) {
-      
-      
-      ###########################################################################
-      ## With SC Color
-      ###########################################################################
-      # if (session_name == 'StressCondition') {
-      #   session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject, colour=StressCondition))
-      # } else {
-      #   session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject))
-      # }
-      ###########################################################################
-      
-      # session_plot <- session_plot +                                                ## With SC Color
-      session_plot <- ggplot(data=session_df, aes(TimeElapsed, HRV, group=Subject)) +  ## Without SC Color
-        geom_line(alpha=0.7) +
-        annotate("text", 
-                 x=max_x, 
-                 y=max_y, 
-                 hjust=1, 
-                 vjust=1, 
-                 size=5,
-                 label=subj_no_annot,
+    
+    if (nrow(session_raw_df) != 0) {
+      raw_data_plot <- ggplot(data=session_raw_df,
+                              aes(x=TreatmentTime, y=RR, group=Subject)) +
+        geom_linerange(ymin=0, ymax=session_raw_df$RR, alpha = 0.3) +
+        # geom_line(alpha = 0.7) +
+        annotate("text",
+                 x=Inf,
+                 y=Inf,
+                 hjust=1.2,
+                 vjust=1.5,
+                 size=4.5,
+                 label=get_subj_no_label(get_total_subj_no(session_raw_df)),
                  fontface = 'italic')
       
-      if (session_name != 'DualTask') {
-        session_plot <- session_plot +
+      if (session_name != 'DT') {
+        raw_data_plot <- raw_data_plot + 
           theme_bw() +
           theme(axis.line = element_line(colour = "black"))
       }
       
-      session_plot <- session_plot +
+      raw_data_plot <- raw_data_plot + 
         theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
-              axis.text.y.right = element_blank(),
-              axis.ticks.y.right = element_blank(),
-              axis.title.y.right = element_text(angle=0, vjust=0.5, face='bold'),
+              axis.text.y.right=element_blank(),
+              axis.ticks.y.right=element_blank(),
+              plot.title = element_text(hjust = 0.5),
               text=element_text(size=14),
               axis.text.x=element_text(size=16),
               axis.text.y=element_text(size=12),
-              # axis.title=element_text(size=20),
-              # strip.text.x = element_text(size = 20),
               legend.position='none'
-              ) +
-        # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
-        # scale_y_continuous(trans='log10',
-        #                    breaks=pretty_breaks(),
-        #                    sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name))) +
-        scale_y_continuous(limits=c(0, max_y),
-                           sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name))) +
+        ) +
         xlim(0, max_x) +
         xlab(x_axis_label) +
         ylab(y_axis_label)
-
       
-
       
-      # print(session_plot)
-   
+      if (axis_type=='log-based') {
+        raw_data_plot <- raw_data_plot + 
+          scale_y_continuous(trans='log10',
+                             limits=c(
+                               min(raw_df$RR) + y_axis_threshold, 
+                               max(raw_df$RR)
+                             ),
+                             breaks=c(0.01, 1, 5, 20)) ## ****
+      } else {
+        raw_data_plot <- raw_data_plot + 
+          scale_y_continuous(limits=c(min(raw_df$RR),
+                                      max(raw_df$RR)))
+        
+      }
+      
+      if (sess_idx==1) {
+        raw_data_plot <- raw_data_plot + 
+          ggtitle('Original signal sets')
+      }
+      
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
-      plot_list[[sess_idx]] <- session_plot
+      plot_list[[length(plot_list)+1]] <- raw_data_plot
     }
+    
+    if (nrow(session_filtered_df) != 0) {
+      filtered_data_plot <- ggplot(data=session_filtered_df,
+                                   aes(x=TreatmentTime, y=RR, group=Subject)) +
+        geom_linerange(ymin=0, ymax=session_filtered_df$RR, alpha = 0.3) +
+        # geom_line(alpha = 0.7) +
+        annotate("text", 
+                 x=Inf,
+                 y=Inf,
+                 hjust=1.2,
+                 vjust=1.5,
+                 size=4.5,
+                 label=get_subj_no_label(get_total_subj_no(session_filtered_df)),
+                 fontface = 'italic')
+      
+      if (session_name != 'DT') {
+        filtered_data_plot <- filtered_data_plot + 
+          theme_bw() +
+          theme(axis.line = element_line(colour = "black"))
+      }
+      
+      filtered_data_plot <- filtered_data_plot + 
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.text.y.right=element_blank(),
+              axis.ticks.y.right=element_blank(),
+              axis.title.y.right = element_text(angle=0, vjust=0.5, face='bold'),
+              plot.title = element_text(hjust=0.5),
+              text=element_text(size=14),
+              axis.text.x=element_text(size=16),
+              axis.text.y=element_text(size=12),
+              legend.position='none'
+        ) +
+        xlim(0, max_x) +
+        xlab(x_axis_label) +
+        ylab('')
+      
+      if (axis_type=='log-based') {
+        filtered_data_plot <- filtered_data_plot + 
+          scale_y_continuous(trans='log10',
+                             limits=c(
+                               min(raw_df$RR) + y_axis_threshold, 
+                               max(raw_df$RR)
+                             ),
+                             breaks=c(0.01, 1, 5, 20), ## ****
+                             sec.axis=sec_axis(~.+1, name=session_name))
+      } else {
+        filtered_data_plot <- filtered_data_plot + 
+          scale_y_continuous(limits=c(min(raw_df$RR),  ## filtered_df[col_name]
+                                      max(raw_df$RR)),  ## filtered_df[col_name]
+                             # position='right',
+                             sec.axis=sec_axis(~.+1, name=session_name))
+      }
+      
+      if (sess_idx==1) {
+        filtered_data_plot <- filtered_data_plot + 
+          ggtitle('QC1 signal sets')
+      }
+    
+      #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
+      plot_list[[length(plot_list)+1]] <- filtered_data_plot
+    }
+    
   }
   
   
-  #----------------------------------------------------------------#
-  #---- MAKING GRID GRAPH WITH ALL THE PLOTS FROM EACH SESSION ----#
-  #----------------------------------------------------------------#
+  grid_plot <- do.call('grid.arrange', c(plot_list, ncol=2))
+  grid_plot <- grid.arrange(grid_plot)
   
-  #---- THIS GRID PLOT CONTAINS ALL THE SINGLE PLOT----#
-  grid_plot <- do.call('grid.arrange', c(plot_list, ncol=1))
-  grid_plot <- grid.arrange(grid_plot, 
-                            top=textGrob(grid_plot_title, gp=gpar(fontsize=16, font=1)))
+  # print(grid_plot)
   
-  print(grid_plot)
-  
-  #---- SAVING GRID PLOT ----#
-  # plot_path <- file.path(plots_dir, paste0('pp-time-series-', format(Sys.Date(), format='%m-%d-%y'), '.pdf'))
-  plot_path <- file.path(plots_dir, paste0('hrv-time-series'))
+  plot_path <- file.path(plots_dir, 'rr-time-series')
   save_plot(plot_path, grid_plot)
 }
 
@@ -247,7 +317,8 @@ generate_hrv_plot <- function() {
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-generate_hrv_plot()
+read_data()
+generate_time_series_plot()
 
 
 

@@ -228,6 +228,8 @@ generate_signal_plot <- function(col_name) {
   
   
   #####################################################
+  #                    *********                      #
+  #####################################################
   # raw_df <- extract_session_data(raw_df)
   # filtered_df <- extract_session_data(filtered_df)
   #####################################################
