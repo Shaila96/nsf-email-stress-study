@@ -1,3 +1,8 @@
+default_width = 12
+default_height = 10
+
+
+
 convert_to_csv <- function(df, file_name) {
   write.table(df, file = file.path(file_name), row.names=F, sep = ',')
 }
