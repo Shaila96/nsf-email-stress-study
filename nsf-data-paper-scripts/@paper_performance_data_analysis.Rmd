@@ -591,21 +591,33 @@ get_significance_for_each_performance <- function() {
   return(significance_df)
 }
 
+is_normal <- function(data) {
+  return(shapiro.test(data)$p.value >= 0.05)
+}
+
+get_normality <- function(data) {
+  if (is_normal(data)) {
+    return('normal')
+  }
+  return('non-normal')
+}
+
 draw_ets_plots <- function() {
   ets_plot_df <- get_ets_data()
   mean_df <- ddply(ets_plot_df, 
                    .(PerformanceCriteria, Session), 
                    summarise, 
-                   grp.mean=mean(Value), 
-                   annotation=n())
+                   mean=mean(Value),
+                   sd=sd(Value),
+                   normality=get_normality(Value),
+                   subj_no=n())
+  convert_to_csv(mean_df, file.path(performance_data_dir, 'ets_score_mean_sd.csv'))
   
   ##############################################################################
   ###########  Make a df like mean_df with PerformanceCriteria  ################
   ###########  Manually by draw_ets_rank_test_plots() function  ################
   ##############################################################################
   significance_df <- get_significance_for_each_performance()
-  
-  
   # print(str(mean_df))
   # print(mean_df$annotation)
   
@@ -618,7 +630,7 @@ draw_ets_plots <- function() {
     #              alpha=.5) +
     geom_density(aes(fill=Session), alpha=.5) + 
     geom_vline(data=mean_df, 
-               aes(xintercept=grp.mean, color=Session), 
+               aes(xintercept=mean, color=Session), 
                linetype="dashed",
                size=1.2,
                show.legend=F) +

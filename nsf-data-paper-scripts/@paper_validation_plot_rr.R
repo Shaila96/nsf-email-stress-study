@@ -36,7 +36,7 @@ qc2_full_df_file_name <- 'full_df_second_phase_filtered.csv'
 hrv_file_name <- 'hrv.csv'
 rr_file_name <- 'rr.csv'
 
-# rr_df <- tibble()
+rr_df <- tibble()
 
 plot_list <- list()
 
@@ -55,12 +55,12 @@ print_msg <- function(df) {
   message(df)
 }
 
-save_plot <- function(plot_name, plot) {
+save_plot <- function(plot_name, plot, width=14, height=10) {
   plot_path <- file.path(current_dir, paste0(plot_name, '.png'))
-  ggsave(plot_path, plot, width=10, height=10)
+  ggsave(plot_path, plot, width=width, height=height)
   
   plot_path <- file.path(current_dir, paste0(plot_name, '.pdf'))
-  ggsave(plot_path, plot, device=cairo_pdf, width=10, height=10)
+  ggsave(plot_path, plot, device=cairo_pdf, width=width, height=height)
 }
 
 convert_to_csv <- function(df, file_name) {
@@ -80,8 +80,9 @@ figure_out_title <- function(group) {
 } 
 
 figure_out_labels <- function(col_name) { 
-  if (isMatch(col_name, 'nn')) { 
-    return(expression(Delta~bar('RR')~' [ms]'))
+  if (isMatch(col_name, 'rr')) { 
+    # return(expression(Delta~bar('RR')~' [ms]'))
+    return(expression(Delta~'NN [ms]'))
   } else if (col_name=='rmssd') {
     return(expression(Delta~'RMSSD [ms]'))
   } 
@@ -298,7 +299,7 @@ draw_nn_validation_plot <- function() {
     filter(!is.na(Comparison))
   
   # convert_to_csv(mean_rr_df, file.path(data_dir, tamu_dir, 'mean_rr_df_filtered.csv'))
-  draw_validation_plot(mean_rr_df, 'nn')
+  draw_validation_plot(mean_rr_df, 'rr')
 }
 
 clean_invalid_rr <- function() {
@@ -390,8 +391,11 @@ plot_nn <- function() {
 
 read_data <- function() {
   rr_df <<- read_csv(file.path(data_dir, tamu_dir, rr_file_name)) %>%
+    # rename(Group=Treatment)
     rename(Group=Treatment,
            Subject=Participant)
+  
+  # print(str(rr_df))
   
   filtered_subj_df <<- read_csv(file.path(data_dir, filtered_subj_file_name)) %>%
     mutate(Session = recode(Session,

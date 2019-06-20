@@ -50,7 +50,7 @@ plot_list <- list()
 
 session_atr <- 'all-session'
 session_list <- c('RB', 'ST', 'PM', 'PR', 'DT')
-# session_list <- c('RB')
+# session_list <- c('ST')
 
 # session_atr <- 'non-dual-session'
 # session_list <- c('RB', 'ST', 'PM', 'PR')
@@ -230,7 +230,7 @@ generate_time_series_plot <- function() {
       
       if (sess_idx==1) {
         raw_data_plot <- raw_data_plot + 
-          ggtitle('Original signal sets')
+          ggtitle('Original RR sets')
       }
       
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
@@ -292,7 +292,7 @@ generate_time_series_plot <- function() {
       
       if (sess_idx==1) {
         filtered_data_plot <- filtered_data_plot + 
-          ggtitle('QC1 signal sets')
+          ggtitle('QC1 RR sets')
       }
     
       #---- SAVING THE PLOTS IN A LIST TO MAKE A GRID GRAPH ----#
