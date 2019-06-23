@@ -283,12 +283,30 @@ read_data <- function() {
   nlp_score_df <<- merge(good_subj_list, nlp_score_df, by='Subject') %>% 
     mutate(Essay=fct_recode(Essay, 'ST'='WB', 'DT'='DT'))
   
+  
+  
+  
+  
+  
+  
   key_str_df <<- read_csv(file.path(data_dir, tamu_dir, key_data_file_name)) %>% 
     rename(Subject=Participant) %>% 
     filter(KeyUp==0,
            Key=='BACK' | Key=='DELETE') %>% 
     group_by(Subject, Group, Treatment) %>% 
-    summarise(Key_No=n())
+    summarise(Key_No=n()) 
+  
+  ## This part is to remove the subjects who has only one session key stroke data
+  temp_key_str_df <- key_str_df %>% 
+    group_by(Subject) %>% 
+    summarise(Treatment_No=n()) %>% 
+    filter(Treatment_No==2) %>% 
+    select(-Treatment_No)
+  print(str(temp_key_str_df))
+  
+  
+  key_str_df <<- key_str_df %>% 
+    filter(Subject %in% temp_key_str_df$Subject)
 }
 
 get_bin_width <- function(col_name) {
