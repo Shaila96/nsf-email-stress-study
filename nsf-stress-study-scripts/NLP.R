@@ -53,7 +53,7 @@ convert_to_csv <- function(df, file_path) {
 # IF THIS DOESN'T WORK, INCREASE `mem` TO MORE RAM 
 # IF THAT DOESN'T WORK, GOOGLE IT 
 # https://cran.r-project.org/web/packages/coreNLP/coreNLP.pdf 
-# initCoreNLP(mem = "4g") 
+# initCoreNLP(mem = "4g")
 
 
 find_subjects <- function(cond) { 
@@ -102,7 +102,8 @@ find_subjects <- function(cond) {
 
 
 doCoreNLP <- function(session_dir, subj_name, cond) { 
-  subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx') 
+  # subj_interface_file_pattern <- paste0('.*-', subj_name, '.xlsx') 
+  subj_interface_file_pattern <- paste0('^[^~].*-', subj_name, '.xlsx')
   subj_interface_file_name <- getMatchedFileNames(session_dir, subj_interface_file_pattern) 
   
   ## FIGURE OUT THE CONDITION 
@@ -166,11 +167,14 @@ doCoreNLP <- function(session_dir, subj_name, cond) {
                                    filter(sentiment == "Positive"))$sentiment_count 
   } 
   
-  result_df <<- rbind(result_df, tibble("Subject" = subj_name, "Condition" = condition, 
-                                        "Essay" = "WB", "Positive" = baseline_positive_count, 
+  result_df <<- rbind(result_df, tibble("Subject" = subj_name, 
+                                        "Condition" = condition, 
+                                        "Essay" = "WB", 
+                                        "Positive" = baseline_positive_count, 
                                         "Neutral" = baseline_neutral_count, 
                                         "Negative" = baseline_negative_count, 
-                                        "WordCount" = baseline_words, 
+                                        "CharCount" = nchar(baseline_essay),
+                                        "WordCount" = baseline_words,
                                         "SentenceCount" = baseline_sentences)) 
   
   dual_task_counts <- dual_task_sent %>% 
@@ -193,10 +197,13 @@ doCoreNLP <- function(session_dir, subj_name, cond) {
                                    filter(sentiment == "Positive"))$sentiment_count 
   } 
   
-  result_df <<- rbind(result_df, tibble("Subject" = subj_name, "Condition" = condition, 
-                                        "Essay" = "DT", "Positive" = dual_task_positive_count, 
+  result_df <<- rbind(result_df, tibble("Subject" = subj_name, 
+                                        "Condition" = condition, 
+                                        "Essay" = "DT", 
+                                        "Positive" = dual_task_positive_count, 
                                         "Neutral" = dual_task_neutral_count, 
                                         "Negative" = dual_task_negative_count, 
+                                        "CharCount" = nchar(dual_task_essay),
                                         "WordCount" = dual_task_words, 
                                         "SentenceCount" = dual_task_sentences)) 
   
