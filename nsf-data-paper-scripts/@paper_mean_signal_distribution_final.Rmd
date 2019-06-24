@@ -162,13 +162,15 @@ read_data <- function() {
 
 get_x_label <- function(signal) {
   if (is_match(signal, 'PP')) { 
-    return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
+    return(bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))) 
+    # return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
   } else if (signal=='HR') {
     return('Chest HR [BPM]')
   } else if (signal=='N.HR') {
     return('Wrist HR [BPM]')
   } else if (is_match(signal, 'BR')) { 
-    return('Breathing Rate [BPM]')
+    return('BR [BPM]')
+    # return('Breathing Rate [BPM]')
   } else if (is_match(signal, 'EDA')) {
     return(expression(paste('log'[10], '(EDA [', mu, 'S])')))
     # return(expression(paste('EDA [', mu, 'S]')))
@@ -177,11 +179,6 @@ get_x_label <- function(signal) {
 }
 
 get_y_label <- function(data_type) {
-  # if (is_match(signal, 'PP') | signal=='HR' | signal=='BR') { 
-  #   return('PDF')
-  # } else if (is_match(signal, 'N.HR') | is_match(signal, 'EDA')) { 
-  #   return('')
-  # }
   if (data_type=='raw') { 
     return('PDF')
   }
@@ -231,6 +228,14 @@ get_title <- function(data_type) {
   return('After Quality Control')
 }
 
+get_breaks <- function(signal) {
+  if (signal=='PP') {
+    return(c(0.004, 0.008, 0.016))
+  } else if (signal=='N.EDA') {
+    return(c(0.01, 0.1, 1, 10))
+  }
+}
+
 get_pdf_plot <- function(mean_df, mean_per_session_df, signal, total_signal, data_type) {
   probability_density_plot <-
     mean_df %>%
@@ -253,18 +258,18 @@ get_pdf_plot <- function(mean_df, mean_per_session_df, signal, total_signal, dat
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
-          plot.title = element_text(size=16, margin=margin(0, 0, 40, 0)), ##top, right, bottom, left
+          plot.title = element_text(size=20, margin=margin(0, 0, 40, 0)), ##top, right, bottom, left
           plot.margin = unit(c(2, get_right_margin_val(data_type), 0.5, 0.5), "lines"))  ##top, right, bottom, left
 
   
-  if (signal=='N.EDA') {
+  if (signal=='N.EDA' | signal=='PP') {
         probability_density_plot <- probability_density_plot + 
           scale_x_continuous(trans='log10',
                              # limits=c(
                              #   min(raw_mean_df[[signal]], na.rm=T) + 0.001,
                              #   max(raw_mean_df[[signal]], na.rm=T)
                              #   ),
-                             breaks=c(0.01, 0.1, 1, 10))
+                             breaks=get_breaks(signal))
         } 
 
   if (length(probability_plot_list) == 0) {
