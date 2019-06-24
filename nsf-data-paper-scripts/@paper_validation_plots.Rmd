@@ -23,7 +23,7 @@ library(cowplot)
 library(gsubfn)
 
 # PP, N.EDA, BR, HR, N.HR
-signal_name <- "N.HR"
+signal_name <- "HR"
 
 
 ## CHANGE THIS!!!!
@@ -787,19 +787,19 @@ figure_out_title <- function(col_name, condition, test_type) {
   
   if (condition == 'BH') {
     # return('Batch High Group')
-    return('Batch High Group/BH')
+    return('Batch High Group | BH')
     # return('Batch High Group (BH)')
   } else if (condition == 'BL') {
     # return('Batch Low Group')
-    return('Batch Low Group/BL')
+    return('Batch Low Group | BL')
     # return('Batch Low Group (BL)')
   } else if (condition == 'IH') {
     # return('Continual High Group')
-    return('Continual High Group/CH')
+    return('Continual High Group | CH')
     # return('Continual High Group (CH)')
   } else if (condition == 'IL') {
     # return('Continual Low Group')
-    return('Continual Low Group/CL')
+    return('Continual Low Group | CL')
     # return('Continual Low Group (CL)')
   }  
 } 

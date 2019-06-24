@@ -572,7 +572,8 @@ get_significance_for_each_performance <- function() {
   
   for (performance_criteria in levels(factor(ets_plot_df$PerformanceCriteria))) {
     temp_ets_test_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ] %>% 
-      spread(Session, Value)
+      spread(Session, Value) %>% 
+      na.omit()
     
     #CHECK!!!
     # t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
@@ -594,7 +595,8 @@ get_significance_for_each_performance <- function() {
     
     
     temp_significance_df <- data.frame( "PerformanceCriteria" = performance_criteria, 
-                                        "Significance" = get_significance_sign(test$p.value))
+                                        "Significance" = get_significance_sign(test$p.value),
+                                        "Subj_No"=nrow(temp_ets_test_df))
     significance_df <- rbind(significance_df, temp_significance_df)
 
   
@@ -666,9 +668,16 @@ draw_ets_plots <- function() {
     guides(fill = guide_legend(reverse=T)) +
     geom_text(
       data    = significance_df,
+      mapping = aes(x = Inf, y = Inf, label = paste0('n = ', Subj_No)),
+      hjust   = 1.1,
+      vjust   = 1.5,
+      size    = 5
+    ) +
+    geom_text(
+      data    = significance_df,
       mapping = aes(x = Inf, y = Inf, label = Significance),
       hjust   = 1.2,
-      vjust   = 1.5,
+      vjust   = 2.5,
       size    = 8
     ) +
     theme_bw() +
@@ -681,9 +690,9 @@ draw_ets_plots <- function() {
           legend.title=element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
+          plot.margin = unit(c(0.2, 1, 0.2, 0.2), "lines"), ##top, right, bottom, left
           axis.line = element_line(colour = "black"))
 
-  # print(ets_plot)
   save_plot('ets_score', ets_plot)
   
   ###############################################################################################

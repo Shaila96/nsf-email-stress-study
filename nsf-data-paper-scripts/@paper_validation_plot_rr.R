@@ -69,13 +69,13 @@ convert_to_csv <- function(df, file_name) {
 
 figure_out_title <- function(group) { 
   if (group == 'BH') {
-    return('Batch High Group/BH')
+    return('Batch High Group | BH')
   } else if (group == 'BL') {
-    return('Batch Low Group/BL')
+    return('Batch Low Group | BL')
   } else if (group == 'IH') {
-    return('Continual High Group/CH')
+    return('Continual High Group | CH')
   } else if (group == 'IL') {
-    return('Continual Low Group/CL')
+    return('Continual Low Group | CL')
   }  
 } 
 
@@ -107,10 +107,25 @@ give.n <- function(x) {
 
 isMatch <- function(string_we_have, pattern_we_are_looking_for) { 
   return(grepl(pattern_we_are_looking_for, string_we_have)) 
-} 
+}
+
+is_normal <- function(data) {
+  return(shapiro.test(data)$p.value >= 0.05)
+}
+
+get_normality <- function(data) {
+  # data=data[complete.cases(data), ]
+  if (is_normal(data)) {
+    return('normal')
+  }
+  return('non-normal')
+}
 
 draw_validation_plot <- function(df, signal) {
+  
   plot_list <<- list()
+  significance_df <- data.frame()
+  
   for (group in c('BH', 'BL', 'IH', 'IL')) {
     
     temp_df <- df %>% 
@@ -125,19 +140,39 @@ draw_validation_plot <- function(df, signal) {
     }
     
     labels_vec <- gsub(".", "-", comparison_levels, fixed = TRUE)
-    print(labels_vec)
-    print(levels(factor(temp_df$Comparison)))
+    # print(labels_vec)
+    # print(levels(factor(temp_df$Comparison)))
     labels_vec <- replace(labels_vec, labels_vec=="SC-RB", break_cond)
     labels_vec <- replace(labels_vec, labels_vec=="WB-RB", "ST-RB")
     labels_vec <- replace(labels_vec, labels_vec=="P-RB", "PR-RB")
     
-    sign <- c()
     for (comparison in comparison_levels) {
       temp_comparison_df <- temp_df %>% 
         filter(Comparison==comparison)
-      # print(get_significance(t.test(temp_comparison_df$Value)$p.value))
-      sign <- c(sign, get_significance(t.test(temp_comparison_df$Value)$p.value))
+      
+      if (is_normal(temp_comparison_df$Value)) {
+        test_type <- 't-test'
+        test <- t.test(temp_comparison_df$Value)
+      } else {
+        test_type <- 'wilcoxon'
+        test <- wilcox.test(temp_comparison_df$Value)
+      }
+      temp_significance_df <- data.frame( "Group" = group, 
+                                          "Treatment" = labels_vec[which(comparison == comparison_levels)],
+                                          "Test Type" = test_type,
+                                          "Significance" = get_significance(test$p.value),
+                                          "Subj_No" = nrow(temp_comparison_df))
+      significance_df <- rbind(significance_df, temp_significance_df)
+      
+      # print('')
+      # print(comparison)
+      # print(get_normality(temp_comparison_df$Value))
+      # print(test_type)
+      # print('----------------------------------------------------')
     }
+    
+    group_significance_df <- significance_df %>% 
+      filter(Group==group)
     
     gg <- ggplot(temp_df, aes(x = Comparison, y = Value)) + 
       geom_boxplot() + 
@@ -154,10 +189,10 @@ draw_validation_plot <- function(df, signal) {
       stat_summary(fun.y = mean, color = "darkred", geom = "point", shape = 3, size = 4, show_guide = FALSE) +
       stat_summary(fun.data = give.n, geom = "text", size = 6) +
       scale_y_continuous(expand = c(0.15, 0, 0.15, 0)) +
-      annotate("text", x=1, y=Inf, label= sign[1], vjust = 1.2, size = 10) +
-      annotate("text", x=2, y=Inf, label= sign[2], vjust = 1.2, size = 10) +
-      annotate("text", x=3, y=Inf, label= sign[3], vjust = 1.2, size = 10) +
-      annotate("text", x=4, y=Inf, label= sign[4], vjust = 1.2, size = 10)
+      annotate("text", x=1, y=Inf, label= group_significance_df$Significance[1], vjust = 1.2, size = 10) +
+      annotate("text", x=2, y=Inf, label= group_significance_df$Significance[2], vjust = 1.2, size = 10) +
+      annotate("text", x=3, y=Inf, label= group_significance_df$Significance[3], vjust = 1.2, size = 10) +
+      annotate("text", x=4, y=Inf, label= group_significance_df$Significance[4], vjust = 1.2, size = 10)
     
     plot_list[[length(plot_list) + 1]] <<- gg
   }
@@ -165,6 +200,8 @@ draw_validation_plot <- function(df, signal) {
   grid_plot <- do.call("grid.arrange", c(plot_list, ncol=2))
   plot_path <- file.path(plots_dir, paste0(signal, '-validation-plot'))
   save_plot(plot_path, grid_plot)
+  
+  convert_to_csv(significance_df, file.path(data_dir, tamu_dir, 'rr_significance.csv'))
 }
 
 plot_rmssd <- function() {
