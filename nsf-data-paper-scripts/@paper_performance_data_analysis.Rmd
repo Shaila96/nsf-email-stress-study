@@ -50,7 +50,8 @@ super_session_pattern <- '^SuperSession$'
 
 data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
 data_dir <- file.path(data_paper_dir, 'data')
-tamu_dir <- 'data-from-tamu'
+final_data_dir <- 'final-data-set'
+quantitative_data_dir <- 'Quantitative Data'
 performance_data_dir <- file.path(data_dir, 'performane-data')
 plots_dir <- file.path(data_paper_dir, 'plots')
 
@@ -62,7 +63,7 @@ ets_score_long_file_name <- 'ets_score_long_final.csv'
 nlp_file_name <- 'essay_nlp_results.csv'
 writing_time_file_name <- 'writing_time_dual_task.csv'
 biographic_file_name <- 'biographic_data.csv'
-key_data_file_name <- 'ks4.csv'
+key_data_file_name <- 'Keyboard Data.csv'
 # essay_file_name <- 'essay_all.xlsx'
 
 good_subj_file_name <- 'subj_good_df.csv'
@@ -288,10 +289,9 @@ read_data <- function() {
   
   
   
-  
-  key_str_df <<- read_csv(file.path(data_dir, tamu_dir, key_data_file_name)) %>% 
-    rename(Subject=Participant) %>% 
-    filter(KeyUp==0,
+  key_str_df <<- read_csv(file.path(data_dir, final_data_dir, quantitative_data_dir, key_data_file_name)) %>% 
+    rename(Subject=Participant_ID) %>% 
+    filter(Is_Key_Up==0,
            Key=='BACK' | Key=='DELETE') %>% 
     group_by(Subject, Group, Treatment) %>% 
     summarise(Key_No=n()) 
