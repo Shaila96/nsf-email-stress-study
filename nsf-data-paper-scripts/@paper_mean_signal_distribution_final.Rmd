@@ -302,6 +302,7 @@ draw_plots <- function() {
   grid_plot <- plot_grid(grid_plot,
                          probability_plot_legend,
                          rel_heights = c(10.6, 1),
+                         # rel_heights = c(10, 1),
                          align='v',
                          cols=1)
   save_plot('combined_mean_signal_distribution_pdf', grid_plot, width=12, height=15)
