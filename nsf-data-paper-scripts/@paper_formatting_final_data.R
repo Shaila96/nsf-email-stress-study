@@ -14,6 +14,8 @@ setwd(current_dir)
 source(file.path(dirname(current_dir), "@common_functions.R"))
 
 data_dir <- 'data'
+tamu_dir <- 'data-from-tamu'
+survey_data_dir <- 'survey-data'
 performance_data_dir <- 'performane-data'
 final_data_dir <- 'final-data-set'
 
@@ -82,8 +84,10 @@ make_performance_df <- function() {
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-make_physiological_df()
-make_performance_df()
+# make_physiological_df()
+# make_performance_df()
+### make_questionnaire_df() ## This is done in questionnaire data analysis
+
 
 
 

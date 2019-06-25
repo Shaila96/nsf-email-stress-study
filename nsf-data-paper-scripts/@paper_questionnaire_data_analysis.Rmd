@@ -1092,25 +1092,31 @@ combine_psychometric_plots <- function() {
 modify_final_df <- function() {
   mean_df <- read_csv(file.path(data_dir, mean_data_file_name))[ , c("Condition", "Subject")] %>% unique()
   psychometric_df <<- merge(x=psychometric_df, y=mean_df, by.x="SubjectID", by.y="Subject", all.x=TRUE) %>%
-    rename('Participant ID'=SubjectID,
+    rename('Participant_ID'=SubjectID,
            Group=Condition,
-           'Other Nationality'=Other_Nationality,
-           'Native Language'=Native_Language,
-           'Other Native Language'=Other_Native_Language,
-           'Writing Proficiency'=Writing_Proficiency,
-           'Daily Email Frequency'=Daily_Email_Frequency
+           'Other_Nationality'=Other_Nationality,
+           'Native_Language'=Native_Language,
+           'Other_Native_Language'=Other_Native_Language,
+           'Writing_Proficiency'=Writing_Proficiency,
+           'Daily_Email_Frequency'=Daily_Email_Frequency,
+           'ERQ_Cognitive_Reappraisal'='ERQ_Cognitive Reappraisal',
+           'ERQ_Expressive_Suppression'='ERQ_Expressive Suppression',
+           'Percieved_Stress_Scale'='PSS_Percieved Stress Scale',
+           'NASA_Mental_Demand'='NASA_Mental Demand',
+           'NASA_Physical_Demand'='NASA_Physical Demand',
+           'NASA_Temporal_Demand'='NASA_Temporal Demand'
            ) %>% 
-    select('Participant ID', 
+    select('Participant_ID', 
            Group, 
            Age,
            Gender,
            Nationality,
-           'Other Nationality',
-           'Native Language',
-           'Other Native Language',
+           'Other_Nationality',
+           'Native_Language',
+           'Other_Native_Language',
            Education,
-           'Writing Proficiency',
-           'Daily Email Frequency',
+           'Writing_Proficiency',
+           'Daily_Email_Frequency',
           
            BFI_Agreeableness,
            BFI_Conscientiousness,
@@ -1118,19 +1124,19 @@ modify_final_df <- function() {
            BFI_Neuroticism,
            BFI_Openness,
            
-           'ERQ_Cognitive Reappraisal',
-           'ERQ_Expressive Suppression',
+           'ERQ_Cognitive_Reappraisal',
+           'ERQ_Expressive_Suppression',
            
-           'PSS_Percieved Stress Scale',
+           'Percieved_Stress_Scale',
            
-           'NASA_Mental Demand',
-           'NASA_Physical Demand',
-           'NASA_Temporal Demand',
+           'NASA_Mental_Demand',
+           'NASA_Physical_Demand',
+           'NASA_Temporal_Demand',
            NASA_Performance,
            NASA_Effort,
            NASA_Frustration)
   
-  convert_to_csv(psychometric_df, file.path(final_data_dir, 'Questionnaire Data.csv'))
+  convert_to_csv(psychometric_df, file.path(final_data_dir, 'Quantitative Data', 'Questionnaire Data.csv'))
 }
 
 ``` 
@@ -1144,7 +1150,7 @@ read_data()
 
 <!-- BIOGRAPHIC DISTRIBUTION -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_biographic_info()
+# extract_biographic_info()
 # get_biographic_distribution()
 ```
 
@@ -1153,7 +1159,7 @@ extract_biographic_info()
 <!-- NASA TASK PLOTS and PROPORTION TEST-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_nasa_tlx_score()
+# extract_nasa_tlx_score()
 # draw_group_bar_chart_nasa_tlx()
 # draw_stress_ques_bar_plot()
 #### get_proportion_test_nasa_tlx()
@@ -1166,21 +1172,21 @@ extract_nasa_tlx_score()
 <!-- Big Five Inventory-->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_bfi_score()
+# extract_bfi_score()
 # draw_bfi_plot()
 ```
 
 <!-- Emotion Regulation Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_erq_score()
+# extract_erq_score()
 # draw_erq_plot()
 ```
 
 <!-- Perceived Stress Scale Plots -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
-extract_pss_score()
+# extract_pss_score()
 # draw_pss_plot()
 ```
 
@@ -1193,6 +1199,11 @@ extract_pss_score()
 <!-- Rename Column Names Final Questionnaire Data -->
 \newpage
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
+extract_biographic_info()
+extract_nasa_tlx_score()
+extract_bfi_score()
+extract_erq_score()
+extract_pss_score()
 modify_final_df()
 ```
 
