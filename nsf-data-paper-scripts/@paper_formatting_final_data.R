@@ -84,21 +84,50 @@ make_physiological_df <- function() {
 make_performance_df <- function() {
   performance_df <- read_csv(file.path(data_dir, performance_data_dir, performance_file_name)) %>% 
     rename(Participant_ID=Subject,
-           Group=Condition)
+           Group=Condition,
+           Treatment=Session,
+           Word_Count=WordCount,
+           Character_Count=CharCount,
+           Criterion_Score=CriterionScore,
+           Mechanics_Errors=MechanicErrors,
+           Grammar_Errors=GrammarErrors,
+           Usage_Errors=UsageErrors,
+           Style_Errors=StyleErrors,
+           Mechanic_Errors_Relative=MechanicErrorsRelative,
+           Grammar_Errors_Relative=GrammarErrorsRelative,
+           Usage_Errors_Relative=UsageErrorsRelative,
+           Style_Errors_Relative=StyleErrorsRelative,
+           Delete_Key_Relative=DeleteKeyRelative) %>% 
+    select(Participant_ID,
+           Group,
+           Treatment,
+           Word_Count,
+           Character_Count,
+           Criterion_Score,
+           Mechanics_Errors,
+           Grammar_Errors,
+           Usage_Errors,
+           Style_Errors,
+           Key_No,
+           Mechanic_Errors_Relative,
+           Grammar_Errors_Relative,
+           Usage_Errors_Relative,
+           Style_Errors_Relative,
+           Delete_Key_Relative)
   print(str(performance_df))
-  convert_to_csv(performance_df, file.path(data_dir, final_data_dir, quantitative_data_dir, 'Performance Data.csv'))
+  convert_to_csv(performance_df, file.path(data_dir, final_data_dir, quantitative_data_dir, 'Report Scores.csv'))
 }
 
-make_keyboard_df <- function() {
-  key_str_df <- read_csv(file.path(data_dir, tamu_dir,  key_str_file_name)) %>% 
-    rename(Participant_ID=Participant,
-           Is_Key_Up=KeyUp,
-           Task='Task Markers')
-  
-  print(str(key_str_df))
-  convert_to_csv(key_str_df[, key_str_col_order], 
-                 file.path(data_dir, final_data_dir, quantitative_data_dir, 'Keyboard Data (Test).csv'))
-}
+# make_keyboard_df <- function() {
+#   key_str_df <- read_csv(file.path(data_dir, tamu_dir,  key_str_file_name)) %>% 
+#     rename(Participant_ID=Participant,
+#            Is_Key_Up=KeyUp,
+#            Task='Task Markers')
+#   
+#   print(str(key_str_df))
+#   convert_to_csv(key_str_df[, key_str_col_order], 
+#                  file.path(data_dir, final_data_dir, quantitative_data_dir, 'Keyboard Data (Test).csv'))
+# }
 
 
 
@@ -106,8 +135,8 @@ make_keyboard_df <- function() {
 #-------Main Program------#
 #-------------------------#
 # make_physiological_df()
-# make_performance_df()
-make_keyboard_df()      ## Occuring problem for Time and Task column
+make_performance_df()
+# make_keyboard_df()      ## Occuring problem for Time and Task column
 ### make_questionnaire_df() ## This is done in questionnaire data analysis
 
 
