@@ -19,10 +19,12 @@ survey_data_dir <- 'survey-data'
 performance_data_dir <- 'performane-data'
 final_data_dir <- 'final-data-set'
 quantitative_data_dir <- 'Quantitative Data'
+supplementary_data_dir <- 'Supplementary Data'
 
 qc2_filtered_file_name <- 'full_df_second_phase_filtered.csv'
 performance_file_name <- 'ets_score_final.csv'
 key_str_file_name <- 'ks4.csv'
+rr_file_name <- 'rr_df_filtered_qc1.csv'
 
 
 
@@ -52,6 +54,17 @@ key_str_col_order <- c('Participant_ID',
 convert_to_csv <- function(df, file_path) {
   write.table(df, file = file_path, row.names=F, sep = ',')
 }
+
+# make_keyboard_df <- function() {
+#   key_str_df <- read_csv(file.path(data_dir, tamu_dir,  key_str_file_name)) %>% 
+#     rename(Participant_ID=Participant,
+#            Is_Key_Up=KeyUp,
+#            Task='Task Markers')
+#   
+#   print(str(key_str_df))
+#   convert_to_csv(key_str_df[, key_str_col_order], 
+#                  file.path(data_dir, final_data_dir, quantitative_data_dir, 'Keyboard Data (Test).csv'))
+# }
 
 make_physiological_df <- function() {
   qc2_filtered_df <- read_csv(file.path(data_dir, qc2_filtered_file_name))
@@ -118,25 +131,35 @@ make_performance_df <- function() {
   convert_to_csv(performance_df, file.path(data_dir, final_data_dir, quantitative_data_dir, 'Report Scores.csv'))
 }
 
-# make_keyboard_df <- function() {
-#   key_str_df <- read_csv(file.path(data_dir, tamu_dir,  key_str_file_name)) %>% 
-#     rename(Participant_ID=Participant,
-#            Is_Key_Up=KeyUp,
-#            Task='Task Markers')
-#   
-#   print(str(key_str_df))
-#   convert_to_csv(key_str_df[, key_str_col_order], 
-#                  file.path(data_dir, final_data_dir, quantitative_data_dir, 'Keyboard Data (Test).csv'))
-# }
 
+make_rr_df <- function() {
+  rr_df <- read.csv(file.path(data_dir, tamu_dir, rr_file_name)) %>% 
+    rename(Participant_ID=Subject,
+           Treatment=Session,
+           Task=TaskMarkers,
+           Treatment_Time=TreatmentTime) %>% 
+    select(Participant_ID,
+           Group,
+           Treatment,
+           Task,
+           Time,
+           Treatment_Time,
+           RR)
+
+  # print(str(rr_df))
+  convert_to_csv(rr_df, file.path(data_dir, final_data_dir, supplementary_data_dir, 'RR.csv'))
+}
 
 
 #-------------------------#
 #-------Main Program------#
 #-------------------------#
-# make_physiological_df()
+make_physiological_df()
 make_performance_df()
-# make_keyboard_df()      ## Occuring problem for Time and Task column
+make_rr_df()
+
+
+### make_keyboard_df()      ## Occuring problem for Time and Task column
 ### make_questionnaire_df() ## This is done in questionnaire data analysis
 
 

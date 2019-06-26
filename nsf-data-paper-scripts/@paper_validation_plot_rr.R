@@ -205,7 +205,7 @@ draw_validation_plot <- function(df, signal) {
 }
 
 plot_rmssd <- function() {
-  hrv_df <- read_csv(file.path(data_dir, tamu_dir, hrv_file_name)) %>% 
+  hrv_df <- read.csv(file.path(data_dir, tamu_dir, hrv_file_name)) %>% 
     rename(Group=Treatment)
   # print(str(hrv_df))
   
@@ -320,7 +320,7 @@ discard_full_session_rr <- function(subj, sess) {
 }
 
 draw_nn_validation_plot <- function() {
-  rr_df <<- read_csv(file.path(data_dir, tamu_dir, 'rr_df_filtered_qc1.csv'))
+  rr_df <<- read.csv(file.path(data_dir, tamu_dir, 'rr_df_filtered_qc1.csv'))
   mean_rr_df <- rr_df %>% 
     select(Subject, Group, Session, RR) %>% 
     group_by(Subject, Group, Session) %>% 
@@ -427,14 +427,14 @@ plot_nn <- function() {
 
 
 read_data <- function() {
-  rr_df <<- read_csv(file.path(data_dir, tamu_dir, rr_file_name)) %>%
+  rr_df <<- read.csv(file.path(data_dir, tamu_dir, rr_file_name)) %>%
     # rename(Group=Treatment)
     rename(Group=Treatment,
            Subject=Participant)
   
   # print(str(rr_df))
   
-  filtered_subj_df <<- read_csv(file.path(data_dir, filtered_subj_file_name)) %>%
+  filtered_subj_df <<- read.csv(file.path(data_dir, filtered_subj_file_name)) %>%
     mutate(Session = recode(Session,
                             'RestingBaseline' = 'RB',
                             'BaselineWriting' = 'ST',
@@ -443,7 +443,7 @@ read_data <- function() {
                             'Presentation' = 'PR')) %>%
     filter(Signal=='HR')
   
-  qc2_filtered_subj_df <<- read_csv(file.path(data_dir, qc2_full_df_file_name)) %>% 
+  qc2_filtered_subj_df <<- read.csv(file.path(data_dir, qc2_full_df_file_name)) %>% 
     select(Subject, Session, HR) %>% 
     mutate(Session = recode(Session,
                             'RestingBaseline' = 'RB',

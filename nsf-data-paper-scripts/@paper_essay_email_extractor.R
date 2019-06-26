@@ -19,6 +19,8 @@ raw_data_dir <- 'nsf-stress-study'
 script_dir <- 'nsf-data-paper-scripts'
 data_dir <- 'data'
 performance_data_dir <- 'performane-data'
+final_data_dir <- 'final-data-set'
+textual_data_dir <- 'Textual Data'
 
 super_session_pattern <- '^SuperSession$'
 
@@ -145,15 +147,9 @@ extractEssays <- function() {
     })
   })
 
-  # essay_df <- as.data.frame(essay_df)
-  # row.names(essay_df) <- NULL
-  # rownames(essay_df) <- NULL
-  # print(class(essay_df))
-  # print(rownames(essay_df))
   
-  # convert_to_csv(essay_df, "nsf-stress-study-scripts/@Datasets/essay_all.csv")
-  write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, performance_data_dir, "Reports and Emails.xlsx"))
-  # write.xlsx(as.data.frame(essay_df), "essay_all.xlsx")
+  # write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, performance_data_dir, "Reports and Emails.xlsx"))
+  write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, final_data_dir, textual_data_dir, "Reports and Emails.xlsx"))
 } 
 
 

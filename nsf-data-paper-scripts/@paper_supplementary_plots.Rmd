@@ -195,11 +195,11 @@ get_bad_signal_list <- function(subj, session) {
 }
 
 draw_plots <- function() {
-  subj_list <- levels(factor(filtered_df$Subject))
+  # subj_list <- levels(factor(filtered_df$Subject))
   # subj_list <- c('T031', 'T032', 'T132')
   # subj_list <- c('T005', 'T051', 'T145')
   # subj_list <- c('T063', 'T068')
-  # subj_list <- c('T011', 'T031')
+  subj_list <- c('T011', 'T031')
   
   for(subj in subj_list) {
     
@@ -311,10 +311,10 @@ draw_plots <- function() {
           ggtitle(paste0(subj, ': ', get_session_name(session))) +
           xlab('Time [s]') +
           ylab(figure_out_labels(eda_col_name)) +
-          ylim(0, get_eda_max_y_limit(eda_df)) +
-          geom_hline(yintercept=get_session_mean(session, eda_new_col_name),
-                     size=1.2,
-                     color="darkgreen")
+          ylim(0, get_eda_max_y_limit(eda_df)) 
+          # geom_hline(yintercept=get_session_mean(session, eda_new_col_name),
+          #            size=1.2,
+          #            color="darkgreen")
           
           bad_signal_list <- get_bad_signal_list(subj, session)
           if('N.EDA' %in% bad_signal_list) {
@@ -354,7 +354,8 @@ draw_plots <- function() {
       # grid_plot <- do.call(marrangeGrob, c(temp_plot_list, nrow=1, ncol=2, list(top=NULL) ))
       # print(grid_plot)
     }
-    cat("\\newpage\n")
+
+    cat('--------------------------------------------------------------------------------- ##')
   }
 }
 ```
@@ -364,6 +365,30 @@ draw_plots <- function() {
 read_data()
 ```
 
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
+\newpage
+&nbsp;
 \newpage
 <!-- DRAW PLOTS -->
 ```{r echo=FALSE, warning = FALSE, message = FALSE}
