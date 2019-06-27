@@ -190,11 +190,20 @@ get_abbr_session_name <- function(session_name) {
 }
 
 get_total_subj_no <- function(df) {
+  # df <- extract_session_data(df)
   return(length(levels(factor(df$Subject))))
 }
 
 get_subj_no_label <- function(subj_no) {
   return(paste("n =", subj_no))
+}
+
+get_breaks <- function(col_name) {
+  if (col_name=='PP') {
+    return(c(0.01, 0.02, 0.03))
+  } else if (col_name=='N.EDA') {
+    return(c(0.01, 1, 5, 20))
+  }
 }
 
 replace_dots <- function(str) {
@@ -225,8 +234,14 @@ generate_signal_plot <- function(col_name) {
   # message(get_total_subj_no(filtered_df))
   # message("----------------------------")
   
+  
+  #####################################################
+  #                    *********                      #
+  #####################################################
   raw_df <- extract_session_data(raw_df)
   filtered_df <- extract_session_data(filtered_df)
+  #####################################################
+  
   
   # message("---- Whole Data ----")
   # message(get_total_subj_no(raw_df))
@@ -332,14 +347,14 @@ generate_signal_plot <- function(col_name) {
         ylab(get_y_axis_label(col_name))
       
       
-      if (col_name=='N.EDA') {
+      if (col_name=='N.EDA' | col_name=='PP' ) {
         raw_data_plot <- raw_data_plot + 
           scale_y_continuous(trans='log10',
                              limits=c(
                                min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
                                max(raw_df[raw_signal_col_name])
                                ),
-                             breaks=c(0.01, 1, 5, 20))
+                             breaks=get_breaks(col_name))
       } else {
         raw_data_plot <- raw_data_plot + 
           scale_y_continuous(limits=c(min(raw_df[raw_signal_col_name]),
@@ -415,14 +430,14 @@ generate_signal_plot <- function(col_name) {
         ylab('')
         # ylab(get_y_axis_label(col_name))
       
-      if (col_name=='N.EDA') {
+      if (col_name=='N.EDA' | col_name=='PP') {
         filtered_data_plot <- filtered_data_plot + 
           scale_y_continuous(trans='log10',
                              limits=c(
                                min(raw_df[raw_signal_col_name]) + y_axis_threshold, 
                                max(raw_df[raw_signal_col_name])
                                ),
-                             breaks=c(0.01, 1, 5, 20),
+                             breaks=get_breaks(col_name),
                              sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name)))
       } else {
         filtered_data_plot <- filtered_data_plot + 
@@ -470,7 +485,7 @@ generate_signal_plot <- function(col_name) {
 
 generate_filtered_plots <- function() {
   signal_list <- c("PP", "HR", "BR", "N.EDA", "N.HR")
-  # signal_list <- c("PP")
+  # signal_list <- c("PP", "N.EDA")
   
   for (signal in signal_list) {
     generate_signal_plot(signal)

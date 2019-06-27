@@ -50,6 +50,8 @@ super_session_pattern <- '^SuperSession$'
 
 data_paper_dir <- file.path(root_dir, 'nsf-data-paper-scripts')
 data_dir <- file.path(data_paper_dir, 'data')
+final_data_dir <- 'final-data-set'
+quantitative_data_dir <- 'Quantitative Data'
 performance_data_dir <- file.path(data_dir, 'performane-data')
 plots_dir <- file.path(data_paper_dir, 'plots')
 
@@ -61,6 +63,7 @@ ets_score_long_file_name <- 'ets_score_long_final.csv'
 nlp_file_name <- 'essay_nlp_results.csv'
 writing_time_file_name <- 'writing_time_dual_task.csv'
 biographic_file_name <- 'biographic_data.csv'
+key_data_file_name <- 'Keyboard Data.csv'
 # essay_file_name <- 'essay_all.xlsx'
 
 good_subj_file_name <- 'subj_good_df.csv'
@@ -78,7 +81,7 @@ ets_trait_col_names <- c('WordChoice',
 ets_performance_col_names <- c('CriterionScore', ets_error_col_names)
 
 
-default_height <- 10
+default_height <- 14
 default_width <- 15
 
 
@@ -280,7 +283,30 @@ read_data <- function() {
 
   nlp_score_df <<- merge(good_subj_list, nlp_score_df, by='Subject') %>% 
     mutate(Essay=fct_recode(Essay, 'ST'='WB', 'DT'='DT'))
-  # print_msg(str(nlp_score_df))
+  
+  
+  
+  
+  
+  
+  key_str_df <<- read_csv(file.path(data_dir, final_data_dir, quantitative_data_dir, key_data_file_name)) %>% 
+    rename(Subject=Participant_ID) %>% 
+    filter(Is_Key_Up==0,
+           Key=='BACK' | Key=='DELETE') %>% 
+    group_by(Subject, Group, Treatment) %>% 
+    summarise(Key_No=n()) 
+  
+  ## This part is to remove the subjects who has only one session key stroke data
+  temp_key_str_df <- key_str_df %>% 
+    group_by(Subject) %>% 
+    summarise(Treatment_No=n()) %>% 
+    filter(Treatment_No==2) %>% 
+    select(-Treatment_No)
+  print(str(temp_key_str_df))
+  
+  
+  key_str_df <<- key_str_df %>% 
+    filter(Subject %in% temp_key_str_df$Subject)
 }
 
 get_bin_width <- function(col_name) {
@@ -504,19 +530,20 @@ extract_ets_score <- function() {
   ets_score_df <<- ets_score_df %>%
     separate(Subject, common_col_names) %>%  ##Seperate Subject col into 3 col
     mutate(Session = fct_recode(Session, 'ST'='WB', 'DT'='DT')) %>% 
-    right_join(nlp_score_df, by=c('Subject', 'Condition', 'Session'='Essay')) %>% 
-    # select(common_col_names, ets_performance_col_names, WordCount) %>%
-    select(common_col_names, CriterionScore, WordCount, ets_error_col_names) %>%
-    na.omit() %>%   ##T085 data missing
+    inner_join(nlp_score_df, by=c('Subject', 'Condition', 'Session'='Essay')) %>% 
+    left_join(key_str_df, by=c('Subject', 'Condition'='Group', 'Session'='Treatment')) %>%
+    select(common_col_names, CriterionScore, CharCount, WordCount, ets_error_col_names, Key_No) %>%
+    # na.omit() %>%   ##T085 data missing
     mutate(GrammarErrorsRelative=GrammarErrors/WordCount,
            MechanicErrorsRelative=MechanicErrors/WordCount,
            UsageErrorsRelative=UsageErrors/WordCount,
-           StyleErrorsRelative=StyleErrors/WordCount)
+           StyleErrorsRelative=StyleErrors/WordCount,
+           DeleteKeyRelative=Key_No/CharCount)
 
   convert_to_csv(ets_score_df, file.path(performance_data_dir, ets_score_file_name))
     
   ets_score_long_df <- ets_score_df %>%
-    select(-GrammarErrors, -MechanicErrors, -UsageErrors, -StyleErrors) %>% 
+    select(-GrammarErrors, -MechanicErrors, -UsageErrors, -StyleErrors, -Key_No) %>% 
     gather(PerformanceCriteria, Value, -Subject, -Condition, -Session)
   convert_to_csv(ets_score_long_df, file.path(performance_data_dir, ets_score_long_file_name))
 }
@@ -528,67 +555,79 @@ get_ets_data <- function() {
   
   ets_plot_df <- ets_score_long_df %>%
     mutate(PerformanceCriteria = recode_factor(PerformanceCriteria,
+                                               'WordCount'='Word Count (WC)',
+                                               'CharCount'='Char Count (CC)',
                                                'CriterionScore'='Criterion Score',
-                                               'WordCount'='Word Count',
-                                               'GrammarErrorsRelative'='Grammar Errors',
-                                               'UsageErrorsRelative'='Usage Errors',
-                                               'MechanicErrorsRelative'='Mechanics Errors',
-                                               'StyleErrorsRelative'='Style Errors'
+                                               'MechanicErrorsRelative'='Mechanics Errors/WC',
+                                               'GrammarErrorsRelative'='Grammar Errors/WC',
+                                               'UsageErrorsRelative'='Usage Errors/WC',
+                                               'StyleErrorsRelative'='Style Errors/WC',
+                                               'DeleteKeyRelative' = 'Delete Key/CC'
                                                )) 
 }
 
 get_significance_for_each_performance <- function() {
   ets_plot_df <- get_ets_data() 
-  # %>% 
-  #   spread(Session, Value) %>% 
-  #   mutate(session_diff=DT-ST)
-  
-  # print(str(ets_plot_df))
-  # print(str(ets_plot_df))
-    
   significance_df <- data.frame()
+  
   for (performance_criteria in levels(factor(ets_plot_df$PerformanceCriteria))) {
     temp_ets_test_df <- ets_plot_df[ets_plot_df$PerformanceCriteria==performance_criteria, ] %>% 
-      spread(Session, Value)
-    # print(str(temp_ets_test_df))
-    
+      spread(Session, Value) %>% 
+      na.omit()
     
     #CHECK!!!
-    t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
     # t_test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
     # print(t_test)
     
     #CHECK!!!
-    w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    # w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
     # w_test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT-temp_ets_test_df$ST, mu=0)
     # print(w_test)
     
+    if (is_normal(temp_ets_test_df$DT) & is_normal(temp_ets_test_df$ST)) {
+      test_type <- 't-test'
+      test <- t.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    } else {
+      test_type <- 'w-test'
+      test <- wilcox.test(data=temp_ets_test_df, temp_ets_test_df$DT, temp_ets_test_df$ST, paired=T)
+    }
     
-    temp_significance_df <- data.frame( "PerformanceCriteria" = performance_criteria, "Significance" = get_significance_sign(w_test$p.value))
+    
+    temp_significance_df <- data.frame( "PerformanceCriteria" = performance_criteria, 
+                                        "Significance" = get_significance_sign(test$p.value),
+                                        "Subj_No"=nrow(temp_ets_test_df))
     significance_df <- rbind(significance_df, temp_significance_df)
 
   
     print_msg('-------------------------------------------------------------------------')
-    print_msg('-------------------------------------------------------------------------')
-    print_msg(paste0('--------------     ', performance_criteria, '     --------------------'))
-    print_msg('-------------------------------------------------------------------------')
+    print_msg(paste0('------------------     ', performance_criteria, '     ------------------------'))
     print_msg('-------------------------------------------------------------------------')
 
-    # print_msg(t_test)
-    # print_msg(paste('The mean differences between the HR from two sensors are',
-    #                 check_significance(t_test)))
-
-
-    print_msg(w_test)
+    print(paste0('Test Type: ', test_type))
+    print_msg(test)
     print_msg(paste('The mean differences between the HR from two sensors are',
-                    check_significance(w_test)))
+                    check_significance(test)))
 
-    print_msg('-------------------------------------------------------------------------')
-    print_msg('-------------------------------------------------------------------------')
+    print_msg('')
+    print_msg('')
+    print_msg('')
   }
   
   print_msg(str(significance_df))
   return(significance_df)
+}
+
+is_normal <- function(data) {
+  return(shapiro.test(data)$p.value >= 0.05)
+}
+
+get_normality <- function(data) {
+  # data=data[complete.cases(data), ]
+  if (is_normal(data)) {
+    return('normal')
+  }
+  return('non-normal')
 }
 
 draw_ets_plots <- function() {
@@ -596,16 +635,17 @@ draw_ets_plots <- function() {
   mean_df <- ddply(ets_plot_df, 
                    .(PerformanceCriteria, Session), 
                    summarise, 
-                   grp.mean=mean(Value), 
-                   annotation=n())
+                   mean=mean(Value, na.rm=T),
+                   sd=sd(Value, na.rm=T),
+                   normality=get_normality(Value),
+                   subj_no=sum(!is.na(Value)))
+  convert_to_csv(mean_df, file.path(performance_data_dir, 'ets_score_mean_sd.csv'))
   
   ##############################################################################
   ###########  Make a df like mean_df with PerformanceCriteria  ################
   ###########  Manually by draw_ets_rank_test_plots() function  ################
   ##############################################################################
   significance_df <- get_significance_for_each_performance()
-  
-  
   # print(str(mean_df))
   # print(mean_df$annotation)
   
@@ -618,7 +658,7 @@ draw_ets_plots <- function() {
     #              alpha=.5) +
     geom_density(aes(fill=Session), alpha=.5) + 
     geom_vline(data=mean_df, 
-               aes(xintercept=grp.mean, color=Session), 
+               aes(xintercept=mean, color=Session), 
                linetype="dashed",
                size=1.2,
                show.legend=F) +
@@ -628,9 +668,16 @@ draw_ets_plots <- function() {
     guides(fill = guide_legend(reverse=T)) +
     geom_text(
       data    = significance_df,
+      mapping = aes(x = Inf, y = Inf, label = paste0('n = ', Subj_No)),
+      hjust   = 1.1,
+      vjust   = 1.5,
+      size    = 5
+    ) +
+    geom_text(
+      data    = significance_df,
       mapping = aes(x = Inf, y = Inf, label = Significance),
       hjust   = 1.2,
-      vjust   = 1.5,
+      vjust   = 2.5,
       size    = 8
     ) +
     theme_bw() +
@@ -643,9 +690,9 @@ draw_ets_plots <- function() {
           legend.title=element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
+          plot.margin = unit(c(0.2, 1, 0.2, 0.2), "lines"), ##top, right, bottom, left
           axis.line = element_line(colour = "black"))
 
-  # print(ets_plot)
   save_plot('ets_score', ets_plot)
   
   ###############################################################################################

@@ -25,11 +25,9 @@ tamu_dir <- 'data-from-tamu'
 plots_dir <- 'plots'
 
 data_file_name <- 'df_hrv.csv'
-# grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC'[0], ' signal sets'))
-# grid_plot_title <- bquote(paste('Perinasal Perspiration [',''^'o','C',''^2,']:  QC0', ' signal sets'))
 grid_plot_title <- bquote(paste('QC1', ' signal sets'))
-y_axis_label <- bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))
-# y_axis_label <- bquote(paste('log'[10], bgroup('(', 'PP [',''^'o','C',''^2,']', ')')))
+# y_axis_label <- bquote(paste('log'[10], '(HRV [IBI])'))
+y_axis_label <- 'HRV [IBI]'
 
 plot_list <- list()
 
@@ -97,8 +95,27 @@ get_abbr_session_name <- function(session_name) {
 
 generate_hrv_plot <- function() {
   pp_all_df <- read_csv(file.path(data_dir, tamu_dir, data_file_name))
-  pp_all_df <- pp_all_df[, c(seq(1, 6))]
+  # pp_all_df <- pp_all_df[, c(seq(1, 6))]
   # print(str(pp_all_df))
+  
+  pp_all_df <- pp_all_df %>% 
+    rename(Subject='Participant ID',
+           Condition=Group,
+           Session=Treatment,
+           CovertedTime=Time,
+           Task=TaskMarkers,
+           N.EDA=EDA,
+           HR='Chest HR',
+           N.HR='Wrist HR') %>% 
+    mutate(Session = recode(Session,
+                            'RB' = 'RestingBaseline',
+                            'ST' = 'BaselineWriting',
+                            'PM' = 'StressCondition',
+                            'DT' = 'DualTask',
+                            'PR' = 'Presentation'),
+           Task = recode(Task, 'Report' = 'Essay')) %>% 
+    select(c('Subject', 'Condition', 'Session', 'CovertedTime', 'TimeElapsed', 'HRV'))
+  message(str(pp_all_df))
   
   # subj_list <- levels(factor(pp_all_df$Subject))
   
@@ -156,7 +173,7 @@ generate_hrv_plot <- function() {
       ###########################################################################
       
       # session_plot <- session_plot +                                                ## With SC Color
-      session_plot <- ggplot(data=session_df, aes(TimeElapsed, PP, group=Subject)) +  ## Without SC Color
+      session_plot <- ggplot(data=session_df, aes(TimeElapsed, HRV, group=Subject)) +  ## Without SC Color
         geom_line(alpha=0.7) +
         annotate("text", 
                  x=max_x, 
@@ -168,7 +185,7 @@ generate_hrv_plot <- function() {
                  fontface = 'italic')
       
       if (session_name != 'DualTask') {
-        session_plot <- session_plot + 
+        session_plot <- session_plot +
           theme_bw() +
           theme(axis.line = element_line(colour = "black"))
       }
@@ -183,19 +200,19 @@ generate_hrv_plot <- function() {
               axis.text.x=element_text(size=16),
               axis.text.y=element_text(size=12),
               # axis.title=element_text(size=20),
-              # strip.text.x = element_text(size = 20), 
+              # strip.text.x = element_text(size = 20),
               legend.position='none'
               ) +
-        scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
-        scale_y_continuous(trans='log10', 
-                           breaks=pretty_breaks(),
+        # scale_color_manual(values = c("High"="black", "Low"=session_color_code[3])) +
+        # scale_y_continuous(trans='log10',
+        #                    breaks=pretty_breaks(),
+        #                    sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name))) +
+        scale_y_continuous(limits=c(0, max_y),
                            sec.axis=sec_axis(~.+1, name=get_abbr_session_name(session_name))) +
-        # scale_y_continuous(limits=c(0, max_y), 
-        #                    sec.axis=sec_axis(~.+1, name=get_session_name(session_name)) +
         xlim(0, max_x) +
         xlab(x_axis_label) +
         ylab(y_axis_label)
-        
+
       
 
       

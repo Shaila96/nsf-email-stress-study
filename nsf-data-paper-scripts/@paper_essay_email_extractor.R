@@ -19,6 +19,8 @@ raw_data_dir <- 'nsf-stress-study'
 script_dir <- 'nsf-data-paper-scripts'
 data_dir <- 'data'
 performance_data_dir <- 'performane-data'
+final_data_dir <- 'final-data-set'
+textual_data_dir <- 'Textual Data'
 
 super_session_pattern <- '^SuperSession$'
 
@@ -66,9 +68,9 @@ get_data_if_col_exists <- function(subj_name, df, col_name){
 }
 
 getEssayTibble <- function(subj_name, df) {
-  return(tibble('Subject'=subj_name, 
-                'WB Essay'=df$Essay.Baseline.Content,
-                'DT Essay'=df$Essay.Dualtask.Content,
+  return(tibble('Participant_ID'=subj_name, 
+                'ST_Report'=df$Essay.Baseline.Content,
+                'DT_Report'=df$Essay.Dualtask.Content,
                 'Email1'=get_data_if_col_exists(subj_name, df, 'Email.1.Content'),
                 'Email2'=get_data_if_col_exists(subj_name, df, 'Email.2.Content'),
                 'Email3'=get_data_if_col_exists(subj_name, df, 'Email.3.Content'),
@@ -145,15 +147,9 @@ extractEssays <- function() {
     })
   })
 
-  # essay_df <- as.data.frame(essay_df)
-  # row.names(essay_df) <- NULL
-  # rownames(essay_df) <- NULL
-  # print(class(essay_df))
-  # print(rownames(essay_df))
   
-  # convert_to_csv(essay_df, "nsf-stress-study-scripts/@Datasets/essay_all.csv")
-  write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, performance_data_dir, "Essays and Emails.xlsx"))
-  # write.xlsx(as.data.frame(essay_df), "essay_all.xlsx")
+  # write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, performance_data_dir, "Reports and Emails.xlsx"))
+  write.xlsx(as.data.frame(essay_df), file.path(getwd(), script_dir, data_dir, final_data_dir, textual_data_dir, "Reports and Emails.xlsx"))
 } 
 
 

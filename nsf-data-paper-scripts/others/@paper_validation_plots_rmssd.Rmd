@@ -22,8 +22,8 @@ library(kableExtra)
 library(cowplot) 
 library(gsubfn)
 
-# PP, N.EDA, BR, HR, N.HR
-signal_name <- "HR"
+# PP, N.EDA, BR, HR, N.HR, HRV
+signal_name <- "HRV"
 
 
 ## CHANGE THIS!!!!
@@ -33,7 +33,7 @@ check_outlier = F
 ## CHANGE THIS!!!!
 hr_data_only <- F
 file_name_part_sensor_comparison <- ''
-col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "D.EDA", "N.EDA", "D.HR", "N.HR")
+col_names_final <- c("Subject", "Condition", "Session", "PP", "HR", "BR", "N.EDA", "N.HR", "HRV")
 
 
 ## CHANGE THIS!!!!
@@ -54,7 +54,9 @@ plots_dir <- 'plots'
 
 
 
-filtered_file_name <- 'full_df_second_phase_filtered.csv'
+# filtered_file_name <- 'full_df_second_phase_filtered.csv'
+filtered_file_name <- file.path('data-from-tamu', 'v1', 'df_hrv.csv')
+
 
 file_name_part_outlier <- ''
 
@@ -62,7 +64,26 @@ sensor_comparicon_col <- c('HR', 'N.HR')
 condition_list <- c('BH', 'BL', 'IH', 'IL')
 
 
-full_df <<- read_csv(file.path(data_dir, filtered_file_name))[, col_names_final]
+full_df <<- read_csv(file.path(data_dir, filtered_file_name))
+full_df <<- full_df %>% 
+    rename(Subject='Participant ID',
+           Condition=Group,
+           Session=Treatment,
+           CovertedTime=Time,
+           Task=TaskMarkers,
+           N.EDA=EDA,
+           HR='Chest HR',
+           N.HR='Wrist HR') %>% 
+    mutate(Session = recode(Session,
+                            'RB' = 'RestingBaseline',
+                            'ST' = 'BaselineWriting',
+                            'PM' = 'StressCondition',
+                            'DT' = 'DualTask',
+                            'PR' = 'Presentation'),
+           Task = recode(Task, 'Report' = 'Essay')) %>% 
+  select(col_names_final)
+
+
 # full_df$HR <- as.numeric(full_df$HR) 
 if (hr_data_only) {
   full_df <<- full_df[complete.cases(full_df), ]
@@ -767,6 +788,8 @@ figure_out_labels <- function(col_name, test_type) {
       return(expression(Delta~"ln("~bar("EDA")~paste('[', mu, 'S])')))
     }
     return(expression(Delta~bar('EDA')~' ['~mu~'S]')) 
+  } else if (isMatch(col_name, 'HRV')) {
+    return(expression(Delta~bar('HRV')~' [IBI]')) 
   } 
   return('Unknown axis.') 
 } 
@@ -787,19 +810,19 @@ figure_out_title <- function(col_name, condition, test_type) {
   
   if (condition == 'BH') {
     # return('Batch High Group')
-    return('Batch High Group | BH')
+    return('Batch High Group/BH')
     # return('Batch High Group (BH)')
   } else if (condition == 'BL') {
     # return('Batch Low Group')
-    return('Batch Low Group | BL')
+    return('Batch Low Group/BL')
     # return('Batch Low Group (BL)')
   } else if (condition == 'IH') {
     # return('Continual High Group')
-    return('Continual High Group | CH')
+    return('Continual High Group/CH')
     # return('Continual High Group (CH)')
   } else if (condition == 'IL') {
     # return('Continual Low Group')
-    return('Continual Low Group | CL')
+    return('Continual Low Group/CL')
     # return('Continual Low Group (CL)')
   }  
 } 

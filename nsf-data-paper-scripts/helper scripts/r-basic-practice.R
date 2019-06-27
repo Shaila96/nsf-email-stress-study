@@ -92,19 +92,19 @@
 
 
 
-library(ggplot2)
-
-# create a dataset
-specie=c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
-condition=rep(c("normal" , "stress" , "Nitrogen") , 4)
-value=abs(rnorm(12 , 0 , 15))
-data=data.frame(specie,condition,value)
-
-str(data)
-
-# Grouped
-ggplot(data, aes(fill=condition, y=value, x=specie)) +
-  geom_bar(position="dodge", stat="identity")
+# library(ggplot2)
+# 
+# # create a dataset
+# specie=c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+# condition=rep(c("normal" , "stress" , "Nitrogen") , 4)
+# value=abs(rnorm(12 , 0 , 15))
+# data=data.frame(specie,condition,value)
+# 
+# str(data)
+# 
+# # Grouped
+# ggplot(data, aes(fill=condition, y=value, x=specie)) +
+#   geom_bar(position="dodge", stat="identity")
 
 # # Stacked
 # ggplot(data, aes(fill=condition, y=value, x=specie)) +
@@ -125,3 +125,30 @@ ggplot(data, aes(fill=condition, y=value, x=specie)) +
 # dmvnorm(x=c(0,0), mean=c(1,1))
 # x <- rmvnorm(n=100, mean=c(1,1))
 # plot(x)
+
+
+
+
+
+library(ggiraph)
+library(ggplot2)
+
+set.seed(1)
+d <- seq(Sys.Date(), (Sys.Date() + 20), by = "day")
+n <- length(d)
+x <- rnorm(n)
+x[floor(n/2)] <- NA
+df <- data.frame(d = d, x = x)
+str(df)
+
+ggplot(df, aes(d, x)) +
+  geom_line(na.rm = F) +
+  labs(title = "ggplot2::geom_line")
+
+ggplot(df, aes(d, x)) +
+  geom_line(na.rm = T) +
+  labs(title = "ggplot2::geom_line")
+
+ggplot(df, aes(d, x)) +
+  geom_line_interactive()  +
+  labs(title = "ggiraph::geom_interactive_line")

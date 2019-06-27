@@ -47,7 +47,7 @@ raw_mean_file_name <- 'result_df_non_filtered.csv'
 qc2_mean_file_name <- 'result_df_second_phase.csv'
 
 common_col_names <- c('Subject', 'Condition', 'Session')
-signal_col_names <- c('PP', 'N.EDA', 'HR', 'N.HR', 'BR')
+signal_col_names <- c('PP', 'N.EDA', 'BR', 'HR', 'N.HR')
 col_names <- c(common_col_names, signal_col_names)
 
 session_list <- c('RestingBaseline', 'BaselineWriting', 'StressCondition', 'DualTask', 'Presentation')
@@ -162,13 +162,15 @@ read_data <- function() {
 
 get_x_label <- function(signal) {
   if (is_match(signal, 'PP')) { 
-    return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
+    return(bquote(paste('log'[10], '(PP [',''^'o','C',''^2,'])'))) 
+    # return(expression('Perinasal Perspiration'~paste(' [',''^'o','C',''^2,']')))
   } else if (signal=='HR') {
     return('Chest HR [BPM]')
   } else if (signal=='N.HR') {
     return('Wrist HR [BPM]')
   } else if (is_match(signal, 'BR')) { 
-    return('Breathing Rate [BPM]')
+    return('BR [BPM]')
+    # return('Breathing Rate [BPM]')
   } else if (is_match(signal, 'EDA')) {
     return(expression(paste('log'[10], '(EDA [', mu, 'S])')))
     # return(expression(paste('EDA [', mu, 'S]')))
@@ -177,11 +179,6 @@ get_x_label <- function(signal) {
 }
 
 get_y_label <- function(data_type) {
-  # if (is_match(signal, 'PP') | signal=='HR' | signal=='BR') { 
-  #   return('PDF')
-  # } else if (is_match(signal, 'N.HR') | is_match(signal, 'EDA')) { 
-  #   return('')
-  # }
   if (data_type=='raw') { 
     return('PDF')
   }
@@ -217,10 +214,26 @@ remove_legend <- function() {
 
 get_right_margin_val <- function(data_type) {
   if (data_type=='qc2') {
-    return(1.2)
+    return(1.5)
   }
   
   return(0.5)
+}
+
+get_title <- function(data_type) {
+  if (data_type=='raw') {
+    return('Before Quality Control')
+  } 
+  
+  return('After Quality Control')
+}
+
+get_breaks <- function(signal) {
+  if (signal=='PP') {
+    return(c(0.004, 0.008, 0.016))
+  } else if (signal=='N.EDA') {
+    return(c(0.01, 0.1, 1, 10))
+  }
 }
 
 get_pdf_plot <- function(mean_df, mean_per_session_df, signal, total_signal, data_type) {
@@ -241,23 +254,28 @@ get_pdf_plot <- function(mean_df, mean_per_session_df, signal, total_signal, dat
     ylab(get_y_label(data_type)) + 
     xlim(min(raw_mean_df[[signal]], na.rm=T), max(raw_mean_df[[signal]], na.rm=T)) +
     theme(text=element_text(size=18),
-          axis.text = element_text(size=16),
+          axis.text = element_text(size=20),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
+          plot.title = element_text(size=20, margin=margin(0, 0, 40, 0)), ##top, right, bottom, left
           plot.margin = unit(c(2, get_right_margin_val(data_type), 0.5, 0.5), "lines"))  ##top, right, bottom, left
+
   
-  if (signal=='N.EDA') {
+  if (signal=='N.EDA' | signal=='PP') {
         probability_density_plot <- probability_density_plot + 
           scale_x_continuous(trans='log10',
                              # limits=c(
                              #   min(raw_mean_df[[signal]], na.rm=T) + 0.001,
                              #   max(raw_mean_df[[signal]], na.rm=T)
                              #   ),
-                             breaks=c(0.01, 0.1, 1, 10))
-      } 
+                             breaks=get_breaks(signal))
+        } 
 
-  if (length(probability_plot_list)+1 == total_signal) {
+  if (length(probability_plot_list) == 0) {
+    probability_density_plot <- probability_density_plot +
+      ggtitle(get_title(data_type))
+  }else if (length(probability_plot_list)+1 == total_signal) {
     probability_plot_legend <<- get_legend(probability_density_plot + add_bottom_legend())
   }
 
@@ -278,10 +296,13 @@ draw_plots <- function() {
   ### Hassle to return multiple variables or have to take as global
   sapply(signal_col_names, draw_plot, total_signal=length(signal_col_names))
 
-  grid_plot <- plot_grid(plotlist=probability_plot_list, cols=1)
+  grid_plot <- plot_grid(plotlist=probability_plot_list,
+                         rel_heights = c(2.6, 2, 2, 2, 2),
+                         cols=1)
   grid_plot <- plot_grid(grid_plot,
                          probability_plot_legend,
-                         rel_heights = c(10, 1),
+                         rel_heights = c(10.6, 1),
+                         # rel_heights = c(10, 1),
                          align='v',
                          cols=1)
   save_plot('combined_mean_signal_distribution_pdf', grid_plot, width=12, height=15)
